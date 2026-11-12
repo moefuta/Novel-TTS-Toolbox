@@ -3242,6 +3242,22 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
     <!-- 内容区（你可以随时修改这里的内容） -->
     <div class="cl-content" style="padding: 20px; overflow-y: auto; font-size: 13.5px; line-height: 1.7; color: var(--text);">
 
+      <!-- v1.0.13 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.13</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li>修复了 <code>&lt;ruby&gt;</code> <b>逐字注音结构</b>（一个 <code>&lt;ruby&gt;</code> 内含多个 <code>&lt;rt&gt;</code>）无法被解析的 BUG。</li>
+          <li>根因：<code>tts.py</code> 的 <code>RUBY_PATTERNS</code> 第一条正则只支持「1 个 base + 1 个 rt」的标准结构，遇到 EPUB 里常见的 <code>&lt;ruby&gt;矯&lt;rt&gt;きよう&lt;/rt&gt;正&lt;rt&gt;せい&lt;/rt&gt;&lt;/ruby&gt;</code> 这种逐字注音时，正则匹配失败，导致<b>整条 <code>&lt;ruby&gt;</code> 标签被原样保留</b>，最终送进 TTS 引擎的文本里混杂着大量 HTML 标签，被朗读成「ruby 矯 rt きよう …」之类的乱码。</li>
+          <li>修复：新增 <code>_extract_html_ruby()</code> 专用解析函数，改用 <code>re.split</code> 按 <code>&lt;rt&gt;</code> 边界切片，把多段 base 与多段 ruby 分别拼接合并。<code>矯&lt;rt&gt;きよう&lt;/rt&gt;正&lt;rt&gt;せい&lt;/rt&gt;</code> 会被正确还原为 <code>｜矯正《きようせい》</code>，<code>強&lt;rt&gt;きよう&lt;/rt&gt;靱&lt;rt&gt;じん&lt;/rt&gt;</code> 会被正确还原为 <code>｜強靱《きようにん》</code>。</li>
+          <li>同步增强了 <code>&lt;rp&gt;</code> 标签的剥离能力，并支持 <code>&lt;rb&gt;</code>、<code>&lt;span&gt;</code> 等嵌套标签混入的情况。</li>
+          <li style="margin-top: 10px; padding: 8px 12px; background: light-dark(#e0f2e6, #142a1e); border-left: 4px solid var(--ok); border-radius: 0 4px 4px 0;">
+            <b style="color: var(--ok);">💡 温馨提示：</b>本次修复只解决「标签解析」，但<b>原文标注的读音是否正确，仍需你自己把关</b>。<br>
+            比如 EPUB 常见的错标：<code>矯正</code> 标成 <code>きようせい</code>（<code>よ</code> 应为小字 <code>ょ</code>）、<code>強靱</code> 标成 <code>きようにん</code>（应为 <code>きょうじん</code>）——解析器只能忠实还原原文给的读音，无法自动纠错。<br>
+            建议在 <code>user_dict.txt</code> 里加上 <code>矯正 =&gt; きょうせい</code>、<code>強靱 =&gt; きょうじん</code> 等强制覆盖规则，让词典优先级压过原文 ruby。
+          </li>
+        </ul>
+      </div>
+
       <!-- v1.0.12 -->
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.12</div>

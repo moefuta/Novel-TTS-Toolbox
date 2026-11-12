@@ -857,8 +857,28 @@ def fix_person_suffixes(text, output_mode='C'):
 # 六、Ruby 解析 (与原版一致)
 # ============================================================
 RUBY_KANA = r"[ぁ-んァ-ヶーヽヾゝゞ]+"
+RUBY_KANA = r"[ぁ-んァ-ヶーヽヾゝゞ]+"
+
+def _extract_html_ruby(m):
+    """
+    解析 <ruby>...</ruby>，支持一个 ruby 内部有多个 <rt>：
+      <ruby>矯<rt>きよう</rt>正<rt>せい</rt></ruby>  →  base="矯正",  ruby="きようせい"
+      <ruby>判<rt>わか</rt></ruby>                  →  base="判",    ruby="わか"
+    """
+    inner = m.group(1)
+    # 先剥离 <rp> 标签（内含标注，不参与读音）
+    inner_clean = re.sub(r"<rp\b[^>]*>[\s\S]*?</rp>", "", inner, flags=re.IGNORECASE)
+    # 以 <rt>...</rt> 为分隔符切片：偶数位是 base，奇数位是 ruby
+    parts = re.split(r"<rt\b[^>]*>([\s\S]*?)</rt>", inner_clean, flags=re.IGNORECASE)
+    base = "".join(parts[0::2])
+    ruby = "".join(parts[1::2])
+    # 去掉残留的其它标签（如 <rb>、<span> 之类），再清理空白
+    base = re.sub(r"<[^>]+>", "", base).strip()
+    ruby = re.sub(r"<[^>]+>", "", ruby).strip()
+    return base, ruby
+
 RUBY_PATTERNS = [
-    (re.compile(r"<ruby>\s*([^<]+?)\s*(?:<rp>[^<]*</rp>)?\s*<rt>\s*([^<]+?)\s*</rt>\s*(?:<rp>[^<]*</rp>)?\s*</ruby>", re.IGNORECASE | re.DOTALL), lambda m: (m.group(1).strip(), m.group(2).strip())),
+    (re.compile(r"<ruby\b[^>]*>([\s\S]*?)</ruby>", re.IGNORECASE | re.DOTALL), _extract_html_ruby),
     (re.compile(r"[｜|]([^《》｜|]+)《([^《》]+)》"), lambda m: (m.group(1).strip(), m.group(2).strip())),
     (re.compile(r"([一-龥々〆ヵヶ]+)《(" + RUBY_KANA + r")》"), lambda m: (m.group(1), m.group(2))),
     (re.compile(r"[{｛]([^{}｛｝|｜]+)[|｜]([^{}｛｝|｜]+)[}｝]"), lambda m: (m.group(1).strip(), m.group(2).strip())),
