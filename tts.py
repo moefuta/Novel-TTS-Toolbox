@@ -151,6 +151,17 @@ def _concat_wav_bytes(wav_list: list[bytes]) -> bytes:
         wo.writeframes(bytes(frames_all))
     return out.getvalue()
 
+def _generate_silence_wav(duration_sec=1.0) -> bytes:
+    """生成一段静音 WAV 音频，用于处理纯标点导致的引擎合成失败"""
+    framerate = 44100
+    nframes = int(framerate * duration_sec)
+    out = io.BytesIO()
+    with wave.open(out, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)  # 16-bit
+        w.setframerate(framerate)
+        w.writeframes(b'\x00' * (nframes * 2))  # 16-bit 单声道全 0
+    return out.getvalue()
 
 def _concat_wav_files(src_paths: list[str], dst_path: str) -> None:
     """把多个 wav 文件合并写到 dst_path（要求格式一致）。"""
@@ -696,8 +707,9 @@ def load_all_rules(force=False):
             continue
             
         if is_auto:
-            # ★ auto_dict 仅作登记，不加入生效规则池
+            # ★ 修复：将 auto_dict 里的词条加入内存去重集合，防止重启后丢失标记导致重复写入文件
             for compiled, options, count, orig_len, original_text in rules:
+                auto_keys.add(compiled.pattern)
                 if options:
                     new_auto_dict_words[original_text] = options[0][0]
             continue
@@ -964,6 +976,7 @@ def _merge_adjacent_rubies(text):
 
 def parse_ruby(text, output_mode='B'):
     findings = []
+    _seen_findings = set()  # ★ 新增：用于去重，记录 (base, ruby, final, from_dict) 的组合
     
     # ★ 修复引擎误认书名号：如果《》前面不是竖线，也不是汉字，说明这只是普通书名号或强调。
     # 直接去掉《》符号只留文字，防止 TTS 引擎把前面的假名当作注音原词吞掉。
@@ -988,15 +1001,16 @@ def parse_ruby(text, output_mode='B'):
             base, ruby = _ext(m)
             if not base or not ruby: return m.group(0)
             
-            # 修复：如果原文与注音完全一致，直接返回原词
             if base == ruby:
                 return base
-            
-            # 核心拦截：如果发现用户词典里有这个汉字的规则，废弃原文注音
+                
             with _dict_lock:
                 base_no_space = re.sub(r'[ \u3000]', '', base)
                 if base in _exact_dict_lookup or base_no_space in _exact_dict_lookup:
-                    findings.append({"base": base, "ruby": ruby, "final": "由用户词典覆盖", "from_dict": True})
+                    key = (base, ruby, "由用户词典覆盖", True)
+                    if key not in _seen_findings:
+                        _seen_findings.add(key)
+                        findings.append({"base": base, "ruby": ruby, "final": "由用户词典覆盖", "from_dict": True})
                     return base
                     
             def clean(r): return re.sub(r'[·・\s]', '', r)
@@ -1013,12 +1027,19 @@ def parse_ruby(text, output_mode='B'):
                 options = _parse_replacement_options(ruby)
                 if len(options) > 1:
                     chosen = random.choices([o[0] for o in options], weights=[o[1] for o in options], k=1)[0]
-                    findings.append({"base": base, "ruby": ruby, "final": chosen, "from_dict": False})
+                    key = (base, ruby, chosen, False)
+                    if key not in _seen_findings:
+                        _seen_findings.add(key)
+                        findings.append({"base": base, "ruby": ruby, "final": chosen, "from_dict": False})
                     if output_mode == 'A': return base
                     elif output_mode == 'B': return chosen
                     elif output_mode == 'C': return format_c(base, chosen)
             
-            findings.append({"base": base, "ruby": ruby, "final": ruby, "from_dict": False})
+            key = (base, ruby, ruby, False)
+            if key not in _seen_findings:
+                _seen_findings.add(key)
+                findings.append({"base": base, "ruby": ruby, "final": ruby, "from_dict": False})
+
             if output_mode == 'A': return base
             elif output_mode == 'B': return ruby
             elif output_mode == 'C': return format_c(base, ruby)
@@ -1038,7 +1059,23 @@ def _append_to_auto_dict(base, ruby):
     key_check = _build_latin_fold_pattern(base) if _is_plain_text(base) else re.escape(base)
     with _dict_lock:
         if key_check in _auto_dict_keys: return False
-        with open(AUTO_DICT_FILE, "a", encoding="utf-8") as f: f.write(f"{base} => {ruby}\n")
+        
+        # ★ 物理检查文件，防止内存集合因意外情况未加载而导致重复追加
+        if os.path.exists(AUTO_DICT_FILE):
+            try:
+                with open(AUTO_DICT_FILE, "r", encoding="utf-8-sig") as f:
+                    for line in f:
+                        if "=>" in line:
+                            ex_base = line.split("=>")[0].strip()
+                            ex_key = _build_latin_fold_pattern(ex_base) if _is_plain_text(ex_base) else re.escape(ex_base)
+                            if ex_key == key_check:
+                                _auto_dict_keys.add(key_check)
+                                return False
+            except Exception:
+                pass
+                
+        with open(AUTO_DICT_FILE, "a", encoding="utf-8") as f: 
+            f.write(f"{base} => {ruby}\n")
         _auto_dict_keys.add(key_check); _rules_dir_state = None
         
     with _auto_dict_lock:
@@ -1484,6 +1521,14 @@ async def _do_synthesize(request: TTSRequest):
     if not text.strip():
         record.update({"status": "error", "error": "朗读文本为空"}); _record_monitor(record)
         raise HTTPException(status_code=400, detail="朗读文本为空")
+
+    # ★ 修复：拦截纯标点文本（如 ──…… ），直接返回 1 秒静音，防止 COM 引擎报错
+    # 正则含义：如果文本中找不到任何汉字、假名或英文字母/数字，说明全是标点符号
+    if not re.search(r'[0-9a-zA-Z\u3040-\u30ff\u4e00-\u9fff]', text):
+        record["backend"] = "silence"
+        record["speaker"] = "纯标点静音兜底"
+        _record_monitor(record)
+        return _generate_silence_wav(1.0), record
 
     # ================== ★ Windows 讲述人 / 系统 SAPI ==================
     if model_lower.startswith("windows:"):
