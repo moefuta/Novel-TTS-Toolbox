@@ -13,6 +13,19 @@
 └── 📝 tts.py                     	# 主服务
 ```
 
+# 运行需要进行的设置
+1. 在小说阅读器中，选择Open AI接口
+2. API端口为`http://127.0.0.1:8000`
+3. API key随便写一个`123456`
+4. Model ID填写`auto`
+5. 开始运行
+
+# 目前已经支持的TTS引擎
+1. 本地Windows讲述人
+2. 本地软件 VOICEVOX.exe
+3. 本地软件 CeVIO AI.exe
+4. 联网服务 EdgeTTS
+
 # 首次运行后的文件目录
 ```
 📂Novel TTS/                	# 文件目录请自行建立
