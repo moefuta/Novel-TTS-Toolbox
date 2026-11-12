@@ -37,15 +37,15 @@
 │   └── 🖼️ *.svg  / 🖼️ *.webp     	# 以上格式均支持（无需写后缀即可自动匹配）
 │
 ├── 📁 model_configs/        	# 模型配置目录（首次运行生成）
-│   └── 📝 default.json           	# 首次运行自动生成
-│   ├── 📝 *.json                 	# 自定义配置（需用户自行建立）
+│   ├── 📝 default.json           	# 首次运行自动生成
+│   └── 📝 *.json                 	# 自定义配置（需用户自行建立）
 │
 ├── 📁 replace_rules/        	# 规则目录（首次运行生成）
 │   ├── 📝 auto_dict.txt          	# 自动记忆（程序自动生成，只登记，不生效）
 │   ├── 📝 person_dict.txt        	# 人名词典 + [suffix] 后缀（首次运行自动生成）
-│   └── 📝 user_dict.txt          	# 用户词典（首次运行自动生成，附带示例规则）
+│   ├── 📝 user_dict.txt          	# 用户词典（首次运行自动生成，附带示例规则）
 │   ├── 📝 *.txt                  	# 其他自定义规则（需用户自行建立）
-│   ├── 📝 *.txt                  	# 其他解压自 replace_rule.7z 的规则文件
+│   └── 📝 *.txt                  	# 其他解压自 replace_rule.7z 的规则文件
 │
 ├── 📝 global_config.json         	# 全局配置（首次修改输出格式时生成）
 ├── 📝 model_config_active.json   	# 当前生效的模型配置文件名（运行后生成）
