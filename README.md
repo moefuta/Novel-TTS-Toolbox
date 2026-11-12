@@ -3,16 +3,19 @@
 使用说明已经内置于 All in one toolbox.html，请下载HTML打开查看
 
 # 运行须下载的文件
-📂Novel TTS/
+```
+📂Novel TTS/                	# 文件目录请自行建立
 ├── 📝 all in one toolbox.html    	# 前端工具箱
 ├── 📝 License.txt                	# 许可证
 ├── 📦 replace_rule.7z.backup     	# 开发者的规则参考包（仅供参考，不具备普适性）
 ├── 📝 run tts.bat                	# 启动脚本（请保存为 ANSI 编码）
 ├── 🐟 skill.md                   	# 提供给 AI 的技能/上下文说明文件
 └── 📝 tts.py                     	# 主服务
+```
 
 # 首次运行后的文件目录
-📂Novel TTS/
+```
+📂Novel TTS/                	# 文件目录请自行建立
 ├── 📁 bg/                   	# 背景图片目录（首次运行生成）
 │   ├── 🖼️ *.avif / 🖼️ *.bmp      	# 供前端设置调用的底图（需用户自行放入）
 │   ├── 🖼️ *.gif  / 🖼️ *.jpeg     	# 
@@ -40,3 +43,4 @@
 ├── 📝 run tts.bat                	# 启动脚本（请保存为 ANSI 编码）
 ├── 🐟 skill.md                   	# 提供给 AI 的技能/上下文说明文件
 └── 📝 tts.py                     	# 主服务
+```
