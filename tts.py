@@ -743,7 +743,7 @@ def load_all_rules(force=False):
         _auto_dict_words.clear()
         _auto_dict_words.update(new_auto_dict_words)
 
-def apply_replace_rules(text, output_mode='B'):
+def apply_replace_rules(text, output_mode='B', clean_punct=True):
     load_all_rules()
     with _dict_lock: rules_snapshot = list(_all_rules)
     text = re.sub(r"[\u200b-\u200f\u202a-\u202e]", "", text)
@@ -799,10 +799,11 @@ def apply_replace_rules(text, output_mode='B'):
             text = text.replace(f"\x00RUBY{i}\x00", p)
         
     # 清理括号
-    if output_mode != 'C':
-        text = re.sub(r"[『』【】《》〈〉〔〕［］｛｝「」]", "", text)
-    else:
-        text = re.sub(r"[『』【】〈〉〔〕［］｛｝「」]", "", text)
+    if clean_punct:
+        if output_mode != 'C':
+            text = re.sub(r"[『』【】《》〈〉〔〕［］｛｝「」]", "", text)
+        else:
+            text = re.sub(r"[『』【】〈〉〔〕［］｛｝「」]", "", text)
         
     return re.sub(r"^[、，,]+|[、，,]+$", "", re.sub(r"([、，,])[、，,]+", r"\1", re.sub(r"[・]", "、", text)))
 
@@ -1184,6 +1185,7 @@ class AutoConfigModel(BaseModel):
     model: str = "karin"; voice: str = "alloy"; speed: float = 1.0
 class GlobalConfigModel(BaseModel):
     output_format: str = "C"
+    lang: str = "ja"
 class RulesFilesUpdate(BaseModel):
     enabled_files: list[str]
 # ★ 搜索规则的请求体
@@ -1320,7 +1322,10 @@ async def get_auto_dict():
 
 @app.post("/v1/global/config")
 async def set_global_config(cfg: GlobalConfigModel):
-    _global_config["output_format"] = cfg.output_format
+    if cfg.output_format:
+        _global_config["output_format"] = cfg.output_format
+    if cfg.lang:
+        _global_config["lang"] = cfg.lang
     _save_global_config()
     return _global_config
 
@@ -1434,17 +1439,25 @@ async def _do_synthesize(request: TTSRequest):
 
     await asyncio.to_thread(load_all_rules)
     output_mode = _global_config.get("output_format", "C")
-    
-    # 1. 先提取原有的 Ruby
-    text, findings = await asyncio.to_thread(parse_ruby, request.input, output_mode)
-    record["ruby_findings"] = findings
-    for f in findings: _append_to_auto_dict(f["base"], f["ruby"])
-    
-    # 2. 修正暴露出来的人名后缀（は -> わ, 家 -> け）
-    text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
-    
-    # 3. 普通替换规则（内部自带保护，不会破坏第一步和第二步的结果）
-    text = await asyncio.to_thread(apply_replace_rules, text, output_mode)
+    lang = _global_config.get("lang", "ja")
+
+    if lang == 'en':
+        # 【英语】禁用一切映射功能，直接原文发送
+        text = request.input
+        record["ruby_findings"] = []
+    elif lang == 'zh':
+        # 【漢语】禁用仅针对日语的优化（如Ruby解析、后缀修复），只保留纯文本映射
+        text = request.input
+        record["ruby_findings"] = []
+        # 强制使用 'B' 模式（纯文本替换），且不清理中文标点
+        text = await asyncio.to_thread(apply_replace_rules, text, 'B', clean_punct=False)
+    else:
+        # 【日语】正常逻辑
+        text, findings = await asyncio.to_thread(parse_ruby, request.input, output_mode)
+        record["ruby_findings"] = findings
+        for f in findings: _append_to_auto_dict(f["base"], f["ruby"])
+        text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
+        text = await asyncio.to_thread(apply_replace_rules, text, output_mode)
     record["final_text"] = text
     if not text.strip():
         record.update({"status": "error", "error": "朗读文本为空"}); _record_monitor(record)
@@ -1550,10 +1563,21 @@ async def create_tts(request: TTSRequest):
 async def monitor_preview(request: TTSRequest):
     await asyncio.to_thread(load_all_rules)
     output_mode = _global_config.get("output_format", "C")
-    
-    text, findings = await asyncio.to_thread(parse_ruby, request.input, output_mode)
-    text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
-    return {"raw_text": request.input, "ruby_text": text, "final_text": await asyncio.to_thread(apply_replace_rules, text, output_mode), "ruby_findings": findings}
+    lang = _global_config.get("lang", "ja")
+
+    if lang == 'en':
+        text = request.input
+        findings = []
+    elif lang == 'zh':
+        text = request.input
+        findings = []
+        text = await asyncio.to_thread(apply_replace_rules, text, 'B', clean_punct=False)
+    else:
+        text, findings = await asyncio.to_thread(parse_ruby, request.input, output_mode)
+        text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
+        text = await asyncio.to_thread(apply_replace_rules, text, output_mode)
+
+    return {"raw_text": request.input, "ruby_text": text, "final_text": text, "ruby_findings": findings}
 
 @app.post("/v1/monitor/synthesize")
 async def monitor_synthesize(request: TTSRequest):

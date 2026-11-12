@@ -2906,6 +2906,51 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 		<!-- 左侧控制面板 -->
 		<div style="flex:1 1 360px; max-width:400px; background:var(--panel-bg); border:1px dashed var(--panel-border); border-radius:10px; padding:14px;">
 
+		<!-- ★ TTS 语种选择 -->
+		<div style="padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
+			<label class="monitor-lbl" style="margin:0 0 8px 0; font-weight:600; color:var(--text);">🌐 TTS 语种选择</label>
+			<div style="display:flex; gap:8px;">
+				
+				<!-- 英文 (英国国旗) -->
+				<button class="btn ghost small lang-btn" data-lang="en" style="flex:1; justify-content:center; gap:6px;">
+					<svg width="18" height="14" viewBox="0 0 60 30" style="border-radius: 2px; box-shadow: 0 0 1px rgba(0,0,0,0.4); flex-shrink: 0;">
+						<clipPath id="uk-clip"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath>
+						<path d="M0,0 v30 h60 v-30 z" fill="#00247d"/>
+						<path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+						<path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#uk-clip)" stroke="#cf142b" stroke-width="4"/>
+						<path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/>
+						<path d="M30,0 v30 M0,15 h60" stroke="#cf142b" stroke-width="6"/>
+					</svg>
+					英语
+				</button>
+
+				<!-- 中文 (中国国旗) -->
+				<button class="btn ghost small lang-btn" data-lang="zh" style="flex:1; justify-content:center; gap:6px;">
+					<svg width="18" height="14" viewBox="0 0 60 40" style="border-radius: 2px; box-shadow: 0 0 1px rgba(0,0,0,0.4); flex-shrink: 0;">
+						<rect width="60" height="40" fill="#de2910"/>
+						<polygon points="10,4 12.36,11.24 20,11.24 13.82,15.73 16.18,23 10,18.5 3.82,23 6.18,15.73 0,11.24 7.64,11.24" fill="#ffde00" transform="translate(3, 2) scale(0.7)"/>
+					</svg>
+					漢语
+				</button>
+
+				<!-- 日文 (樱花图标) -->
+				<button class="btn ghost small lang-btn" data-lang="ja" style="flex:1; justify-content:center; gap:6px;">
+					<svg width="18" height="18" viewBox="0 0 24 24" style="flex-shrink: 0;">
+						<g transform="translate(12,12)">
+							<path d="M0,0 C-2.5,-4 -4,-8.5 0,-10.5 C4,-8.5 2.5,-4 0,0" fill="#ffb7c5" stroke="#f09199" stroke-width="0.8" transform="rotate(0)"/>
+							<path d="M0,0 C-2.5,-4 -4,-8.5 0,-10.5 C4,-8.5 2.5,-4 0,0" fill="#ffb7c5" stroke="#f09199" stroke-width="0.8" transform="rotate(72)"/>
+							<path d="M0,0 C-2.5,-4 -4,-8.5 0,-10.5 C4,-8.5 2.5,-4 0,0" fill="#ffb7c5" stroke="#f09199" stroke-width="0.8" transform="rotate(144)"/>
+							<path d="M0,0 C-2.5,-4 -4,-8.5 0,-10.5 C4,-8.5 2.5,-4 0,0" fill="#ffb7c5" stroke="#f09199" stroke-width="0.8" transform="rotate(216)"/>
+							<path d="M0,0 C-2.5,-4 -4,-8.5 0,-10.5 C4,-8.5 2.5,-4 0,0" fill="#ffb7c5" stroke="#f09199" stroke-width="0.8" transform="rotate(288)"/>
+							<circle cx="0" cy="0" r="1.5" fill="#fff" />
+						</g>
+					</svg>
+					日语
+				</button>
+
+			</div>
+		</div>
+
 		<!-- 自动记忆登记状态 -->
 		<div style="padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
 			<div style="display:flex;justify-content:space-between;align-items:center;">
@@ -3136,6 +3181,16 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 
     <!-- 内容区（你可以随时修改这里的内容） -->
     <div class="cl-content" style="padding: 20px; overflow-y: auto; font-size: 13.5px; line-height: 1.7; color: var(--text);">
+
+      <!-- v1.0.11 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.11</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li>监控台左侧面板新增「TTS 语种选择」功能。</li>
+          <li>支持快速切换日语、漢语、英语三种目标语种（选择状态会自动保存在浏览器本地）。</li>
+          <li>为后续不同语种的专属规则库或合成策略（如中文纯注音替代、英文纯原文读取）预留了底层 UI 交互层。</li>
+        </ul>
+      </div>
 
       <!-- v1.0.10 -->
       <div class="cl-item" style="margin-bottom: 24px;">
@@ -6303,6 +6358,21 @@ function normalizeRubyForExport(s) {
               }
             }
           }
+          if (globalCfg.lang) {
+            localStorage.setItem('ttsLang', globalCfg.lang);
+            // 如果 initLangSelector 已经加载，手动同步一下UI
+            const langBtns = document.querySelectorAll('.lang-btn');
+            if (langBtns.length > 0) {
+              langBtns.forEach(btn => {
+                const isTarget = btn.dataset.lang === globalCfg.lang;
+                btn.classList.toggle('ghost', !isTarget);
+                btn.classList.toggle('active', isTarget);
+                btn.style.background = isTarget ? 'var(--primary)' : '';
+                btn.style.color = isTarget ? '#fff' : '';
+                btn.style.borderColor = isTarget ? 'var(--primary-dark)' : '';
+              });
+            }
+          }
         }
       } catch (e) {}
       
@@ -6322,6 +6392,47 @@ function normalizeRubyForExport(s) {
     }
   }
 
+  // ★ 语种选择逻辑
+  function initLangSelector() {
+    const langBtns = document.querySelectorAll('.lang-btn');
+    let currentLang = localStorage.getItem('ttsLang') || 'ja';
+
+    function updateLangUI(lang) {
+      langBtns.forEach(btn => {
+        if (btn.dataset.lang === lang) {
+          btn.classList.remove('ghost');
+          btn.classList.add('active');
+          btn.style.background = 'var(--primary)';
+          btn.style.color = '#fff';
+          btn.style.borderColor = 'var(--primary-dark)';
+        } else {
+          btn.classList.add('ghost');
+          btn.classList.remove('active');
+          btn.style.background = '';
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }
+      });
+    }
+
+    updateLangUI(currentLang);
+
+    langBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentLang = btn.dataset.lang;
+        localStorage.setItem('ttsLang', currentLang);
+        updateLangUI(currentLang);
+        
+        // ★ 核心：把语种同步给 tts.py
+        fetch(API_BASE + '/v1/global/config', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ lang: currentLang })
+        }).catch(e => console.warn("同步语种配置失败", e));
+      });
+    });
+  }
+
   function bootstrap() {
     $('monitorEngine').addEventListener('change', () => {
       updateEngineVisibility();
@@ -6338,6 +6449,7 @@ function normalizeRubyForExport(s) {
     });
     
     fillModelSelect();
+    initLangSelector(); // ★ 初始化语种选择 UI
 
     // 监听最终朗读文本的编辑
     $('monitorPreviewBox').addEventListener('input', () => {
