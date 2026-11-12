@@ -1412,14 +1412,16 @@ async def open_rule_file(payload: RuleOpenPayload):
 # 九、核心合成逻辑
 # ============================================================
 async def _do_synthesize(request: TTSRequest):
-    model_lower = request.model.strip().lower()
+    model_raw = request.model.strip()          # ★ 保留原始大小写（Edge / SAPI 需要）
+    model_lower = model_raw.lower()            # 分支判断仍用小写，不影响匹配
     voice_lower = request.voice.strip().lower()
     speed = float(request.speed)
     auto_used = False
 
     if model_lower == "auto":
         with _auto_config_lock: cfg = dict(_auto_config)
-        model_lower = str(cfg.get("model", "auto")).lower()
+        model_raw = str(cfg.get("model", "auto")).strip()   # ★ 同步保留原始大小写
+        model_lower = model_raw.lower()
         voice_lower = str(cfg.get("voice", "alloy")).lower()
         speed = float(cfg.get("speed", 1.0))
         auto_used = True
@@ -1463,10 +1465,11 @@ async def _do_synthesize(request: TTSRequest):
         record.update({"status": "error", "error": "朗读文本为空"}); _record_monitor(record)
         raise HTTPException(status_code=400, detail="朗读文本为空")
 
-    # ================== ★ 新增：Windows 讲述人 / 系统 SAPI ==================
+    # ================== ★ Windows 讲述人 / 系统 SAPI ==================
     if model_lower.startswith("windows:"):
         # 例如: "windows:Microsoft Haruka Desktop - Japanese"
-        voice_desc = model_lower.replace("windows:", "").strip()
+        # ★ 修复：从 model_raw 提取，保留原始大小写（SAPI GetDescription 是精确匹配）
+        voice_desc = model_raw[len("windows:"):].strip()
         record["backend"] = "windows_narrator"
         record["speaker"] = voice_desc
         tmp_wav = os.path.join(tempfile.gettempdir(), f"tts_{uuid.uuid4().hex}.wav")
@@ -1480,10 +1483,11 @@ async def _do_synthesize(request: TTSRequest):
         finally:
             if os.path.exists(tmp_wav): os.remove(tmp_wav)
 
-    # ================== ★ 新增：Edge TTS ==================
+    # ================== ★ Edge TTS ==================
     elif model_lower.startswith("edge:"):
         # 例如: "edge:ja-JP-NanamiNeural"
-        voice_id = model_lower.replace("edge:", "").strip()
+        # ★ 修复：从 model_raw 提取，保留原始大小写（Edge TTS 的 voice_id 严格区分大小写）
+        voice_id = model_raw[len("edge:"):].strip()
         record["backend"] = "edge_tts"
         record["speaker"] = voice_id
         tmp_wav = os.path.join(tempfile.gettempdir(), f"tts_{uuid.uuid4().hex}.wav")
