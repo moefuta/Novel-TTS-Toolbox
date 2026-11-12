@@ -21,10 +21,11 @@
 5. 开始运行
 
 # 目前已经支持的TTS引擎
-1. 本地Windows讲述人
-2. 本地软件 VOICEVOX.exe
-3. 本地软件 CeVIO AI.exe
-4. 联网服务 EdgeTTS
+1. 本地软件 CeVIO AI.exe 但是COM调用 - 可以配置详细的情感参数 - 推荐
+2. 本地软件 CeVIO AI.exe 但是SAPI接口 - 仍然有机械感
+3. 本地软件 VOICEVOX.exe - 机械感
+4. 联网服务 EdgeTTS - 机械感
+5. 本地Windows讲述人 SAPI接口 - 极其机械感
 
 # 首次运行后的文件目录
 ```
