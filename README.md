@@ -1,7 +1,8 @@
 # Novel-TTS-Toolbox
 一个为日语（屎山代码）小说打造的 TTS 前端工具箱。当然，也可以用来读汉语或英语。
 使用说明已经内置于 All in one toolbox.html，请下载HTML打开查看
-![Uploading image.png…]()
+<img width="779" height="568" alt="sample 1" src="https://github.com/user-attachments/assets/878bcad2-792a-46a5-9348-729cf55cc694" />
+
 
 # 运行须下载的文件
 ```
