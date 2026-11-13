@@ -1,6 +1,11 @@
 # Novel-TTS-Toolbox
 一个为日语（屎山代码）小说打造的 TTS 前端工具箱。当然，也可以用来读汉语或英语。
 使用说明已经内置于 All in one toolbox.html，请下载HTML打开查看
+
+日文里有非常多的小字，比如说｜凝視《ぎょうし》，但是epub的ruby标注通常是这样的<ruby>凝<rt>ぎよう</rt>視<rt>し</rt></ruby>
+把ぎよう修复成ぎょう，就是这个工具的主要工作。
+只不过距离真正有用，还需要我花点时间多跑一些样本，形成词典。
+
 <img width="779" height="568" alt="sample 1" src="https://github.com/user-attachments/assets/878bcad2-792a-46a5-9348-729cf55cc694" />
 
 
