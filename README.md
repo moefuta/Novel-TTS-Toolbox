@@ -70,3 +70,43 @@
 ├── 🐟 skill.md                   	# 提供给 AI 的技能/上下文说明文件
 └── 📝 tts.py                     	# 主服务
 ```
+
+# 工作流程建议图解
+有两种主要的流程：Route A 边朗读边攒词典，Route B 先做词典再朗读。两者可以混用，最后都会汇入 replace_rules/。
+
+## Route A
+```
+打开阅读器 → 选 LocalTTS → Model ID 填 auto → 开始朗读
+      ↓
+阅读器把文本发到 http://127.0.0.1:8000
+      ↓
+tts.py 收到文本，按 replace_rules/ 里的词典处理
+      ↓
+词典里没有的「原文 + 读音」，顺手登记到 auto_dict.txt
+      ↓
+（auto_dict.txt 只是登记本，不会直接参与后续替换）
+      ↓
+把 auto_dict.txt 连同根目录的 skill.md 一起丢给 AI
+      ↓
+AI 帮你校验、修复 ruby 注音（比如把 ぎよう 修成 ぎょう）
+      ↓
+用户手动把修好的词条复制进 replace_rules/ 下的其他 *.txt
+      ↓
+这些 *.txt 从此参与 tts.py 的词典匹配
+```
+
+## Route B
+```
+开始阅读前，先把 EPUB 丢进工具箱提取
+      ↓
+导出 user_dict_书名.txt（文件名自动带上书名）
+      ↓
+连同根目录的 skill.md 一起丢给 AI
+      ↓
+AI 帮你校验、修复 ruby 注音
+      ↓
+把修好的 user_dict_书名.txt 放进 replace_rules/
+      ↓
+打开阅读器开始朗读（词典已就位）
+```
+
