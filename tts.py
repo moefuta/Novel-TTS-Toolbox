@@ -4,6 +4,7 @@ Novel TTS 服务 (tts.py) - 最终融合版
 面向日文小说朗读的本地 TTS 聚合服务，兼容任意支持 OpenAI TTS 接口的阅读器
 集成了：VOICEVOX、系统 SAPI、CeVIO AI (COM 情绪控制)、模型配置热重载
 """
+from __future__ import annotations
 
 import os
 import re
@@ -22,7 +23,12 @@ import wave
 import webbrowser
 import pathlib
 import msvcrt
-import edge_tts
+try:
+    import edge_tts
+    _edge_tts_available = True
+except ImportError:
+    edge_tts = None
+    _edge_tts_available = False
 from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -63,6 +69,7 @@ _DEFAULT_SAPI = {
     "karin":   "CeVIO-AI-夏色花梨", "rosa":    "CeVIO-AI-ROSA",
     "chifuyu": "CeVIO-AI-花隈千冬", "one":     "CeVIO-AI-ONE",
 }
+_DEFAULT_VOICEVOX = {}
 
 # ============================================================
 # 文本分块 / WAV 拼接（长文本分批提交，避免引擎端长时间阻塞）
@@ -221,6 +228,7 @@ _person_suffixes = dict(_DEFAULT_PERSON_SUFFIXES)
 
 _exact_dict_lookup = {}  # ★ 存放纯文本规则，用于优先拦截
 _auto_dict_words = {}  # ★ 存放仅作登记的 auto_dict 词条
+_dict_any_word_regex = None  # ★ 用于匹配词典中任意长度>1的词，解决长词包裹问题
 _auto_dict_lock = threading.Lock()
 _dict_lock = threading.RLock()
 
@@ -531,8 +539,11 @@ def _init_rules_dir():
             f.write("# 当原文（如 EPUB）中出现了规则库未收录的注音时，\n")
             f.write("# 系统会自动将其登记在这里。\n#\n")
             f.write("# ⚠️ 注意：此文件内的规则【不会直接参与替换】，\n")
-            f.write("# 仅作为人工确认的素材，防止机器错标污染全局词库。\n")
+            f.write("# 仅作为二次确认的素材，防止机器错标污染全局词库。\n")
+            f.write("# 请将本文件（auto_dict.txt）连同（Skill.md）一同发给DeepSeek或其他免费AI进行校验。\n")
             f.write("# 确认读音无误后，请手动将其复制到 user_dict.txt 或其他规则文件中。\n\n")
+            f.write("# ===== 组词 =====\n\n")
+            f.write("# ===== 单字 =====\n\n")
             
     # 3. 检查并创建示例 user_dict.txt
     user_dict_path = os.path.join(RULES_DIR, "user_dict.txt")
@@ -619,10 +630,7 @@ def _parse_single_file(path):
         line = line.replace("＝＞", "=>").replace("=》", "=>").replace("→", "=>").replace("《=", "<=").replace("←", "<=")
         if "=>" not in line: continue
         
-        # ★ 新增：解析 [suffix] 后缀读音规则（仅 person_dict.txt 中生效）
-        # 语法：[suffix] 原字 => 读音
-        # - 原字为汉字：生成 ｜原字《读音》 注音框（ruby 型）
-        # - 原字为假名：直接替换为读音（kana 型，用于助词正字法）
+        # ★ 解析 [suffix] 后缀读音规则（仅 person_dict.txt 中生效）
         if is_person_file:
             m_suffix = re.match(r'^\[suffix\]\s*(.+?)\s*=>\s*(.+)$', line)
             if m_suffix:
@@ -643,26 +651,18 @@ def _parse_single_file(path):
         
         # ★ 只有在文件名符合要求时，才解析 (苗字|名前|别名) => (...) 语法
         if is_person_file:
-            # 1. 先分离左右两边
             left_side, right_side = line.split("=>", 1)
-            
-            # 2. 剥离右侧的 count 后缀
             replacement, count = _parse_count_suffix(right_side)
-            
-            # 3. 严格匹配左括号 和 剥离后的右括号
             m_person_left = re.match(r'^\((.*?)\)\s*$', left_side.strip())
             if m_person_left and replacement.startswith('(') and replacement.endswith(')'):
                 left_parts = [p.strip() for p in m_person_left.group(1).split('|')]
                 right_parts = [p.strip() for p in replacement.strip('()').split('|')]
-                
                 if len(left_parts) == len(right_parts) and all(left_parts):
                     for k, v in zip(left_parts, right_parts):
                         person_names.add(k)
-                        # 如果原词与读音完全一致（比如别名アスナ），不生成替换规则，只作为人名登记
                         if k != v and v:
                             options = _parse_replacement_options(v)
                             compiled = re.compile(_build_latin_fold_pattern(k)) if _is_plain_text(k) else re.compile(k)
-                            # ★ 加上原词 k
                             rules.append((compiled, options, count, len(k), k))
                     continue
                 
@@ -670,13 +670,24 @@ def _parse_single_file(path):
         pattern_str, replacement, count = left.strip(), *_parse_count_suffix(right)
         if not pattern_str: continue
         options = _parse_replacement_options(replacement)
+        
         for part in _split_equivalent_patterns(pattern_str):
             try:
                 compiled = re.compile(_build_latin_fold_pattern(part)) if _is_plain_text(part) else re.compile(part)
             except Exception:
                 compiled = re.compile(re.escape(part))
-            # ★ 加上原词 part
-            rules.append((compiled, options, count, len(part), part))
+            
+            # ★ 核心修复：估算匹配长度
+            if _is_plain_text(part):
+                orig_len = len(part)
+            else:
+                # 如果是正则，剥离元字符和断言，只算真实字符的权重
+                s = re.sub(r'\[\^?.*?\]', '', part)       # 去掉字符类 [一-龥]
+                s = re.sub(r'\(\?.*?\)', '', s)           # 去掉非捕获组和断言 (?<!...)
+                s = re.sub(r'[\(\)\|\?\*\+\\\^\$\.\{\}]', '', s) # 去掉其他元字符
+                orig_len = max(1, len(s))                 # 剩下的字符长度
+                
+            rules.append((compiled, options, count, orig_len, part))
     return rules, errors, person_names, suffixes
 
 def load_all_rules(force=False):
@@ -744,12 +755,21 @@ def load_all_rules(force=False):
     all_loaded_rules.sort(key=lambda x: x[2], reverse=True)
     
     with _dict_lock:
+        global _dict_any_word_regex  # ★ 声明全局变量
         _all_rules = all_loaded_rules
         _auto_dict_keys = auto_keys
         _rules_dir_state = current_state
         _person_names = new_person_names
-        _person_suffixes = new_person_suffixes  # ★ 更新后缀映射
+        _person_suffixes = new_person_suffixes
         _exact_dict_lookup = new_exact_dict
+        
+        # ★ 生成多字词典的正则，按长度降序，保证最长匹配
+        keys = [k for k in new_exact_dict.keys() if len(k) > 1]
+        if keys:
+            keys.sort(key=len, reverse=True)
+            _dict_any_word_regex = re.compile("|".join(re.escape(k) for k in keys))
+        else:
+            _dict_any_word_regex = None
 
     with _auto_dict_lock:
         _auto_dict_words.clear()
@@ -1004,13 +1024,16 @@ def parse_ruby(text, output_mode='B'):
             if base == ruby:
                 return base
                 
+            # 核心拦截：如果发现用户词典里有这个汉字的规则，废弃原文注音
             with _dict_lock:
                 base_no_space = re.sub(r'[ \u3000]', '', base)
                 if base in _exact_dict_lookup or base_no_space in _exact_dict_lookup:
-                    key = (base, ruby, "由用户词典覆盖", True)
-                    if key not in _seen_findings:
-                        _seen_findings.add(key)
-                        findings.append({"base": base, "ruby": ruby, "final": "由用户词典覆盖", "from_dict": True})
+                    findings.append({"base": base, "ruby": ruby, "final": "由用户词典覆盖", "from_dict": True})
+                    return base
+                
+                # ★ 拦截：如果 base 的某个子串在词典中（如 施錠音 包含 施錠），也废弃注音，交由后续规则处理
+                if _dict_any_word_regex and _dict_any_word_regex.search(base):
+                    findings.append({"base": base, "ruby": ruby, "final": "包含词典词，已拆解由词典接管", "from_dict": True})
                     return base
                     
             def clean(r): return re.sub(r'[·・\s]', '', r)
@@ -1053,30 +1076,80 @@ def _append_to_auto_dict(base, ruby):
     base, ruby = (base or "").strip(), (ruby or "").strip()
     if not base or not ruby: return False
     
+    # ★ 单字准入判断
     if len(base) == 1:
-        return False
-        
+        # 逻辑：记录所有包含小字（拗音/促音）的读音，以及非首位出现的 やゆよつ 大字
+        # (?<!^) 表示“不在字符串开头”，[やゆよつ] 表示大字，[ゃゅょっ...] 表示小字
+        if not re.search(r'[ゃゅょっぁぃぅぇぉャュョッァィゥェォ]|(?<!^)[やゆよつヤユヨツ]', ruby):
+            return False
+
+    with _dict_lock:
+        # 终极防线：如果这个词在词典里已经存在（哪怕大小写/空格有差异），直接拒绝登记
+        base_no_space = re.sub(r'[ \u3000]', '', base)
+        if base in _exact_dict_lookup or base_no_space in _exact_dict_lookup:
+            return False
+
     key_check = _build_latin_fold_pattern(base) if _is_plain_text(base) else re.escape(base)
     with _dict_lock:
         if key_check in _auto_dict_keys: return False
         
-        # ★ 物理检查文件，防止内存集合因意外情况未加载而导致重复追加
+        lines = []
+        # 物理检查文件，防止重复追加，并读取现有内容以便分类插入
         if os.path.exists(AUTO_DICT_FILE):
             try:
                 with open(AUTO_DICT_FILE, "r", encoding="utf-8-sig") as f:
-                    for line in f:
-                        if "=>" in line:
-                            ex_base = line.split("=>")[0].strip()
-                            ex_key = _build_latin_fold_pattern(ex_base) if _is_plain_text(ex_base) else re.escape(ex_base)
-                            if ex_key == key_check:
-                                _auto_dict_keys.add(key_check)
-                                return False
+                    lines = f.readlines()
+                for line in lines:
+                    if "=>" in line:
+                        ex_base = line.split("=>")[0].strip()
+                        ex_key = _build_latin_fold_pattern(ex_base) if _is_plain_text(ex_base) else re.escape(ex_base)
+                        if ex_key == key_check:
+                            _auto_dict_keys.add(key_check)
+                            return False
             except Exception:
                 pass
                 
-        with open(AUTO_DICT_FILE, "a", encoding="utf-8") as f: 
-            f.write(f"{base} => {ruby}\n")
-        _auto_dict_keys.add(key_check); _rules_dir_state = None
+        # 如果文件是空的，先建个基础骨架
+        if not lines:
+            lines = [
+                "# ==========================================\n",
+                "# 自动记忆词典（auto_dict.txt）\n",
+                "# ==========================================\n\n",
+                "# ===== 组词 =====\n",
+                "\n",
+                "# ===== 单字 =====\n",
+                "\n"
+            ]
+
+        # 根据长度决定放入哪个分类
+        target_title = "# ===== 组词 =====\n" if len(base) > 1 else "# ===== 单字 =====\n"
+        new_line = f"{base} => {ruby}\n"
+        
+        # 确保标题存在
+        if not any(target_title.strip() == l.strip() for l in lines):
+            lines.append(f"\n{target_title}\n")
+            
+        # 寻找插入位置（在目标标题下方的最后一个条目之后）
+        insert_idx = -1
+        for i, line in enumerate(lines):
+            if line.strip() == target_title.strip():
+                insert_idx = i + 1
+                # 一直往下找，直到遇到下一个标题（# 开头）
+                while insert_idx < len(lines) and not lines[insert_idx].startswith("#"):
+                    insert_idx += 1
+                break
+                
+        if insert_idx == -1:
+            lines.append(new_line)
+        else:
+            lines.insert(insert_idx, new_line)
+            
+        # 覆盖写入文件
+        with open(AUTO_DICT_FILE, "w", encoding="utf-8") as f: 
+            f.writelines(lines)
+            
+        _auto_dict_keys.add(key_check)
+        _rules_dir_state = None
         
     with _auto_dict_lock:
         _auto_dict_words[base] = ruby
@@ -1245,9 +1318,16 @@ class GlobalConfigModel(BaseModel):
     lang: str = "ja"
 class RulesFilesUpdate(BaseModel):
     enabled_files: list[str]
+
+# ★ 删除 auto_dict 词条的请求体
+class AutoDictDeletePayload(BaseModel):
+    base: str
+    ruby: str
+
 # ★ 搜索规则的请求体
 class RuleSearchPayload(BaseModel):
     keyword: str
+    mode: str = "all"  # 可选值：all (全搜索), base (搜A), ruby (搜B)
 # ★ 打开文件的请求体
 class RuleOpenPayload(BaseModel):
     filename: str
@@ -1274,6 +1354,8 @@ async def list_windows_voices():
 
 @app.get("/v1/voices/edge")
 async def list_edge_voices():
+    if not _edge_tts_available:
+        raise HTTPException(status_code=500, detail="未安装 edge-tts 库，请在黑窗口运行: py -m pip install edge-tts")
     """返回 Edge TTS 支持的日语和中文语音列表"""
     try:
         voices = await edge_tts.list_voices()
@@ -1375,7 +1457,56 @@ async def get_global_config():
 async def get_auto_dict():
     await asyncio.to_thread(load_all_rules)
     with _auto_dict_lock:
-        return {"count": len(_auto_dict_words), "words": _auto_dict_words}
+        # 只统计组词（长度 > 1），单字不计入主计数，作为纯占位使用
+        word_count = sum(1 for k in _auto_dict_words.keys() if len(k) > 1)
+        single_count = sum(1 for k in _auto_dict_words.keys() if len(k) == 1)
+        return {
+            "count": word_count,          # 前端显示的数字
+            "single_count": single_count, # 单字占位数量
+            "total_count": len(_auto_dict_words),
+            "words": _auto_dict_words
+        }
+
+@app.post("/v1/auto_dict/delete")
+async def delete_auto_dict_item(payload: AutoDictDeletePayload):
+    base = payload.base.strip()
+    ruby = payload.ruby.strip()
+    if not base or not ruby:
+        raise HTTPException(status_code=400, detail="词条内容为空")
+        
+    target_line = f"{base} => {ruby}"
+    
+    with _auto_dict_lock:
+        if not os.path.exists(AUTO_DICT_FILE):
+            raise HTTPException(status_code=404, detail="文件不存在")
+            
+        try:
+            with open(AUTO_DICT_FILE, "r", encoding="utf-8-sig") as f:
+                lines = f.readlines()
+                
+            new_lines = []
+            deleted = False
+            for line in lines:
+                # 精确匹配整行（去除首尾空白后对比），将其删除
+                if line.strip() == target_line:
+                    deleted = True
+                    continue
+                new_lines.append(line)
+                
+            if deleted:
+                with open(AUTO_DICT_FILE, "w", encoding="utf-8") as f:
+                    f.writelines(new_lines)
+                
+                # ★ 核心修复：直接实时同步内存字典（外层已经加锁，不可重入）
+                if base in _auto_dict_words:
+                    del _auto_dict_words[base]
+                        
+                return {"ok": True, "msg": f"已删除: {target_line}"}
+            else:
+                raise HTTPException(status_code=404, detail="未找到该词条，可能已被删除")
+                
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
 
 @app.post("/v1/global/config")
 async def set_global_config(cfg: GlobalConfigModel):
@@ -1411,6 +1542,7 @@ async def update_rules_files(payload: RulesFilesUpdate):
 @app.post("/v1/rules/search")
 async def search_rule(payload: RuleSearchPayload):
     keyword = payload.keyword.strip()
+    mode = payload.mode.lower()
     if not keyword:
         return {"matches": []}
     
@@ -1420,7 +1552,7 @@ async def search_rule(payload: RuleSearchPayload):
         
     for filename in os.listdir(RULES_DIR):
         if filename.endswith(".txt"):
-            # ★ 核心修改：不再跳过未启用的文件，全部纳入搜索范围
+            # 不再跳过未启用的文件，全部纳入搜索范围
             is_enabled = _is_file_enabled(filename)
             file_path = os.path.join(RULES_DIR, filename)
             try:
@@ -1430,14 +1562,26 @@ async def search_rule(payload: RuleSearchPayload):
                         # 忽略空行和注释行
                         if not line_str or line_str.startswith("#"):
                             continue
-                        # 以 => 分割，检查左侧是否包含关键词
+                        
+                        # 以 => 分割，区分 A（左侧）和 B（右侧）
                         if "=>" in line_str:
-                            left_part = line_str.split("=>")[0].strip()
-                            if keyword in left_part:
+                            parts = line_str.split("=>", 1)
+                            left_part = parts[0].strip()
+                            right_part = parts[1].strip()
+                            
+                            match_found = False
+                            if mode == "base":
+                                match_found = (keyword in left_part)
+                            elif mode == "ruby":
+                                match_found = (keyword in right_part)
+                            else:  # all
+                                match_found = (keyword in left_part) or (keyword in right_part)
+                                
+                            if match_found:
                                 matches.append({
                                     "file": filename,
                                     "line": f"第 {line_num} 行: {line_str}",
-                                    "enabled": is_enabled  # ★ 返回该文件是否启用
+                                    "enabled": is_enabled
                                 })
             except Exception:
                 pass
@@ -1468,6 +1612,20 @@ async def open_rule_file(payload: RuleOpenPayload):
 # ============================================================
 # 九、核心合成逻辑
 # ============================================================
+def _is_fully_covered_by_dict(text: str) -> bool:
+    """
+    判断一个词是否被现有规则库完全覆盖。
+    例如词典里有 (茅場|晶彦) => (かやば|あきひこ)，
+    传入 "茅場晶彦" 运行替换后得到 "かやばあきひこ"，
+    如果没有残留任何汉字，说明已被完全覆盖。
+    """
+    replaced = apply_replace_rules(text, 'B', clean_punct=False)
+    if replaced == text:
+        return False  # 原文没变，说明根本没命中词典
+    if re.search(r'[一-龥々〆ヵヶ]', replaced):
+        return False  # 替换后还有汉字，说明只覆盖了一部分（如只把“茅場”转了）
+    return True  # 被彻底转为假名/罗马音，说明完全覆盖
+
 async def _do_synthesize(request: TTSRequest):
     model_raw = request.model.strip()          # ★ 保留原始大小写（Edge / SAPI 需要）
     model_lower = model_raw.lower()            # 分支判断仍用小写，不影响匹配
@@ -1514,7 +1672,17 @@ async def _do_synthesize(request: TTSRequest):
         # 【日语】正常逻辑
         text, findings = await asyncio.to_thread(parse_ruby, request.input, output_mode)
         record["ruby_findings"] = findings
-        for f in findings: _append_to_auto_dict(f["base"], f["ruby"])
+        
+        # ★ 修复：在登记 auto_dict 前，检查是否已被现有词典完全接管
+        for f in findings:
+            if f.get("from_dict"):
+                continue
+            base = f["base"]
+            # 如果这个组合词能被现有规则库完美拆解并替换（不留任何汉字），则不登记
+            if await asyncio.to_thread(_is_fully_covered_by_dict, base):
+                continue
+            _append_to_auto_dict(base, f["ruby"])
+            
         text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
         text = await asyncio.to_thread(apply_replace_rules, text, output_mode)
     record["final_text"] = text
@@ -1550,6 +1718,8 @@ async def _do_synthesize(request: TTSRequest):
 
     # ================== ★ Edge TTS ==================
     elif model_lower.startswith("edge:"):
+        if not _edge_tts_available:
+            raise HTTPException(status_code=500, detail="未安装 edge-tts 库，请运行 pip install edge-tts")
         # 例如: "edge:ja-JP-NanamiNeural"
         # ★ 修复：从 model_raw 提取，保留原始大小写（Edge TTS 的 voice_id 严格区分大小写）
         voice_id = model_raw[len("edge:"):].strip()
@@ -1683,11 +1853,25 @@ def _trigger_restart():
     if _server_instance is None:
         print("\n[提示] 服务尚未就绪，请稍候...")
         return
+    
     _restart_requested = True
     print()
     print("[重启] 收到快捷键，正在重启 TTS 服务...")
     sys.stdout.flush()
+    
+    # 尝试触发 uvicorn 的优雅退出
     _server_instance.should_exit = True
+
+    # ★ 核心修复：开一个强制重启线程
+    # 如果 uvicorn 因为长连接卡死，这个线程会在 0.8 秒后直接“掀桌子”，强制替换当前进程
+    def _force_restart():
+        time.sleep(0.8)
+        print("[重启] 优雅退出超时，正在强制重载代码...")
+        sys.stdout.flush()
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+        
+    import threading
+    threading.Thread(target=_force_restart, daemon=False).start()
 
 
 def _restart_hotkey_worker():
@@ -1718,7 +1902,6 @@ if __name__ == "__main__":
     # 主循环：Ctrl+C 退出，快捷键触发重启
     while True:
         _restart_requested = False
-        # ★ 增加 timeout_graceful_shutdown=3，如果 3 秒内有僵尸连接不断开，强行杀掉
         config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="info", timeout_graceful_shutdown=3)
         _server_instance = uvicorn.Server(config)
         try:
@@ -1728,7 +1911,8 @@ if __name__ == "__main__":
 
         if _restart_requested:
             time.sleep(0.5)
-            print("[重启] 服务已重启")
+            print("[重启] 发现代码更新，正在彻底重启 Python 进程...")
             print()
-            continue
+            # ★ 核心修复：使用 os.execv 直接替换当前进程，彻底重新加载 tts.py
+            os.execv(sys.executable, [sys.executable] + sys.argv)
         break

@@ -416,12 +416,12 @@
   /* 疑似小字提示框 */
   .susp-hint { margin: 0 0 14px; padding: 14px 16px; font-size: 13px; line-height: 1.7; color: var(--text); background: light-dark(#fae7d9, #331f15); border: 2px solid light-dark(#e0bfa8, #66432e); border-left: 4px solid var(--susp); box-shadow: var(--raised-panel); }
   
-  /* 新增：提示框内的表格竖线与排版 */
+  /* 提示框内的表格竖线与排版 */
   .susp-hint table { margin-top: 10px; border-collapse: collapse; font-size: 12px; }
   .susp-hint th, .susp-hint td { padding: 6px 10px; text-align: left; border: 1px solid light-dark(#e0bfa8, #66432e); }
   .susp-hint th { font-weight: 800; color: var(--susp); background: light-dark(#f5d6c3, #4a2e1f); }
   
-  /* 新增：强制假名使用主字体，并取消复制悬浮特效 */
+  /* 强制假名使用主字体，并取消复制悬浮特效 */
   .susp-hint code { 
     font-family: var(--font-family) !important; 
     font-weight: bold; 
@@ -669,7 +669,7 @@
   /* 选中的字体背景为主色 */
   .font-btn.active { color: #fff; background: var(--primary); border-color: var(--primary-dark); box-shadow: var(--sunken-btn); }
   
-  /* ★ 新增：独占一行的类 */
+  /* ★ 独占一行的类 */
   .font-btn.full-width { grid-column: span 2; }
 
   /* 选中的字体、输出格式按钮：背景恢复为主色 */
@@ -748,6 +748,55 @@
   pre code:hover {
     color: inherit !important;
     background: transparent !important;
+  }
+
+  /* ★ 代码块容器设为相对定位，以便放置复制按钮 */
+  pre {
+    position: relative; 
+    padding-right: 44px; /* 右侧留出空间给复制按钮 */
+  }
+
+  /* ★ 悬浮复制按钮样式 */
+  .code-copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+    opacity: 0.3; /* 默认半透明 */
+    transition: all 0.2s ease;
+    z-index: 10;
+  }
+
+  /* 鼠标悬停在代码块上时，按钮完全显现 */
+  pre:hover .code-copy-btn {
+    opacity: 1;
+  }
+
+  /* 鼠标悬停在按钮本身上时的高亮反馈 */
+  .code-copy-btn:hover {
+    background: var(--card-raised);
+    border-color: var(--primary-dark);
+    color: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--raised-btn);
+  }
+
+  /* 复制成功后的按钮状态 */
+  .code-copy-btn.copied {
+    background: var(--ok);
+    border-color: color-mix(in srgb, var(--ok) 70%, #000);
+    color: #fff;
+    opacity: 1;
   }
 
   .copy-toast { position: fixed; background: var(--ok); color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 700; pointer-events: none; z-index: 99999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: 1px solid color-mix(in srgb, var(--ok) 70%, #000); opacity: 0; transform: translate(-50%, -100%) scale(0.9); transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -912,7 +961,15 @@
 
   #monitorRecords .record { padding: 12px 8px; border-bottom: 1px dashed var(--border); color: var(--text); font-size: 13px; }
   #monitorRecords .record:last-child { border-bottom: none; }
-  #monitorRecords .record .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  #monitorRecords .record .meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap; /* 确保换行正常 */
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
   #monitorRecords .record .meta .tag { padding: 1px 6px; border-radius: 4px; background: var(--panel-bg); border: 1px solid var(--border); }
   #monitorRecords .record .meta .tag.ok { background: light-dark(#e7f7ee, #1e3a2a); color: var(--ok); border-color: light-dark(#b6e6c9, #2e5c45); }
   #monitorRecords .record .meta .tag.err { background: light-dark(#fde8e8, #3a1e1e); color: var(--danger); border-color: light-dark(#f5c2c2, #6b2a2a); }
@@ -1076,14 +1133,69 @@
     max-height: calc(100vh - 48px); /* 超出部分内部滚动 */
     overflow-y: auto;
     box-shadow: var(--raised-panel);
+    
+    /* ★ 隐藏滚动条但保留滚动功能 */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
   }
+  
+  /* ★ 针对 Chrome/Safari 隐藏滚动条 */
+  .md-sidebar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ★ 目录头部容器（升级为吸顶固定） */
+  .md-sidebar-header {
+    position: sticky;
+    top: -16px; /* 抵消 .md-sidebar 的 padding-top */
+    z-index: 10; /* 确保它在滚动内容的最上层 */
+    background: var(--card); /* 必须有实色背景，防止下方文字透过来 */
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    /* 使用负 margin 撑满整个侧边栏宽度，并还原 padding */
+    margin: -16px -16px 12px -16px;
+    padding: 16px 16px 8px 16px;
+    border-bottom: 1px solid var(--border);
+    
+    /* 保持顶部圆角，防止背景色溢出圆角边缘 */
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+  }
+
   .md-sidebar h4 {
-    margin: 0 0 12px 0;
+    margin: 0;
     font-size: 14px;
     color: var(--primary-dark);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 8px;
+    border-bottom: none;
+    padding-bottom: 0;
   }
+
+  .toggle-h4-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    
+    /* ★ 让纯符号居中对齐 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+  .toggle-h4-btn:hover {
+    background: var(--hover-bg);
+    border-color: var(--border);
+    color: var(--primary-dark);
+  }
+
   .md-sidebar ul {
     list-style: none;
     padding: 0;
@@ -1118,11 +1230,24 @@
     color: var(--primary-dark);
   }
 
-  .md-sidebar a:hover {
-    background: var(--hover-bg);
+  /* ★ h4 级别的缩进与颜色 */
+  .md-sidebar a.h4-link {
+    padding-left: 32px; /* 比 h3 更深一层 */
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .md-sidebar a.h4-link:hover {
     color: var(--primary-dark);
   }
-  
+
+  /* ★ h4 项的显示/隐藏控制 */
+  .md-sidebar .h4-item {
+    display: none;
+  }
+  .md-sidebar.show-h4 .h4-item {
+    display: block;
+  }
+
   /* ★ 当前阅读位置的目录高亮 */
   .md-sidebar a.active {
     background: var(--primary-light);
@@ -1146,20 +1271,31 @@
   }
 
   /* 5. H3 标题上方的虚线分割线 */
-  /* 5. H3 标题上方的虚线分割线 */
   .md-content h3 {
-    font-size: 22px; /* ★ 放大字号 */
-    margin-top: 36px;
-    margin-bottom: 0.8em;
-    padding-top: 24px;
-    border-top: 1px dashed var(--border-strong); /* 虚线分割线 */
+    font-size: 22px; 
+    
+    /* ★ 增大上下间距，让虚线距离上一段落更远 */
+    margin-top: 64px; 
+    padding-top: 24px; 
+    margin-bottom: 1em;
+    
+    /* 恢复原本的虚线边框 */
+    border-top: 1px dashed var(--border-strong); 
+    
     font-weight: 800;
-    color: var(--primary-dark); /* 顺便加点主题色让它更醒目，如果不想要可以删掉这行 */
+    color: var(--primary-dark); 
+    
+    /* 彻底移除吸顶相关代码 */
+    position: static;
+    background: transparent;
+    z-index: auto;
   }
+
+  /* 第一个标题上方不需要虚线和额外间距 */
   .md-content h3:first-of-type {
     margin-top: 16px;
     padding-top: 0;
-    border-top: none; /* 第一个标题上方不需要虚线 */
+    border-top: none; 
   }
 
   /* ============================================================
@@ -1218,6 +1354,15 @@
     opacity: 1;
     visibility: visible;
     transition-delay: 3s;
+  }
+
+  /* ★ 强制覆盖：无论是普通状态还是悬停状态，点击时直接秒开 */
+  .black-window-tip.show-tip::after,
+  .black-window-tip.show-tip:hover::after {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition-delay: 0s !important;
+    transition: none !important; /* 取消动画，瞬间弹出 */
   }
 
   /* ============================================================
@@ -1354,6 +1499,79 @@ body.has-bg::before {
     opacity: 0;
     transition: none;
   }
+
+  /* ============================================================
+   * 监控台左下角快捷导航
+   * ============================================================ */
+  .monitor-nav-sidebar {
+    position: fixed;
+    /* ★ 核心修改：调整这里的数值。6px 会更贴边，负数如 -10px 会贴近屏幕外 */
+    left: 6px; 
+    bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 9999;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: all 0.3s ease;
+  }
+
+  .monitor-nav-sidebar.show-nav {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* 按钮本体 */
+  .monitor-nav-item {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    opacity: 0.5;
+    transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+  }
+
+  /* ★ 核心修复：显式控制 SVG 尺寸和颜色 */
+  .monitor-nav-item svg {
+    width: 26px;
+    height: 26px;
+    fill: currentColor; /* 强制继承父级的 color */
+    pointer-events: none;
+    display: block; /* 防止 inline 带来的对齐空隙 */
+  }
+  .monitor-nav-item svg path {
+    fill: currentColor;
+  }
+
+  /* Hover 状态 */
+  .monitor-nav-item:hover {
+    opacity: 1;
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--primary) 80%, transparent));
+  }
+
+  /* Active 状态 */
+  .monitor-nav-item.active {
+    opacity: 1;
+    color: var(--primary-dark);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--primary-dark) 60%, transparent));
+  }
 </style>
 </head>
 <body>
@@ -1486,13 +1704,15 @@ body.has-bg::before {
 	  </div>
 	  <div id="grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px 20px; font-size: 13.5px;"></div>
 	</div>
+
   </section>
 
   <!-- ================= EPUB Ruby 提取 ================= -->
   <section class="pane" id="pane-ruby">
 
-	<div class="card">
+	<div class="card" id="ruby-sec-step1">
 	  <h2><span class="step">1</span>选择 EPUB 或重写 TXT</h2>
+	  <!-- 步骤 1 原内容保持不变... -->
 	  <div class="drop" id="dropZone">
 		<div class="icon">📖</div>
 		<div>拖拽 <b>EPUB</b> 或 <b>重写 TXT</b> 文件到这里，或</div>
@@ -1502,17 +1722,11 @@ body.has-bg::before {
 		  重写 TXT（之前从本工具导出的 <code>user_dict_*.txt</code>）→ 恢复提取结果，继续编辑
 		</div>
 	  </div>
-
-	  <!-- 粘贴文本 -->
 	  <div class="paste-block">
 		<div class="paste-head">
 		  <span class="paste-title">✍️ 或者，直接粘贴文本</span>
 		  <span class="hint">
-			支持：<code>&lt;ruby&gt;漢字&lt;rt&gt;かんじ&lt;/rt&gt;&lt;/ruby&gt;</code> ·
-			<code>漢字《かんじ》</code> ·
-			<code>｜漢字《かんじ》</code> ·
-			<code>{漢字|かんじ}</code> ·
-			<code>漢字[かんじ]</code>
+			支持：<code>&lt;ruby&gt;漢字&lt;rt&gt;かんじ&lt;/rt&gt;&lt;/ruby&gt;</code> · <code>漢字《かんじ》</code> · <code>｜漢字《かんじ》</code> · <code>{漢字|かんじ}</code> · <code>漢字[かんじ]</code>
 		  </span>
 		</div>
 		<textarea id="pasteInput" placeholder="把带 ruby 标注的文本粘贴到这里……&#10;也支持粘贴「汉字 => 读音」格式的规则（自动识别）。"></textarea>
@@ -1522,14 +1736,14 @@ body.has-bg::before {
 		  <span class="hint">每次点击都会生成一条独立的「粘贴文本 #N」，可以多次粘贴不同内容</span>
 		</div>
 	  </div>
-
 	  <input type="file" id="fileInput" accept=".epub,.txt" multiple hidden>
 	  <div class="file-list" id="fileList"></div>
 	  <div class="banner" id="banner1"></div>
 	</div>
 
-	<div class="card">
+	<div class="card" id="ruby-sec-step2">
 	  <h2><span class="step">2</span>（可选）导入参考词典，用于去重与 ★ 优先</h2>
+	  <!-- 步骤 2 原内容保持不变... -->
 	  <div class="row" style="margin-top:0">
 		<button class="btn ghost" id="btnPickDictFiles">📄 上传 .txt 文件</button>
 		<button class="btn ghost" id="btnPickDictDir">📁 选择规则文件夹</button>
@@ -1546,34 +1760,25 @@ body.has-bg::before {
 	  </div>
 	</div>
 
+	<!-- 步骤 3：提取结果概览 -->
 	<div class="card" id="resultCard" style="display:none">
-	  <h2><span class="step">3</span>提取结果 <span class="hint" style="font-weight:400">（点击汉字或假名可直接修改；光标在文字后或选中文字时，悬浮按钮可作用）</span></h2>
+	  <h2><span class="step">3</span>提取结果概览 <span class="hint" style="font-weight:400">（基础数据统计与语法提示）</span></h2>
 	  <div class="stats" id="stats"></div>
 	  
 	  <!-- 常驻的进阶操作指南：语法展示 -->
 	  <div class="box-tip" style="margin: 0 0 14px 0;">
 		<b style="color:var(--text); font-size:14px; display:block; margin-bottom:8px;">✨ 独创词库语法结构速览（导出后由 tts.py 原生完美解析）：</b>
 		<ul style="margin:0; padding-left:20px; line-height:1.8; font-size:13px; color:var(--text);">
-		  <li><b>多读音概率分配</b>：<code>お兄ちゃん => おにいちゃん(70%) | おにいさん(30%)</code> 或 <code>汉字 => 读音1(7) | 读音2(3)</code>（等概率）<br>
-			  <span style="color:var(--muted);font-size:12px;">直接在「读音」输入框里改即可。每次朗读时按比例随机抽取，权重不必总和为 100（按比例分配）。单值规则与多值规则分开去重，互不干扰。</span>
-		  </li>
-		  <li><b>绝对优先级权重</b>：<code>絶対 => ぜったい <= count:100</code><br>
-			  <span style="color:var(--muted);font-size:12px;">数值越大，越能无视文件加载顺序，强制覆盖其他词典的同词规则。</span>
-		  </li>
-		  <li><b>等价原词合并</b>：<code>二〇日|二十日|20日 => はつか</code><br>
-			  <span style="color:var(--muted);font-size:12px;">用竖线隔开多个原词，会在一行内生成多条等价的独立规则。<b>兼容半角竖线 <code>|</code> 与全角竖线 <code>｜</code></b>，自动识别无需手动转换。</span>
-		  </li>
-		  <li><b>人名词典专属阻断</b>（仅限 <code>person_dict.txt</code> 生效）：<br>
-			  <code>(結城|明日奈|アスナ) => (ゆうき|あすな|アスナ)</code><br>
-			  <span style="color:var(--muted);font-size:12px;">按顺序严格一一映射，彻底杜绝错配。配合 <code>[suffix] 君 => くん</code> 还能自动纠正称呼读音。</span>
-		  </li>
+		  <li><b>多读音概率分配</b>：<code>お兄ちゃん => おにいちゃん(70%) | おにいさん(30%)</code> 或 <code>汉字 => 读音1(7) | 读音2(3)</code>（等概率）<br><span style="color:var(--muted);font-size:12px;">直接在「读音」输入框里改即可。每次朗读时按比例随机抽取，权重不必总和为 100（按比例分配）。单值规则与多值规则分开去重，互不干扰。</span></li>
+		  <li><b>绝对优先级权重</b>：<code>絶対 => ぜったい <= count:100</code><br><span style="color:var(--muted);font-size:12px;">数值越大，越能无视文件加载顺序，强制覆盖其他词典的同词规则。</span></li>
+		  <li><b>等价原词合并</b>：<code>二〇日|二十日|20日 => はつか</code><br><span style="color:var(--muted);font-size:12px;">用竖线隔开多个原词，会在一行内生成多条等价的独立规则。<b>兼容半角竖线 <code>|</code> 与全角竖线 <code>｜</code></b>，自动识别无需手动转换。</span></li>
+		  <li><b>人名词典专属阻断</b>（仅限 <code>person_dict.txt</code> 生效）：<br><code>(結城|明日奈|アスナ) => (ゆうき|あすな|アスナ)</code><br><span style="color:var(--muted);font-size:12px;">按顺序严格一一映射，彻底杜绝错配。配合 <code>[suffix] 君 => くん</code> 还能自动纠正称呼读音。</span></li>
 		</ul>
 	  </div>
 
 	  <div class="merge-hint" id="mergeHint" style="display:none"></div>
 	  <div class="susp-hint" id="suspHint" style="display:none">
 		🌀 检测到 <b id="suspCount">0</b> 条读数中包含<b>可能是小字的大字字符</b>。这些字符在标准读音中通常应以小字形式出现，写成大字很可能是错标：
-		
 		<div style="display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap;">
 		  <!-- 左侧：常见小字 + 基础操作说明 -->
 		  <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column;">
@@ -1596,87 +1801,10 @@ body.has-bg::before {
 			<div style="margin-top: auto; padding-top: 14px;">
 			  <b style="font-size: 13px;">💡 基础操作模式：</b>
 			  <ul style="margin:6px 0 0; padding-left:0; font-size: 12.5px; line-height: 2.1; color: var(--text-secondary); list-style: none;">
-				<li>
-<span style="
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 24px;
-	height: 24px;
-	background: transparent;
-	border: 1px solid var(--border-strong);
-	color: var(--text-secondary);
-	border-radius: 4px;
-	font-weight: 900;
-	font-size: 15px;
-	font-family: Georgia, 'Times New Roman', 'SimSun', serif;
-	vertical-align: middle;
-	margin-right: 8px;
-	padding-bottom: 1px;
-">I</span>
-				  <b>操作逻辑</b>：选中文字→作用于选区；光标在字后→作用于左侧单字。
-				</li>
-				<li>
-<span style="
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 24px;
-	height: 24px;
-	background: transparent;
-	border: 1px solid var(--border-strong);
-	color: var(--text-secondary);
-	border-radius: 4px;
-	font-weight: 900;
-	font-size: 15px;
-	vertical-align: middle;
-	margin-right: 8px;
-	padding-bottom: 2px;
-">⇄</span>
-				  <b>交换原文</b>：交换左右两侧的原文和读音。
-				</li>
-				<li>
-<span style="
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 24px;
-	height: 24px;
-	background: var(--primary);
-	color: #fff;
-	border-radius: 4px;
-	border: 1px solid var(--primary-dark);
-	vertical-align: middle;
-	margin-right: 8px;
-	box-shadow: var(--raised-btn);
-">
-<span style="font-size: 12px; opacity: 0.4; font-weight: 900; line-height: 1;">大</span>
-<span style="font-size: 9px; font-weight: 900; line-height: 1;">小</span>
-</span>
-<b>大小切换</b>：日文大小字双向切换（如 や ⇄ ゃ）。<span style="color: var(--primary-dark); font-size: 11.5px; font-weight:600; margin-left:4px;">（引擎已兼容西文大小写读取）</span>
-				</li>
-				<li>
-<span style="
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 24px;
-	height: 24px;
-	background: var(--split);
-	color: #fff;
-	border-radius: 4px;
-	border: 1px solid color-mix(in srgb, var(--split) 70%, #000);
-	vertical-align: middle;
-	margin-right: 8px;
-	box-shadow: var(--raised-btn);
-	position: relative;
-">
-<span style="position: absolute; top: 0px; left: 3px; font-size: 8px; font-weight: 900; line-height: 1;">"</span>
-<span style="position: absolute; top: 0px; right: 3px; font-size: 8px; font-weight: 900; line-height: 1;">°</span>
-<span style="font-size: 11px; font-weight: 900; padding-top: 7px; line-height: 1;">浊</span>
-</span>
-<b>浊音切换</b>：假名循环切换（清音→浊音→半浊音→清音）。
-				</li>
+				<li><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); border-radius: 4px; font-weight: 900; font-size: 15px; font-family: Georgia, 'Times New Roman', 'SimSun', serif; vertical-align: middle; margin-right: 8px; padding-bottom: 1px;">I</span><b>操作逻辑</b>：选中文字→作用于选区；光标在字后→作用于左侧单字。</li>
+				<li><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); border-radius: 4px; font-weight: 900; font-size: 15px; vertical-align: middle; margin-right: 8px; padding-bottom: 2px;">⇄</span><b>交换原文</b>：交换左右两侧的原文和读音。</li>
+				<li><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: var(--primary); color: #fff; border-radius: 4px; border: 1px solid var(--primary-dark); vertical-align: middle; margin-right: 8px; box-shadow: var(--raised-btn);"><span style="font-size: 12px; opacity: 0.4; font-weight: 900; line-height: 1;">大</span><span style="font-size: 9px; font-weight: 900; line-height: 1;">小</span></span><b>大小切换</b>：日文大小字双向切换（如 や ⇄ ゃ）。</li>
+				<li><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: var(--split); color: #fff; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--split) 70%, #000); vertical-align: middle; margin-right: 8px; box-shadow: var(--raised-btn); position: relative;"><span style="position: absolute; top: 0px; left: 3px; font-size: 8px; font-weight: 900; line-height: 1;">"</span><span style="position: absolute; top: 0px; right: 3px; font-size: 8px; font-weight: 900; line-height: 1;">°</span><span style="font-size: 11px; font-weight: 900; padding-top: 7px; line-height: 1;">浊</span></span><b>浊音切换</b>：假名循环切换（清音→浊音→半浊音→清音）。</li>
 			  </ul>
 			</div>
 		  </div>
@@ -1701,24 +1829,10 @@ body.has-bg::before {
 			<!-- 进阶悬浮说明 (右侧) -->
 			<div style="margin-top: auto; padding-top: 14px;">
 			  <ul style="margin:6px 0 0; padding-left:0; font-size: 12.5px; line-height: 2.1; color: var(--text-secondary); list-style: none;">
-				<li>
-				  <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#06b6d4;color:#fff;border-radius:4px;border:1px solid #0891b2;font-weight:900;font-size:13px;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);">%</span>
-				  <b>概率拆分</b>：为当前原文添加更多读音，并分配多读音间的概率。
-				</li>
-				<li>
-				  <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#84cc16;color:#fff;border-radius:4px;border:1px solid #65a30d;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);">
-				    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-</span>
-				  <b>快速复制</b>：在当前词条下方插入草稿副本，点击 “✔” 确认加入，或点击 “✖” 废弃删除。
-				</li>
-				<li>
-				  <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#8b5cf6;color:#fff;border-radius:4px;border:1px solid #7c3aed;font-size:13px;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);">👤</span>
-				  <b>标记名词</b>：导出时单独分组为# ===== 名词（n 条） =====
-				</li>
-				<li>
-				  <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#f59e0b;color:#fff;border-radius:4px;border:1px solid #d97706;font-weight:900;font-size:14px;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);">?</span>
-				  <b>存疑搁置</b>：导出时单独分组为# ===== 存疑（n 条） =====并带上 [?] 标记。
-				</li>
+				<li><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#06b6d4;color:#fff;border-radius:4px;border:1px solid #0891b2;font-weight:900;font-size:13px;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);">%</span><b>概率拆分</b>：为当前原文添加更多读音，并分配多读音间的概率。</li>
+				<li><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#84cc16;color:#fff;border-radius:4px;border:1px solid #65a30d;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span><b>快速复制</b>：在当前词条下方插入草稿副本，点击 “✔” 确认加入，或点击 “✖” 废弃删除。</li>
+				<li><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#8b5cf6;color:#fff;border-radius:4px;border:1px solid #7c3aed;font-size:13px;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);">👤</span><b>标记名词</b>：导出时单独分组为# ===== 名词（n 条） =====</li>
+				<li><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#f59e0b;color:#fff;border-radius:4px;border:1px solid #d97706;font-weight:900;font-size:14px;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);">?</span><b>存疑搁置</b>：导出时单独分组为# ===== 存疑（n 条） =====并带上 [?] 标记。</li>
 			  </ul>
 			</div>
 		  </div>
@@ -1727,7 +1841,12 @@ body.has-bg::before {
 	  <div class="type-hint" id="typeHint" style="display:none">
 		💡 <b>单字</b>规则会替换文本中所有该字，容易误伤（如「生」在不同词里读音不同）。单字默认不勾选，请确认后再勾。
 	  </div>
+	</div>
 
+	<!-- 步骤 4 Ruby 工作台 -->
+	<div class="card" id="workbenchCard" style="display:none">
+	  <h2><span class="step">4</span>Ruby 工作台 <span class="hint" style="font-weight:400">（点击汉字或假名可直接修改；光标在文字后或选中文字时，悬浮按钮可作用）</span></h2>
+	  
 	  <div class="toolbar">
 		<input type="search" id="searchBox" placeholder="搜索汉字、读音…">
 		<select id="sortSelect">
@@ -1776,8 +1895,9 @@ body.has-bg::before {
 	  <div class="banner" id="banner3"></div>
 	</div>
 
-	<div class="card" id="exportCard" style="display:none">
-	  <h2><span class="step">4</span>导出</h2>
+	<!-- 步骤 5：导出 -->
+	<div class="card" id="ruby-sec-export" style="display:none">
+	  <h2><span class="step">5</span>导出</h2>
 	  <div class="row">
 		<button class="btn" id="btnDownloadNew">下载勾选词条</button>
 		<button class="btn ghost" id="btnDownloadMerged" style="display:none">下载合并版（含原有词典）</button>
@@ -1787,7 +1907,7 @@ body.has-bg::before {
 	  </div>
 	  <div class="note">
 		下载的文本使用标准规则格式（每行 <code>汉字 =&gt; 读音</code>），并按以下分组顺序输出：<br>
-		<b>原文仅西文 → 原文仅片假名 → 组词 → 单字</b>；组内按出现次数<b>从高到低</b>排列，出现次数大于 1 的词条会追加 <code>&lt;= count:N</code> 标记。<br>
+		<b>名词 → 疑似小字 → 原文仅西文 → 原文仅片假名 → 组词 → 单字 → 存疑</b>；组内按出现次数<b>从高到低</b>排列，出现次数大于 1 的词条会追加 <code>&lt;= count:N</code> 标记。<br>
 		<b>使用方法：</b>把下载的文件直接放进 <code>D:\TTS\replace_rules\</code> 文件夹里即可（文件名会自动带上 EPUB 书名，方便区分）。保存后<b>无需重启 tts.py</b>，下一次朗读自动生效。
 	  </div>
 	</div>
@@ -1848,19 +1968,29 @@ body.has-bg::before {
 		</div>
 	  </div>
 
-	  <h3>0⃣  Windows Only</h3>
-	  <div class="box-danger" style="margin-top: 14px;">
-		<strong>⚠️ 平台限制警告：</strong><br>
-		本服务高度依赖 Windows 底层特性（SAPI 语音接口、CeVIO COM 组件、msvcrt 控制台热键监听等），<b>仅支持 Windows 10 / 11 系统</b>。<br>
-		开发者<b style="background-color: var(--danger); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--danger) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">不打算</b>再继续做非 Windows 平台的<b style="background-color: var(--danger); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--danger) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">移植版本</b>，包括但不限于：<br>
-		<ul style="margin-top: 6px; margin-bottom: 0; padding-left: 22px; line-height: 1.8;">
-		  <li>安卓（Android）</li>
-		  <li>Linux（Ubuntu / Debian / CentOS 等）</li>
-		  <li>苹果桌面端（macOS / iMac）</li>
-		  <li>苹果移动端（iOS / iPadOS）</li>
-		  <li><b style="color: var(--danger); font-size: 1.1em; text-decoration: underline;">鸿蒙（HarmonyOS）</b> 及其他非 Windows 平台。</li>
-		</ul>
-	  </div>
+<h3>0⃣ Windows Only</h3>
+<div class="box-danger" style="margin-top: 14px;">
+  <strong>⚠️ 平台限制警告：</strong><br>
+  本服务高度依赖 Windows 底层特性（SAPI 语音接口、CeVIO COM 组件、msvcrt 控制台热键监听等），<b>仅支持 Windows 10 / 11 系统</b>。<br>
+  开发者<b style="background-color: var(--danger); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--danger) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">不打算</b>再继续做非 Windows 平台的<b style="background-color: var(--danger); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--danger) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">移植版本</b>，包括但不限于：<br>
+  <ul style="margin-top: 6px; margin-bottom: 0; padding-left: 22px; line-height: 1.8;">
+    <li>安卓（Android）</li>
+    <li>Linux（Ubuntu / Debian / CentOS 等）</li>
+    <li>苹果桌面端（macOS / iMac）</li>
+    <li>苹果移动端（iOS / iPadOS）</li>
+    <li><b style="color: var(--danger); font-size: 1.1em; text-decoration: underline;">鸿蒙（HarmonyOS）</b> 及其他非 Windows 平台。</li>
+  </ul>
+
+  <!-- 新增的移植说明与许可证特殊条例 -->
+  <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(150, 150, 150, 0.4); font-size: 14px; line-height: 1.8;">
+    💡 <b>但是，我们欢迎社区开发者自行移植！</b><br>
+    跨平台移植必然涉及对底层代码的深度重写，这在许可协议中属于 <b>“实质性代码修改”</b>。根据本项目的 <b style="color: var(--primary-dark);">专属附加豁免条款</b>：
+    <br>✅ 你的移植版本 <b>允许进行商业售卖或提供服务</b>（NC 条款豁免）。
+    <br>✅ 且 <b>不强制要求</b>公开移植版的源代码（SA 条款豁免）。
+    <br>⚠️ 但务必在“关于”页面或 README 中 <b>保留原作者署名 (MoeFuta Studio / 珠峰山脚土地庙)</b>，并声明你进行了跨平台移植。
+  </div>
+</div>
+
 	  <div class="box-tip" style="margin-top: 14px;">
 		<strong>💡 浏览器兼容性提示：</strong><br>
 		前端工具箱大量使用了现代 Web API（如 <code>DecompressionStream</code> 解压 EPUB、<code>color-mix</code> 计算主题色、<code>light-dark</code> 响应系统深浅色等），强烈建议使用以下浏览器：
@@ -1885,9 +2015,10 @@ body.has-bg::before {
 		<li>按下 <code>Win + R</code>，输入 <code>cmd</code> 并回车。此时弹出的<span class="black-window-tip" data-tip="即，系统“控制台”。能听懂“控制台”这个名字的人，根本就不会关闭“控制台”，所以后续统一使用“黑窗口”来描述它">黑窗口</span>，请勿关闭它。在黑窗口中输入：<br><pre>py install 3</pre></li>
 		<li>安装完成后，输入 <code>py --version</code>，显示版本号（如 <code>Python 3.12.0</code>或更高）即成功。</li>
 		<li>继续在黑窗口中输入以下命令，安装 <b>TTS 服务基础依赖库</b>：<br><pre>py -m pip install fastapi uvicorn httpx pydantic pywin32</pre>
+			<p style="margin: 14px 0 8px;">如果需要使用高质量的在线语音引擎 <b>Edge TTS</b>，请继续输入以下命令安装其专属依赖（如果不用此引擎可跳过）：</p>
 			<pre>py -m pip install edge-tts</pre>
 			<div class="box-tip" style="margin-top: 14px; margin-bottom: 10px;">
-			  <b>💡 关于 edge-tts：</b>这是微软 Edge 在线语音引擎的依赖库。如果不需要使用此引擎，即使不安装它，也完全不会影响其他任何功能。
+			  <b>💡 关于 edge-tts：</b>这是微软 Edge 在线语音引擎的依赖库。如果不需要使用此引擎，可以不安装，主程序依然能正常启动运行，只是无法在监控台选用 Edge TTS 引擎（会提示未安装）。
 			</div>
 			<div class="box-danger" style="margin-top: 10px; margin-bottom: 0;">
 			  <strong>🚫 常见报错：一定要看清行首符号！</strong><br>
@@ -1946,14 +2077,16 @@ body.has-bg::before {
 		</ul>
 	  </div>
 
-	  <div class="box-info" style="margin-top:14px;">
-		<b style="color:var(--primary-dark);">💡 关于需要手动配置与导入的文件：</b>
-		<ul style="margin:6px 0 0;padding-left:22px;line-height:1.8;">
-		  <li><b>需要你自行建立的规则：</b><code>person_dict.txt</code> 和其他自定义的 <code>*.txt</code> 规则文件，<b>需要你手动新建并编辑</b>，程序并不会凭空生成它们。</li>
-		  <li><b>关于 user_dict.txt：</b>程序首次启动会自动生成一个包含示例规则的 <code>user_dict.txt</code>。你可以把它当做自己的“主力词典”来编辑；如果你从工具箱里导出了带书名的文件（如 <code>user_dict_xxx.txt</code>），直接把它放到同一个文件夹下，它们会同时生效，互不冲突。</li>
-		  <li><b>关于工具箱导出的文件：</b>从「📚 EPUB Ruby 提取」导出的 <code>user_dict_*.txt</code>，是直接通过<b style="background-color: var(--kata); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--kata) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">浏览器下载</b>到你本地的（下载路径取决于你的浏览器设置），它<b style="background-color: var(--kata); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--kata) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">绝对不会自动出现</b>在 <code>📂replace_rules/</code> 文件夹里。你需要自己检查浏览器的下载目录，手动将文件移动或复制到该目录下才能生效。</li>
-		</ul>
-	  </div>
+<div class="box-info" style="margin-top:14px;">
+  <b style="color:var(--primary-dark);">💡 关于需要手动配置与导入的文件：</b>
+  <ul style="margin:6px 0 0;padding-left:22px;line-height:1.8;">
+    <li><b>需要你自行准备的资源与规则：</b><code>📂bg/</code> 目录下的背景图片需要你自行置入（推荐使用<b>不小于 1280*1440 的竖版图片</b>）。此外，如果你有其他自定义的替换规则，请手动新建 <code>*.txt</code> 文件，并<b>务必将其放置到 <code>📂replace_rules/</code> 目录下</b>才会生效，程序并不会凭空生成它们。</li>
+    
+    <li><b>自动生成的词典文件：</b>程序首次启动会<b>自动生成</b>专有名词专用词典 <code>person_dict.txt</code>、包含示例规则的 <code>user_dict.txt</code> 以及用于程序自动收集/记录的 <code>auto_dict.txt</code>。你可以把 <code>user_dict.txt</code> 当做自己的“主力词典”来编辑；如果你从工具箱里导出了带书名的文件（如 <code>user_dict_*.txt</code>），直接把它放到同一个文件夹下，它们会同时生效，互不冲突。</li>
+    
+    <li><b>关于工具箱导出的文件：</b>从「📚 EPUB Ruby 提取」导出的 <code>user_dict_*.txt</code>，是直接通过<b style="background-color: var(--kata); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--kata) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">浏览器下载</b>到你本地的（下载路径取决于你的浏览器设置），它<b style="background-color: var(--kata); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--kata) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">绝对不会自动出现</b>在 <code>📂replace_rules/</code> 文件夹里。你需要自己检查浏览器的下载目录，手动将文件移动或复制到该目录下才能生效。</li>
+  </ul>
+</div>
 
 	  <h4>③ 常见安装问题排查</h4>
 	  <table class="guide-table">
@@ -1995,42 +2128,42 @@ body.has-bg::before {
 		• <code>com-karin-happy</code> 等：监控台保存的 CeVIO 情绪预设
 	  </div>
 
-	  <h3>3⃣  核心机制：规则文件优先级</h3>
-	  <p>所有替换规则放在 <code>📂replace_rules/</code> 目录，全部为 <b>UTF-8 编码的<code>*.txt</code></b>。<br>改完任意文件后<b>无需重启</b>，下一次合成自动<b>热重载</b>。</p>
+<h3>3⃣  独创的语法结构</h3>
+<p>所有替换规则放在 <code>📂replace_rules/</code> 目录，全部为 <b>UTF-8 编码的<code>*.txt</code></b>。<br>改完任意文件后<b>无需重启</b>，下一次合成自动<b>热重载</b>。</p>
 
-	  <h4>基础语法</h4>
-	  <pre><code># 以 # 开头为注释，空行忽略
+<h4>① 基础语法</h4>
+<pre><code># 以 # 开头为注释，空行忽略
 原文 =&gt; 替换文本</code></pre>
-	  <p>大小写、全半角（<code>ABC</code> / <code>ａｂｃ</code>）自动兼容。<br>原文中夹杂的半角/全角空格会被自动忽略（<code>終　章</code> 能命中 <code>終章 =&gt; しゅうしょう</code>）。</p>
+<p>大小写、全半角（<code>ABC</code> / <code>ａｂｃ</code>）自动兼容。<br>原文中夹杂的半角/全角空格会被自动忽略（<code>終　章</code> 能命中 <code>終章 =&gt; しゅうしょう</code>）。</p>
 
-	  <h4>加权随机（多读音）</h4>
-	  <pre><code>お兄ちゃん =&gt; おにいちゃん|おにいさま|あにき
-お兄ちゃん =&gt; おにいちゃん(70%)|おにいさま(20%)|あにき(10%)</code></pre>
-	  <p>多个选项用 <code>|</code> 分隔，等概率随机。写 <code>(N%)</code> 表示权重，也可写 <code>(7)</code> 等数值按比例分配。<b>权重不必总和为 100</b>。</p>
+<h4>② 优先级权重 <code>&lt;= count:N</code></h4>
+<pre><code>今日 =&gt; きょう &lt;= count:100</code></pre>
+<p><code>N</code> 是该规则的<b>优先级权重</b>，默认 <code>1</code>。<br>同一个 pattern 在多个文件里出现时，<code>N</code> 更大的胜出，<b>直接无视文件名字母序</b>。规则一旦生效会替换全文所有匹配。</p>
+<div class="box-info">
+  <b>💡 典型用法：</b>词典里给条目设高 count 数值（如 <code>&lt;= count:100</code>），保证永远压过其他词典里的同词规则。EPUB 提取工具导出时，出现次数 &gt; 1 的词条会自动追加 <code>&lt;= count:N</code>。
+</div>
 
-	  <h4>优先级权重 <code>&lt;= count:N</code></h4>
-	  <pre><code>今日 =&gt; きょう &lt;= count:100</code></pre>
-	  <p><code>N</code> 是该规则的<b>优先级权重</b>，默认 <code>1</code>。<br>同一个 pattern 在多个文件里出现时，<code>N</code> 更大的胜出，<b>直接无视文件名字母序</b>。规则一旦生效会替换全文所有匹配。</p>
-	  <div class="box-info">
-		<b>💡 典型用法：</b>词典里给条目设高 count 数值（如 <code>&lt;= count:100</code>），保证永远压过其他词典里的同词规则。EPUB 提取工具导出时，出现次数 &gt; 1 的词条会自动追加 <code>&lt;= count:N</code>。
-	  </div>
-
-	  <h4>正则替换</h4>
-	  <pre><code>(\d+)年 =&gt; \1ねん</code></pre>
-	  <p>只要 <code>=&gt;</code> 左侧包含正则元字符（<code>.^$*+?{}[]\|()</code>），就按正则编译；否则按纯文本处理（并享受大小写 / 全半角 / 空格兼容）。</p>
-
-	  <h4>等价格式</h4>
-	  <pre><code>二〇日|二十日|20日 =&gt; はつか</code></pre>
-	  <p>用 <code>|</code> 分隔的纯文本等价写法，会展开成多条独立规则。上面的写法完全等价于：</p>
-	  <pre><code>二〇日 =&gt; はつか
+<h4>③ 多对一</h4>
+<pre><code>二〇日|二十日|20日 =&gt; はつか</code></pre>
+<p>用 <code>|</code> 分隔的纯文本等价写法，会展开成多条独立规则。上面的写法完全等价于：</p>
+<pre><code>二〇日 =&gt; はつか
 二十日 =&gt; はつか
 20日 =&gt; はつか</code></pre>
 
-	  <h4>规则文件启用 / 禁用</h4>
-	  <p>配置保存在 <code>rules_enabled.json</code>，首次运行为空（全部启用）。<code>auto_dict.txt</code> <b>永远启用</b>。<br><code>person_dict.txt</code> 中的 <code>(苗字|名前) =&gt; (...)</code> 与 <code>[suffix]</code> 语法<b>只在该文件中生效</b>，其他文件写了会被忽略。</p>
-	  <p>在「🎛 监控台 → 规则文件启用」中可勾选、全选、保存，支持 16 条/页翻页、搜索词条、点击文件名直接打开。</p>
+<h4>④ 一对多</h4>
+<pre><code>お兄ちゃん =&gt; おにいちゃん|おにいさま|あにき
+お兄ちゃん =&gt; おにいちゃん(70%)|おにいさま(20%)|あにき(10%)</code></pre>
+<p>多个选项用 <code>|</code> 分隔，等概率随机。写 <code>(N%)</code> 表示权重，也可写 <code>(7)</code> 等数值按比例分配。<b>权重不必总和为 100</b>。</p>
 
-	  <h3>4⃣  自动记忆池 (auto_dict.txt)</h3>
+<h4>⑤ 正则替换</h4>
+<pre><code>(\d+)年 =&gt; \1ねん</code></pre>
+<p>只要 <code>=&gt;</code> 左侧包含正则元字符（<code>.^$*+?{}[]\|()</code>），就按正则编译；否则按纯文本处理（并享受大小写 / 全半角 / 空格兼容）。</p>
+
+<h4>⑥ 规则文件启用 / 禁用</h4>
+<p>配置保存在 <code>rules_enabled.json</code>，首次运行为空（全部启用）。<code>auto_dict.txt</code> <b>永远启用</b>。<br><code>person_dict.txt</code> 中的 <code>(苗字|名前) =&gt; (...)</code> 与 <code>[suffix]</code> 语法<b>只在该文件中生效</b>，其他文件写了会被忽略。</p>
+<p>在「🎛 监控台 → 规则文件启用」中可勾选、全选、保存，支持 16 条/页翻页、搜索词条、点击文件名直接打开。</p>
+
+<h3>4⃣  自动记忆池 (auto_dict.txt)</h3>
 	  <div class="box-warn">
 		<strong>⚠️ auto_dict 已降级为「仅作登记」：</strong><br>
 		每次合成时，从原文 ruby 中提取 <code>base => ruby</code> 自动追加到该文件（单字不登记，重复不登记）。但<b style="background-color: var(--warn); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.4); border: 1px solid color-mix(in srgb, var(--warn) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">它不会直接参与替换</b>，只作为人工筛选的素材。<br>
@@ -2853,7 +2986,7 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
   <section class="pane" id="pane-license">
 	<div class="card">
 	  <h2 style="font-size: 20px;">📜 授权协议说明</h2>
-	  <p class="hint">本项目采用 <b>双层授权机制</b>：基础协议为 CC BY-NC 4.0，并附加了原作者的专属商业豁免条款。点击代码块可一键复制。</p>
+	  <p class="hint">本项目采用 <b>双层授权机制</b>：基础协议为 CC BY-NC-SA 4.0，并附加了原作者的专属商业豁免条款。点击代码块可一键复制。</p>
 	  <p style="font-size:15px;margin-bottom:16px;"><b>Copyright (c) 2026 MoeFuta Studio / 珠峰山脚土地庙</b></p>
 
 	  <!-- 双栏布局 -->
@@ -2861,13 +2994,16 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 		
 		<!-- 左侧：原版 CC 协议 -->
 		<div class="box-tip" style="margin: 0; border-left: 4px solid var(--muted);">
-		  <strong style="font-size: 15px; display: block; margin-bottom: 8px;">📄 基础协议：CC BY-NC 4.0</strong>
+		  <!-- 建议将标题改为 CC BY-NC-SA 4.0 以匹配右侧的 SA 豁免逻辑 -->
+		  <strong style="font-size: 15px; display: block; margin-bottom: 8px;">📄 基础协议：CC BY-NC-SA 4.0</strong>
 		  <p style="font-size: 13px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 8px;">
-			本项目基于知识共享署名-非商业性使用 4.0 国际许可协议发布。
+			本项目基于知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议发布。
 		  </p>
 		  <ul style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.8; color: var(--text);">
-			<li><b>BY（署名）：</b>必须标注原作者与项目链接。</li>
 			<li><b>NC（非商业）：</b><span style="color: var(--danger); font-weight: bold;">不得将未修改的原版软件用于商业盈利。</span></li>
+			<li><b>BY（署名）：</b>必须标注原作者与项目链接。</li>
+			<!-- 新增的 SA 摘要 -->
+			<li><b>SA（相同方式共享）：</b>若修改、转换或以本作品为基础进行创作，必须采用与本作品相同的许可协议发布。</li>
 		  </ul>
 		</div>
 
@@ -2885,49 +3021,72 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 		</div>
 	  </div>
 
-	  <h4 style="margin-top:22px;">📌 一句话读懂授权边界：</h4>
-	  <div class="box-info" style="margin-top: 10px;">
-		<ul style="margin: 0; padding-left: 20px; line-height: 1.9;">
-		  <li>✅ 可以自由使用、复制、修改、合并、发布、分发。</li>
-		  <li>✅ <b>必须标注出处</b>（保留原作者版权声明、许可声明、原始链接）。</li>
-		  <li>❌ <b>原版禁止直接商用</b>（不得直接将未经修改的代码套壳收费，或仅做极少修改就包装成商业产品）。</li>
-		  <li>✅ <b>修改版允许商用</b>（只要你有实质性的代码修改、功能增加或深度开发，即可合法商用，但必须保留署名）。</li>
-		  <li>⚠️ 软件按「原样」提供，作者不承担任何使用后果的责任。</li>
-		</ul>
-	  </div>
+<!-- 双栏容器（固定 1:1 等宽，不折叠） -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 22px;">
+	
+	<!-- 左侧：授权边界 -->
+	<div style="display: flex; flex-direction: column;">
+		<h4 style="margin-top: 0; margin-bottom: 10px;">📌 一句话读懂授权边界：</h4>
+		<div class="box-info" style="margin-top: 0; flex: 1;">
+			<ul style="margin: 0; padding-left: 20px; line-height: 1.9; font-size: 14px;">
+				<li>✅ <b>自由使用：</b>可以复制、修改、合并、发布、分发（包括私有部署与二次分发，但须附带本许可协议）。</li>
+				<li>⚠️ <b>必须署名：</b>必须在 README 或“关于”页面保留原作者版权声明、许可声明及原始项目链接，并注明是否修改。</li>
+				<li>❌ <b>原版禁商用：</b>不得将未经修改的原版或仅做极少修改的套壳版用于商业盈利（如售卖、会员订阅、广告变现等）。</li>
+				
+				<li style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(150, 150, 150, 0.4);">
+					✅ <b>修改版允许商用：</b>只要进行了实质性的代码修改（如新增功能、重构逻辑、接入新引擎等），衍生出的“修改版”即可合法商用，但必须严格保留原作者署名。
+				</li>
 
-	  <h4>📌 什么算「商业使用」？</h4>
-	  <div class="box-danger" style="margin-top: 10px;">
-		<ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
-		  <li>❌ <b>禁止：</b>将未经修改的原版直接内置到付费软件 / 付费阅读器</li>
-		  <li>❌ <b>禁止：</b>将未经修改的原版用于收费的 TTS 服务（包括 API 售卖、会员订阅）</li>
-		  <li>❌ <b>禁止：</b>将未经修改的原版用于广告变现、企业内训、商业直播</li>
-		  
-		  <!-- 单列警告 -->
-		  <li style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed color-mix(in srgb, var(--danger) 40%, transparent);">
-			⚠️ <b>限制：</b>将软件本体翻译作其他语言（<b>无论机翻还是人工精翻</b>），但没有实质性代码修改的衍生版本，依然强制继承 <b>SA 条款</b>（相同方式共享），<b>不享受</b>修改版商业豁免。
-		  </li>
-		  
-		  <!-- 允许使用 -->
-		  <li style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed color-mix(in srgb, var(--danger) 40%, transparent);">✅ <b style="color: var(--ok);">允许：</b>基于本项目做出实质性代码修改（新增功能、重构逻辑等）后的衍生版本，可进行商业售卖或提供服务（<b>必须保留原作者署名并声明修改内容</b>）</li>
-		  <li>✅ 个人学习、非营利社团、开源项目、学术研究</li>
-		  <li>✅ 为非商业目的修改、翻译、再分发</li>
-		</ul>
-	  </div>
+				<li style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(150, 150, 150, 0.4);">
+					⚠️ <b>免责声明：</b>软件按「原样」提供，不附带任何明示或暗示的担保，作者不承担因使用本软件产生的任何法律责任。
+				</li>
+			</ul>
+		</div>
+	</div>
 
-	  <h4>使用要求（可复制到你的衍生作品）</h4>
-	  <p>如果你基于本项目修改或再分发（尤其是商业用途），请务必在你的 README / 关于页面保留以下声明：</p>
-	  <pre><code>本项目基于 Novel TTS Service（https://github.com/moefuta/Novel-TTS-Toolbox）
+	<!-- 右侧：商业使用 -->
+	<div style="display: flex; flex-direction: column;">
+		<h4 style="margin-top: 0; margin-bottom: 10px;">📌 什么算「商业使用」？</h4>
+		<div class="box-danger" style="margin-top: 0; flex: 1;">
+			<ul style="margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+				<li>❌ <b>禁止：</b>将未经修改的原版直接内置到付费软件 / 付费阅读器。</li>
+				<li>❌ <b>禁止：</b>将未经修改的原版用于收费的 TTS 服务（包括 API 售卖、会员订阅）。</li>
+				<li>❌ <b>禁止：</b>将未经修改的原版用于广告变现、企业内训、商业直播。</li>
+				
+				<li style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(150, 150, 150, 0.4);">
+					⚠️ <b>限制：</b>将软件本体翻译作其他语言（<b>无论机翻还是人工精翻</b>），但没有实质性代码修改的衍生版本，依然强制继承 <b>SA 条款</b>（相同方式共享），<b>不享受</b>修改版商业豁免。
+				</li>
+				
+				<li style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(150, 150, 150, 0.4);">
+					✅ <b style="color: var(--ok);">允许：</b>基于本项目做出实质性代码修改（新增功能、重构逻辑等）后的衍生版本，可进行商业售卖或提供服务（<b>必须保留原作者署名并声明修改内容</b>）。
+				</li>
+				<li>✅ 个人学习、非营利社团、开源项目、学术研究。</li>
+				<li>✅ 为非商业目的修改、翻译、再分发。</li>
+			</ul>
+		</div>
+	</div>
+
+</div>
+
+<h4>使用要求（可复制到你的衍生作品）</h4>
+<p>如果你基于本项目修改或再分发（尤其是商业用途），请务必在你的 README / 关于页面保留以下声明：</p>
+<pre><code>本项目基于 Novel TTS Service（https://github.com/moefuta/Novel-TTS-Toolbox）
 原作者：MoeFuta Studio / 珠峰山脚土地庙
-基础许可：CC BY-NC 4.0（附带修改版商业豁免条款）
+基础许可：CC BY-NC-SA 4.0（附带修改版商业豁免条款）
 本版本是否修改：是
 修改摘要：（请在此简述你修改了哪些核心内容以获取商用授权）</code></pre>
 
-	  <div class="note" style="margin-top:18px;">
-		<b style="color:var(--primary-dark);">📖 完整法律文本参考：</b>
-		<a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode.zh-hans" target="_blank" rel="noopener">CC BY-NC 4.0 官方中文全文</a>
-		（注：若发生法律争议，默认以 CC BY-NC 4.0 为基础，结合上述附加豁免条款进行综合解释）
-	  </div>
+<div class="note" style="margin-top:18px;">
+  <b style="color:var(--primary-dark);">📖 完整法律文本参考：</b>
+  <ul style="margin: 6px 0 0; padding-left: 20px; line-height: 1.8;">
+    <li><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.zh-hans" target="_blank" rel="noopener">CC BY-NC-SA 4.0 官方中文法律全文</a></li>
+    <li><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en" target="_blank" rel="noopener">CC BY-NC-SA 4.0 官方英文法律全文 (Legal Code)</a></li>
+    <li><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.ja" target="_blank" rel="noopener">CC BY-NC-SA 4.0 官方日文法律全文 (リーガル・コード)</a></li>
+  </ul>
+  <p style="margin: 6px 0 0; font-size: 13px; color: var(--text-secondary);">
+    （注：若发生法律争议，默认以 CC BY-NC-SA 4.0 为基础，结合上述附加豁免条款进行综合解释）
+  </p>
+</div>
 
 	  <div class="note" style="margin-top:14px;">
 		<b style="color:var(--primary-dark);">🧩 第三方组件与致谢：</b>
@@ -2940,7 +3099,7 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 		  <li><a href="https://dianziji.com/" target="_blank" rel="noopener" title="WARNING NSFW" style="cursor: help;">电子姬</a>：我在这里学会了使用 AI 编程的所有前置技能</li>
 		  <li><a href="https://reader.richasy.net/" target="_blank" rel="noopener">小幻阅读</a>：一款非常满意的 Windows 阅读应用，同时也是开发者的主要测试平台</li>
 		  <li style="margin-top:8px; color:var(--muted);">
-			✨ 特别鸣谢：<b>Python</b> 语言、<b>DeepSeek / Kimi / 通义千问</b> 等免费 AI 助手（极大提升了正则编写与排错效率），以及浏览器原生 <b>DecompressionStream</b> API。
+			✨ 特别鸣谢：<b>Python</b> 语言、<b>DeepSeek</b> （极大提升了正则编写与排错效率），以及浏览器原生 <b>DecompressionStream</b> API。
 		  </li>
 		</ul>
 	  </div>
@@ -2962,74 +3121,92 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 		<!-- 左侧控制面板 -->
 		<div style="flex:1 1 360px; max-width:400px; background:var(--panel-bg); border:1px dashed var(--panel-border); border-radius:10px; padding:14px;">
 
-		<!-- ★ TTS 语种选择 -->
-		<div style="padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
-			<label class="monitor-lbl" style="margin:0 0 8px 0; font-weight:600; color:var(--text);">🌐 TTS 语种选择</label>
-			<div style="display:flex; gap:8px;">
-				
-				<!-- 英文 (英国国旗) -->
-				<button class="btn ghost small lang-btn" data-lang="en" style="flex:1; justify-content:center; gap:6px;">
-					<svg width="18" height="14" viewBox="0 0 60 30" style="border-radius: 2px; box-shadow: 0 0 1px rgba(0,0,0,0.4); flex-shrink: 0;">
-						<clipPath id="uk-clip"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath>
-						<path d="M0,0 v30 h60 v-30 z" fill="#00247d"/>
-						<path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
-						<path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#uk-clip)" stroke="#cf142b" stroke-width="4"/>
-						<path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/>
-						<path d="M30,0 v30 M0,15 h60" stroke="#cf142b" stroke-width="6"/>
-					</svg>
-					英语
-				</button>
-
-				<!-- 漢语 (中国国旗) -->
-				<button class="btn ghost small lang-btn" data-lang="zh" style="flex:1; justify-content:center; gap:6px;">
-					<svg width="18" height="14" viewBox="0 0 60 40" style="border-radius: 2px; box-shadow: 0 0 1px rgba(0,0,0,0.4); flex-shrink: 0;">
-						<rect width="60" height="40" fill="#de2910"/>
-						<polygon points="10,4 12.36,11.24 20,11.24 13.82,15.73 16.18,23 10,18.5 3.82,23 6.18,15.73 0,11.24 7.64,11.24" fill="#ffde00" transform="translate(3, 2) scale(0.7)"/>
-					</svg>
-					漢语
-				</button>
-
-				<!-- 日语 (血红底白樱花) -->
-				<button class="btn ghost small lang-btn" data-lang="ja" style="flex:1; justify-content:center; gap:6px;">
-					<svg width="18" height="12" viewBox="0 0 60 40" style="border-radius: 2px; box-shadow: 0 0 1px rgba(0,0,0,0.4); flex-shrink: 0;">
-						<!-- 血红色背景 -->
-						<rect width="60" height="40" fill="#bc002d" stroke="#e0e0e0" stroke-width="0.5"/>
-						<!-- 白色樱花 -->
-						<g transform="translate(30,20) scale(1.5)">
-							<path d="M0,0 C-2.5,-4 -4,-8.5 0,-10.5 C4,-8.5 2.5,-4 0,0" fill="#ffffff" transform="rotate(0)"/>
-							<path d="M0,0 C-2.5,-4 -4,-8.5 0,-10.5 C4,-8.5 2.5,-4 0,0" fill="#ffffff" transform="rotate(72)"/>
-							<path d="M0,0 C-2.5,-4 -4,-8.5 0,-10.5 C4,-8.5 2.5,-4 0,0" fill="#ffffff" transform="rotate(144)"/>
-							<path d="M0,0 C-2.5,-4 -4,-8.5 0,-10.5 C4,-8.5 2.5,-4 0,0" fill="#ffffff" transform="rotate(216)"/>
-							<path d="M0,0 C-2.5,-4 -4,-8.5 0,-10.5 C4,-8.5 2.5,-4 0,0" fill="#ffffff" transform="rotate(288)"/>
-							<!-- 樱花中心 -->
-							<circle cx="0" cy="0" r="1.5" fill="#bc002d" />
-						</g>
-					</svg>
-					日语
-				</button>
-
+		<!-- 1. 自动记忆登记状态（顶部） -->
+		<div id="monitor-sec-autodict" style="padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
+			<!-- 头部：标题 + 数字（保持原样） -->
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+				<span style="font-size:14px; font-weight:600; color:var(--text);">🔤 自动记忆登记</span>
+				<span id="autoDictCount" title="此数字仅统计需要处理的『组词』，单字仅作占位防抖，不参与计数" style="font-size:18px;font-weight:700;color:var(--primary-dark);font-variant-numeric:tabular-nums;cursor:help;">0</span>
 			</div>
-		</div>
-
-		<!-- 自动记忆登记状态 -->
-		<div style="padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
-			<div style="display:flex;justify-content:space-between;align-items:center;">
-				<span class="monitor-lbl" style="margin:0;font-weight:600;color:var(--text);">🔤 自动记忆登记</span>
-				<span id="autoDictCount" style="font-size:18px;font-weight:700;color:var(--primary-dark);font-variant-numeric:tabular-nums;">0</span>
-			</div>
-			<div class="hint" style="margin-top:4px;font-size:12px;">
-				<span style="cursor:pointer; text-decoration:underline; text-decoration-color:transparent; transition:0.15s; color:var(--text);" 
+			
+			<!-- 提示信息 -->
+			<div class="hint" style="margin-top:4px;font-size:12px; display:flex; align-items:center; flex-wrap:wrap;">
+				等待
+				<span style="
+					cursor: pointer; 
+					color: var(--primary); 
+					font-weight: 700; 
+					text-decoration: underline dashed; 
+					text-underline-offset: 4px; 
+					transition: all 0.2s ease;
+					margin: 0 2px;
+				" 
 					  onclick="window.openRuleFile('auto_dict.txt')"
-					  onmouseover="this.style.textDecorationColor='var(--primary)'; this.style.color='var(--primary)'"
-					  onmouseout="this.style.textDecorationColor='transparent'; this.style.color='var(--text)'"
+					  onmouseover="this.style.color='var(--primary-dark)'; this.style.textDecorationStyle='solid'; this.style.transform='scale(1.05)';"
+					  onmouseout="this.style.color='var(--primary)'; this.style.textDecorationStyle='dashed'; this.style.transform='scale(1)';"
 					  title="点击打开 auto_dict.txt 进行确认">
-					等待人工确认并移入其他规则文件
+					人工确认
 				</span>
+				并移入其他规则文件
+			</div>
+			
+			<!-- ★ 按钮固定在这个位置 -->
+			<div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+				<button class="btn ghost small" id="btnRefreshAutoDict" style="padding: 2px 8px; font-size: 11px;" title="立刻从服务器拉取最新的待处理词条">刷新</button>
+				<button class="btn ghost small" id="btnToggleAutoDict" style="padding: 2px 8px; font-size: 11px;">查看详情</button>
+			</div>
+
+			<!-- ★ 详情面板在按钮下方展开（默认隐藏） -->
+			<div id="autoDictDetails" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border);">
+				<div id="autoDictListContent" style="max-height: 220px; overflow-y: auto; font-size: 12px; line-height: 1.6;">
+					<!-- 动态渲染 -->
+				</div>
 			</div>
 		</div>
 
-		<!-- 模型与 auto 配置合并区 -->
-		<div style="padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
+		<!-- 2. 核心配置区（语种 + 引擎 + 预览 合并） -->
+		<div id="monitor-sec-engine" style="padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
+			
+			<!-- TTS 语种选择 -->
+			<div style="margin-bottom:16px;">
+				<div style="margin-bottom:10px;">
+					<span style="font-size:14px; font-weight:600; color:var(--text);">🌐 TTS引擎选择</span>
+				</div>
+				<div style="display:flex; gap:10px;">
+					<!-- 英语 -->
+					<button class="btn ghost lang-btn" data-lang="en" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.7));">
+							<defs><linearGradient id="gloss-en" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.4)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
+							<rect width="24" height="24" rx="4" fill="#3b82f6"/><rect width="24" height="24" rx="4" fill="url(#gloss-en)"/>
+							<path d="M12 5c-3.3 0-6 2.7-6 6 0 2.2 1.2 4.1 3 5.2v2.8h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.3-2.7-6-6-6z" fill="#fff"/>
+							<circle cx="9.5" cy="11" r="1.5" fill="#3b82f6"/><circle cx="14.5" cy="11" r="1.5" fill="#3b82f6"/>
+							<path d="M11 13.5h2l-1 1.5-1-1.5z" fill="#3b82f6"/><path d="M9 16.5h6v1H9z M12 16.5v1" stroke="#3b82f6" stroke-width="1"/>
+						</svg>英语
+					</button>
+					<!-- 漢语 -->
+					<button class="btn ghost lang-btn" data-lang="zh" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(255, 51, 51, 0.7));">
+							<defs><linearGradient id="gloss-zh" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.15)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
+							<rect width="24" height="24" rx="4" fill="#111111"/><rect width="24" height="24" rx="4" fill="url(#gloss-zh)"/>
+							<text x="12" y="18" font-size="16" font-weight="300" fill="#ff3333" text-anchor="middle" font-family="'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif">漢</text>
+						</svg>漢语
+					</button>
+					<!-- 日语 -->
+					<button class="btn ghost lang-btn" data-lang="ja" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.7));">
+							<defs><linearGradient id="gloss-ja" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.15)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
+							<rect width="24" height="24" rx="4" fill="#111111"/><rect width="24" height="24" rx="4" fill="url(#gloss-ja)"/>
+							<path d="M12 3C8.5 3 6.5 5 6.5 7.5C6.5 9 7.2 10.3 8.5 11H15.5C16.8 10.3 17.5 9 17.5 7.5C17.5 5 15.5 3 12 3Z" fill="#ff8c00"/>
+							<path d="M9.5 11H14.5L15.5 16.5H8.5L9.5 11Z" fill="#ff8c00"/><ellipse cx="12" cy="18" rx="7.5" ry="2.5" fill="#ff8c00"/>
+							<path d="M4.5 18L2 17.5L4 16.5" fill="#ff8c00"/><path d="M19.5 18L22 17.5L20 16.5" fill="#ff8c00"/>
+						</svg>日语
+					</button>
+				</div>
+			</div>
+
+			<div style="border-top: 1px dashed var(--border); margin-bottom: 12px;"></div>
+
+			<!-- 引擎设置 -->
 			<label class="monitor-lbl">引擎</label>
 			<select id="monitorEngine" class="monitor-input">
 				<option value="auto" disabled>auto（系统自动，见下方配置）</option>
@@ -3043,32 +3220,24 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 			  <label class="monitor-lbl" id="ttsNumLabel">Model ID（1–27）</label>
 			  <input id="monitorTtsNum" type="number" min="1" max="27" value="1" class="monitor-input">
 			</div>
-
 			<div id="cevioModelWrap" style="display:none;margin-top:8px;">
 			  <label class="monitor-lbl">Model ID</label>
 			  <select id="monitorCevioModel" class="monitor-input"></select>
 			</div>
-
 			<div id="windowsModelWrap" style="display:none;margin-top:8px;">
 			  <label class="monitor-lbl">Windows 语音</label>
-			  <select id="monitorWindowsModel" class="monitor-input">
-				<option value="">加载中...</option>
-			  </select>
+			  <select id="monitorWindowsModel" class="monitor-input"><option value="">加载中...</option></select>
 			</div>
-
 			<div id="edgeModelWrap" style="display:none;margin-top:8px;">
 			  <label class="monitor-lbl">Edge 语音</label>
-			  <select id="monitorEdgeModel" class="monitor-input">
-				<option value="">加载中...</option>
-			  </select>
+			  <select id="monitorEdgeModel" class="monitor-input"><option value="">加载中...</option></select>
 			</div>
-
 			<div style="margin-top:8px;">
 			  <label class="monitor-lbl">Speed</label>
 			  <input id="monitorSpeed" type="number" step="0.05" min="0.5" max="2" value="0.9" class="monitor-input">
 			</div>
 
-			<!-- 融入进来的 auto 配置区 -->
+			<!-- 配置预览区 -->
 			<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);">
 				<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
 				  <span class="monitor-lbl" style="margin:0;flex:1;line-height:1.4;">配置预览</span>
@@ -3078,31 +3247,13 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 			</div>
 		</div>
 
-		  <div style="margin-top:12px; padding:12px; border:1px dashed var(--panel-border); border-radius:8px; background:var(--card);">
-			<label class="monitor-lbl" style="margin-top:0">输入文本（支持 ruby 语法）</label>
-			<textarea id="monitorInput" placeholder="例：&#10;|漢字《かんじ》&#10;{漢字|かんじ}&#10;<ruby>漢字<rt>かんじ</rt></ruby>"></textarea>
-
-			<label class="monitor-lbl" style="margin-top:12px">输出文本</label>
-			<textarea id="monitorPreviewBox" class="monitor-box" placeholder="—"></textarea>
-
-			<div style="display:flex;gap:8px;margin-top:12px;">
-			  <button class="btn" id="monitorPreviewBtn" style="flex:1; justify-content: center;">预览</button>
-			  <button class="btn" id="monitorSynthBtn" style="flex:1; justify-content: center;">合成并播放</button>
-			</div>
-		  </div>
-
-		  <div id="monitorRubyWrap" style="display:none;margin-top:10px;">
-			<label class="monitor-lbl">Ruby 识别</label>
-			<div id="monitorRubyList" class="monitor-box" style="max-height:180px;overflow-y:auto"></div>
-		  </div>
-
-		  <!-- CeVIO COM 情绪预设生成器 -->
-		  <div style="margin-top:14px;padding:10px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);">
-			<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-			  <span class="monitor-lbl" style="margin:0;flex:1">🎭 CeVIO 情感参数</span>
+		<!-- 3. CeVIO COM 情绪预设生成器（上移） -->
+		<div id="monitor-sec-cevio" style="margin-top:12px;padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+			  <span style="font-size:14px; font-weight:600; color:var(--text);">🎭 CeVIO 情感参数</span>
 			  <button class="btn ghost small" id="comSaveBtn">保存为模型</button>
 			</div>
-			<div style="margin-top:10px;">
+			<div>
 			  <label class="monitor-lbl" style="margin-top:6px;">基于角色 / 已存预设</label>
 			  <select id="comCastSelect" class="monitor-input" style="margin-bottom:8px;">
 				<option value="">加载角色中...</option>
@@ -3137,12 +3288,36 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 				<button class="btn small" id="comDoSaveBtn" style="width:100%;margin-top:6px;">写入配置文件</button>
 			  </div>
 			</div>
-		  </div>
+		</div>
 
-		  <!-- 规则文件启用 -->
-		  <div style="margin-top:10px;padding:10px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);">
-			<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
-			  <span class="monitor-lbl" style="margin:0">规则文件启用</span>
+		<!-- 4. 前端文本测试（下移） -->
+		<div id="monitor-sec-test" style="margin-top:12px; padding:12px; border:1px dashed var(--panel-border); border-radius:8px; background:var(--card); margin-bottom:12px;">
+			<div style="margin-bottom:12px;">
+				<span style="font-size:14px; font-weight:600; color:var(--text);">📝 前端文本测试</span>
+			</div>
+
+			<label class="monitor-lbl">输入文本（支持 ruby 语法）</label>
+			<textarea id="monitorInput" placeholder="例：&#10;|漢字《かんじ》&#10;{漢字|かんじ}&#10;<ruby>漢字<rt>かんじ</rt></ruby>"></textarea>
+
+			<label class="monitor-lbl" style="margin-top:12px">输出文本</label>
+			<textarea id="monitorPreviewBox" class="monitor-box" placeholder="—"></textarea>
+
+			<div style="display:flex;gap:8px;margin-top:12px;">
+			  <button class="btn" id="monitorPreviewBtn" style="flex:1; justify-content: center;">预览</button>
+			  <button class="btn" id="monitorSynthBtn" style="flex:1; justify-content: center;">合成并播放</button>
+			</div>
+		</div>
+
+		<!-- 5. Ruby 识别结果（跟随前端测试） -->
+		<div id="monitorRubyWrap" style="display:none;margin-top:12px;margin-bottom:12px;">
+			<label class="monitor-lbl">Ruby 识别</label>
+			<div id="monitorRubyList" class="monitor-box" style="max-height:180px;overflow-y:auto"></div>
+		</div>
+
+		<!-- 6. 规则文件启用 -->
+		<div id="monitor-sec-rules" style="margin-top:10px;padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);">
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+			  <span style="font-size:14px; font-weight:600; color:var(--text);">规则文件启用</span>
 			  <div style="display:flex;gap:4px;">
 				<button class="btn ghost small" id="monitorRulesOpenDir" title="打开 replace_rules 文件夹" style="padding:4px 8px;">📂</button>
 				<button class="btn ghost small" id="monitorRulesAll">全选</button>
@@ -3152,10 +3327,22 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 
 			<!-- 规则词条搜索框 -->
 			<div style="display:flex;gap:6px;margin-top:10px; align-items:stretch;">
-			  <input id="ruleSearchInput" class="monitor-input" style="flex:1;padding:4px 8px;font-size:12px;" placeholder="输入词条检测是否已存在...">
+			  <select id="ruleSearchMode" class="monitor-input" style="width: 54px; padding: 4px; font-size: 12px; flex-shrink: 0; text-align: center; text-align-last: center;">
+				<option value="all">全搜索</option>
+				<option value="base" selected>搜base</option>
+				<option value="ruby">搜ruby</option>
+			  </select>
+			  <input id="ruleSearchInput" class="monitor-input" style="flex:1;padding:4px 8px;font-size:12px;" placeholder="输入词条检测...">
 			  <button class="btn ghost small" id="ruleSearchClearBtn" title="清除搜索" style="padding:4px 8px; color:var(--muted);">✕</button>
-			  <button class="btn small" id="ruleSearchBtn" style="padding:4px 12px;">检测</button>
+			  <button class="btn small" id="ruleSearchBtn" style="padding: 4px 0; width: 52px; flex-shrink: 0; justify-content: center;">检测</button>
 			</div>
+			
+			<!-- ★ 格式提示 -->
+			<div style="font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4;">
+			  💡 <b>搜 base</b> = 查找左侧原文，<b>搜 ruby</b> = 查找右侧读音。<br>
+			  （例如在 <code>原文 => 读音</code> 或 <code>｜原文《读音》</code> 中匹配）
+			</div>
+
 			<div id="ruleSearchResult" style="margin-top:6px;font-size:12px;color:var(--text);word-break:break-all;line-height:1.5;"></div>
 
 			<div id="monitorRulesList" style="margin-top:10px;font-size:12px;min-height:242px;overflow-y:auto;border:1px dashed var(--panel-border);border-radius:6px;">加载中…</div>
@@ -3165,8 +3352,8 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 			  <span id="rulesPageInfo" style="font-size:12px;color:var(--muted);">1 / 1</span>
 			  <button class="btn ghost small" id="rulesNextPage" disabled>下一页</button>
 			</div>
-		  </div>
 		</div>
+	</div>
 
 		<!-- 右侧记录：配合父元素的 stretch，自动与左侧等高 -->
 		<div style="flex:2 1 500px; min-width:0; background:var(--panel-bg); border:1px dashed var(--panel-border); border-radius:10px; padding:14px; display:flex; flex-direction:column;">
@@ -3219,11 +3406,55 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 
 <!-- 右下角悬浮工具组 -->
 <div class="float-tools">
-  <button id="floatSettings" class="float-tool-btn" type="button" title="全局设置" aria-label="全局设置">
-	<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  <!-- 前往顶部 -->
+  <button id="backToTop" class="float-tool-btn" type="button" title="前往顶部" aria-label="前往顶部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
   </button>
-  <button id="backToTop" class="float-tool-btn" type="button" title="返回顶部" aria-label="返回顶部">
-	<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  <!-- 设置 -->
+  <button id="floatSettings" class="float-tool-btn" type="button" title="设置" aria-label="设置">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
+  <!-- 前往底部 -->
+  <button id="backToBottom" class="float-tool-btn" type="button" title="前往底部" aria-label="前往底部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+  </button>
+</div>
+
+<!-- 监控台左下角快捷导航 -->
+<div class="monitor-nav-sidebar" id="monitorNavSidebar">
+  <button class="monitor-nav-item" data-target="monitor-sec-autodict" title="自动记忆登记">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="monitor-sec-engine" title="TTS引擎选择">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="monitor-sec-test" title="前端文本测试">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="monitor-sec-cevio" title="CeVIO情感参数">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="monitor-sec-rules" title="规则文件启用">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+</div>
+
+<!-- Ruby 页面左下角快捷导航 -->
+<div class="monitor-nav-sidebar" id="rubyNavSidebar">
+  <button class="monitor-nav-item" data-target="ruby-sec-step1" title="1：选择文件">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="ruby-sec-step2" title="2：导入词典">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="resultCard" title="3：提取概览">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="workbenchCard" title="4：Ruby 工作台">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="ruby-sec-export" title="5：导出">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
   </button>
 </div>
 
@@ -3242,21 +3473,65 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
     <!-- 内容区（你可以随时修改这里的内容） -->
     <div class="cl-content" style="padding: 20px; overflow-y: auto; font-size: 13.5px; line-height: 1.7; color: var(--text);">
 
+      <!-- v1.0.18 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.18</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>搜索功能升级：</b>规则搜索支持「全搜索 / 搜base(左侧) / 搜ruby(右侧)」，默认选中搜base，并补充了格式提示；<code>tts.py</code> 同步更新支持。</li>
+          <li><b>结果折叠展示：</b>搜索结果默认仅展示已启用的文件匹配项，未启用的结果收折在底部，点击 <code>▶</code> 箭头即可展开/折叠。</li>
+		  <li><b>单字记忆升级：</b>优化了 <code>auto_dict.txt</code> 的自动登记逻辑。包含高危读音（如读音第二位起出现 <code>やゆよつ</code> 大字，或包含小字）的单字会被专门登记并按 <code># ===== 单字 =====</code> 分类插入。<b>但单字仅作为“占位防抖”，不参与前端计数</b>，前端仅统计需要处理的组词数量。</li>
+		  <li><b>自动记忆预览：</b>为「自动记忆登记」卡片新增「查看详情」面板。现在可以直接在页面内按组词/单字分类预览待确认词条，点击即可复制到剪贴板，同时优化了「人工确认」超链接的视觉提示。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.17 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.17</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>重构多语种切换逻辑（引入「伪切换」机制）</b>：修复了此前点击语种按钮会直接修改后端状态，导致前后端配置不一致的严重 BUG。现在，语种切换在提交前完全停留在前端沙盒内。</li>
+          <li><b>UI 即时响应预览</b>：当您点击汉语、英语或日语按钮时，下方的引擎列表（如自动隐藏 VOICEVOX / CeVIO，过滤 Windows / Edge 对应的语种语音）会立刻刷新。您可以自由组合并查看配置，但不会对当前正在运行的后端产生任何影响。</li>
+          <li><b>严格的提交与生效</b>：只有当你点击 <code>以此配置运行</code> 按钮后，前端才会将选定的语种参数正式发送给 <code>tts.py</code> 并保存到全局配置中，确保“所见即所配，所配即所存”。</li>
+		  <li><b>监控台导航：</b>在监控台左下角新增了专属的「快捷导航」浮窗。采用星形SVG图标，竖向排列 5 个核心模块锚点（自动记忆、TTS引擎、文本测试、CeVIO参数、规则文件）。点击图标可平滑滚动至对应区块，并在滚动时自动高亮当前所在模块。</li>
+		  <li><b>Ruby 页导航：</b>在「EPUB Ruby 提取」页同样加入了左下角快捷导航，将流程精准划分为 5 步（文件导入、参考词典、结果概览、工作台、导出），方便快速跳转。</li>
+          <li><b>Ruby 工作台拆分：</b>原“提取结果”区块被正式拆分为 <b>3 提取结果概览</b>（仅展示数据统计与语法/操作指南）与 <b>4 Ruby 工作台</b>（筛选、编辑与核对），并更正导出为步骤 5。优化了空状态下的显示逻辑：常驻显示新手向导与操作教程。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.16 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.16</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>新增历史记录「重播」功能</b>：每一条历史记录右侧新增 <code>▶ 重播</code> 按钮。在当前会话中已缓存音频直接秒播；旧快照会自动请求后端重新合成。同时加入了防抖处理，防止连点卡死。</li>
+          <li><b>新增自动记忆池超量预警</b>：当 <code>auto_dict.txt</code> 待确认词条超过 20 条时，数字开始闪烁警示。词条数量越多闪烁越快（最高 1 秒/次），并伴随最高 1.5 倍的放大动画。</li>
+          <li><b>使用说明 UI 与目录优化</b>：左侧目录栏新增 <code>▼</code> / <code>▲</code> 切换按钮，支持展开至 H4 级别细则，并将目录头部升级为“吸顶锁定”。
+          </li>
+          <li><b>License 页面 UI 重构与合规增强</b>：采用双栏对比设计，直观展示「基础协议」与「专属豁免条款」的区别。补充了“一句话读懂授权边界”的说明，并加入了官方中日英三语法律原文的直达链接。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.15 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.15</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>修复 BUG：</b>在词典中登记了拆分人名（如 <code>茅場 => かやば</code>、<code>晶彦 => あきひこ</code>），但原文遇到组合词（<code>茅場晶彦</code>）时，仍会被误登记进 <code>auto_dict.txt</code> 的问题。</li>
+          <li><b>根因分析：</b>以前系统只对比「原词整体」是否在词典中，无法识别词典已将组合词拆解覆盖。</li>
+          <li><b>解决方案：</b>新增 <code>_is_fully_covered_by_dict()</code> 检测。在登记自动词典前，先模拟执行一遍替换规则；若该组合词被现有规则完全转为假名（不留残余汉字），视为已被词典完美接管，不再进行冗余登记。</li>
+          <li><b>延伸修复：</b>彻底修复了在词典中已配置的词汇，依然被错误登记进 <code>auto_dict.txt</code> 的遗留问题。</li>
+          <li><b>底层加固：</b>追加写入拦截防线。在 <code>_append_to_auto_dict</code> 执行物理写入前，强制检查该词条是否存在于用户的精确词典中。只要命中词典，无论原流程如何，一律拒绝登记，保证自动记忆池的绝对纯净。</li>
+        </ul>
+      </div>
+
       <!-- v1.0.14 -->
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.14</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>修复了监控台「Ruby 识别」面板中，同一个词条的注音被<b>重复显示多次</b>的 BUG。</li>
-          <li>根因：<code>tts.py</code> 的 <code>parse_ruby()</code> 函数在串行处理多种注音格式时（HTML 标签、带竖线格式、隐式格式），前一个正则转换后的结果会再次被后续正则捕获，导致同一个 <code>base → ruby</code> 被多次压入 <code>findings</code> 列表。虽然不影响最终朗读，但会让监控台显得很凌乱。</li>
-          <li>修复：在 <code>parse_ruby()</code> 中引入 <code>_seen_findings</code> 集合进行去重，确保同一个注音组合只被记录一次。</li>
-          <li style="margin-top: 10px; padding: 8px 12px; background: light-dark(#e0f2e6, #142a1e); border-left: 4px solid var(--ok); border-radius: 0 4px 4px 0;">
-            <b style="color: var(--ok);">✨ 新增：纯标点断句静音兜底</b><br>
-            修复了 CeVIO COM 引擎在遇到纯标点文本（如单独成行的 <code>──…………</code> 或 <code>？！</code>）时，直接报错 <code>OutputWaveToFile 失败</code> 导致长文本朗读中断的问题。<br>
-            现在，系统会自动检测文本中是否含有可发音字符（汉字、假名、字母）。若全是标点符号，将直接返回 <b>1 秒的静音 WAV 音频</b>作为平稳过渡，确保阅读器或监控台不会卡死闪退。
-          </li>
-          <li>修复了向 <code>auto_dict.txt</code> 写入自动记忆词条时，会产生重复数据的 BUG。</li>
-          <li>根因：<code>load_all_rules()</code> 在启动时加载规则时，由于历史遗留的 <code>continue</code> 拦截，导致 auto_dict 的去重标记未正确载入内存。每次重启服务后，系统会忘记之前的登记记录，从而向文件中重复追加。</li>
-          <li>修复：修正了内存加载逻辑；同时在 <code>_append_to_auto_dict</code> 写文件前，加入了物理文件级别的二次比对去重，彻底杜绝重复条目污染文件。</li>
+          <li><b>修复 BUG：</b>监控台「Ruby 识别」面板中，同一个词条的注音被<b>重复显示多次</b>的问题。</li>
+          <li><b>根因分析：</b><code>tts.py</code> 的 <code>parse_ruby()</code> 函数在串行处理多种注音格式时（HTML 标签、带竖线格式、隐式格式），前一个正则转换后的结果会再次被后续正则捕获，导致同一个 <code>base → ruby</code> 被多次压入 <code>findings</code> 列表。虽然不影响最终朗读，但会让监控台显得很凌乱。</li>
+          <li><b>解决方案：</b>在 <code>parse_ruby()</code> 中引入 <code>_seen_findings</code> 集合进行去重，确保同一个注音组合只被记录一次。</li>
+          <li><b>新增兜底：</b>纯标点断句静音兜底。修复了 CeVIO COM 引擎在遇到纯标点文本（如单独成行的 <code>──…………</code> 或 <code>？！</code>）时，直接报错 <code>OutputWaveToFile 失败</code> 导致长文本朗读中断的问题。现在，系统会自动检测文本中是否含有可发音字符。若全是标点符号，将直接返回 <b>1 秒的静音 WAV 音频</b>作为平稳过渡，确保不会卡死闪退。</li>
+          <li><b>修复 BUG：</b>向 <code>auto_dict.txt</code> 写入自动记忆词条时，会产生重复数据的问题。</li>
+          <li><b>根因分析：</b><code>load_all_rules()</code> 在启动时加载规则时，由于历史遗留的 <code>continue</code> 拦截，导致 auto_dict 的去重标记未正确载入内存。每次重启服务后，系统会忘记之前的登记记录，从而向文件中重复追加。</li>
+          <li><b>解决方案：</b>修正了内存加载逻辑；同时在 <code>_append_to_auto_dict</code> 写文件前，加入了物理文件级别的二次比对去重，彻底杜绝重复条目污染文件。</li>
         </ul>
       </div>
 
@@ -3264,15 +3539,9 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.13</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>修复了 <code>&lt;ruby&gt;</code> <b>逐字注音结构</b>（一个 <code>&lt;ruby&gt;</code> 内含多个 <code>&lt;rt&gt;</code>）无法被解析的 BUG。</li>
-          <li>根因：<code>tts.py</code> 的 <code>RUBY_PATTERNS</code> 第一条正则只支持「1 个 base + 1 个 rt」的标准结构，遇到 EPUB 里常见的 <code>&lt;ruby&gt;矯&lt;rt&gt;きよう&lt;/rt&gt;正&lt;rt&gt;せい&lt;/rt&gt;&lt;/ruby&gt;</code> 这种逐字注音时，正则匹配失败，导致<b>整条 <code>&lt;ruby&gt;</code> 标签被原样保留</b>，最终送进 TTS 引擎的文本里混杂着大量 HTML 标签，被朗读成「ruby 矯 rt きよう …」之类的乱码。</li>
-          <li>修复：新增 <code>_extract_html_ruby()</code> 专用解析函数，改用 <code>re.split</code> 按 <code>&lt;rt&gt;</code> 边界切片，把多段 base 与多段 ruby 分别拼接合并。<code>矯&lt;rt&gt;きよう&lt;/rt&gt;正&lt;rt&gt;せい&lt;/rt&gt;</code> 会被正确还原为 <code>｜矯正《きようせい》</code>，<code>強&lt;rt&gt;きよう&lt;/rt&gt;靱&lt;rt&gt;じん&lt;/rt&gt;</code> 会被正确还原为 <code>｜強靱《きようにん》</code>。</li>
-          <li>同步增强了 <code>&lt;rp&gt;</code> 标签的剥离能力，并支持 <code>&lt;rb&gt;</code>、<code>&lt;span&gt;</code> 等嵌套标签混入的情况。</li>
-          <li style="margin-top: 10px; padding: 8px 12px; background: light-dark(#e0f2e6, #142a1e); border-left: 4px solid var(--ok); border-radius: 0 4px 4px 0;">
-            <b style="color: var(--ok);">💡 温馨提示：</b>本次修复只解决「标签解析」，但<b>原文标注的读音是否正确，仍需你自己把关</b>。<br>
-            比如 EPUB 常见的错标：<code>矯正</code> 标成 <code>きようせい</code>（<code>よ</code> 应为小字 <code>ょ</code>）、<code>強靱</code> 标成 <code>きようにん</code>（应为 <code>きょうじん</code>）——解析器只能忠实还原原文给的读音，无法自动纠错。<br>
-            建议在 <code>user_dict.txt</code> 里加上 <code>矯正 =&gt; きょうせい</code>、<code>強靱 =&gt; きょうじん</code> 等强制覆盖规则，让词典优先级压过原文 ruby。
-          </li>
+          <li><b>修复 BUG：</b><code>&lt;ruby&gt;</code> <b>逐字注音结构</b>（一个 <code>&lt;ruby&gt;</code> 内含多个 <code>&lt;rt&gt;</code>）无法被解析的问题。</li>
+          <li><b>标签兼容：</b>同步增强了 <code>&lt;rp&gt;</code> 标签的剥离能力，并支持 <code>&lt;rb&gt;</code>、<code>&lt;span&gt;</code> 等嵌套标签混入的情况。</li>
+          <li><b>温馨提示：</b>本次修复只解决「标签解析」，但<b>原文标注的读音是否正确，仍需你自己把关</b>。比如 EPUB 常见的错标：<code>矯正</code> 标成 <code>きようせい</code>（<code>よ</code> 应为小字 <code>ょ</code>）——解析器只能忠实还原原文给的读音，无法自动纠错。建议在 <code>user_dict.txt</code> 里加上强制覆盖规则。</li>
         </ul>
       </div>
 
@@ -3280,13 +3549,8 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.12</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>修复了「大小写兼容」算法范围过度扩大化，导致 Windows 讲述人与 Edge TTS 模型调用失败的 BUG。</li>
-          <li>根因：后端 <code>_do_synthesize()</code> 对整个 <code>model</code> 字符串无差别 <code>.lower()</code>，误伤了 Edge TTS 与 Windows SAPI 这两个<b>大小写敏感</b>的标识符体系。</li>
-          <li>修复：拆分 <code>model_raw</code>（保原貌）与 <code>model_lower</code>（仅分支判断），<code>edge:</code> / <code>windows:</code> 前缀的语音名一律从 <code>model_raw</code> 提取。</li>
-          <li>前端新增 <code>normalizeBySelect()</code> 兜底，自动把历史脏数据与手填小写纠正为下拉框里的正确大小写。</li>
-          <li style="margin-top: 10px; padding: 8px 12px; background: light-dark(#fcf3d9, #2a2415); border-left: 4px solid var(--warn); border-radius: 0 4px 4px 0;">
-            <b style="color: var(--warn);">⚠️ 特别强调：</b>Windows 讲述人 与 Edge TTS <b>不支持 C 模式（Ruby 输出）</b>，请使用 <b>A（纯汉字）</b> 或 <b>B（纯注音）</b> 模式。
-          </li>
+          <li><b>修复 BUG：</b>「大小写兼容」算法范围过度扩大化，导致 Windows 讲述人与 Edge TTS 模型调用失败的问题。</li>
+          <li><b>特别强调：</b>Windows 讲述人 与 Edge TTS <b>不支持 C 模式（Ruby 输出）</b>，请使用 <b>A（纯汉字）</b> 或 <b>B（纯注音）</b> 模式。</li>
         </ul>
       </div>
 
@@ -3294,9 +3558,8 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.11</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>监控台左侧面板新增「TTS 语种选择」功能。</li>
-          <li>支持快速切换日语、漢语、英语三种目标语种（选择状态会自动保存在浏览器本地）。</li>
-          <li>为后续不同语种的专属规则库或合成策略（如中文纯注音替代、英文纯原文读取）预留了底层 UI 交互层。</li>
+          <li><b>新增功能：</b>监控台左侧面板新增「TTS 语种选择」功能，支持快速切换日语、漢语、英语三种目标语种（选择状态会自动保存在浏览器本地）。</li>
+          <li><b>底层预留：</b>为后续不同语种的专属规则库或合成策略（如中文纯注音替代、英文纯原文读取）预留了底层 UI 交互层。</li>
         </ul>
       </div>
 
@@ -3304,9 +3567,9 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.10</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>补充并完善了【📖 使用说明】中关于其他语种（尤其是汉语）的 TTS 配置建议。</li>
-          <li>明确了汉语 TTS 推荐使用 <b>B（纯注音）</b> 模式，并采用替代注音法（用无多音字的同音字进行替代）。</li>
-          <li>更新了常见多音字替代示例：<code>弹琴 => 谈琴</code>、<code>大夫 => 代夫</code>、<code>的确 => 迪确</code>、<code>重复 => 虫复</code>、<code>朝气 => 招气</code>、<code>还钱 => 环钱</code>、<code>角色 => 觉色</code>。</li>
+          <li><b>文档完善：</b>补充并完善了【📖 使用说明】中关于其他语种（尤其是汉语）的 TTS 配置建议。</li>
+          <li><b>明确规范：</b>明确了汉语 TTS 推荐使用 <b>B（纯注音）</b> 模式，并采用替代注音法（用无多音字的同音字进行替代）。</li>
+          <li><b>示例更新：</b>更新了常见多音字替代示例：<code>弹琴 => 谈琴</code>、<code>大夫 => 代夫</code>、<code>的确 => 迪确</code>、<code>重复 => 虫复</code>、<code>朝气 => 招气</code>、<code>还钱 => 环钱</code>、<code>角色 => 觉色</code>。</li>
         </ul>
       </div>
 
@@ -3314,12 +3577,9 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.9</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>新增高级数字规则包 <code>00_top_rule.txt</code>（位于 <code>replace_rule.7z.backup</code>，解压后手动放入 <code>replace_rules/</code>，并到监控台勾选启用）。</li>
-          <li>支持「汉字数字 + 阿拉伯数字」混合大数的智能注音，如 <code>24</code>、<code>2十5</code>、<code>100本</code>、<code>三百27</code>，可按「高位 → 个位 → 量词」分层读取。</li>
-          <li>利用前瞻断言 <code>(?=...)</code> 实现「只吃十位 / 百位，个位留给量词规则」的分工策略，避免重复替换或吞字。</li>
-          <li>利用负向后顾 <code>(?&lt;!...)</code> 防止把更长数字中的片段（如 <code>120</code> 中的 <code>2</code>）误识别为独立数字。</li>
-          <li>内置 <code>本 / 杯 / 匹</code> 三大高频量词的完整音变表（促音、浊化、半浊化），并兼容全角 / 半角数字输入。</li>
-          <li>采用 <code>&lt;= count:99</code> 权重优先级，确保高级数字规则永远压过普通词典中的同词规则。</li>
+          <li><b>新增功能：</b>新增高级数字规则包 <code>00_top_rule.txt</code>（位于 <code>replace_rule.7z.backup</code>，解压后手动放入 <code>replace_rules/</code>，并到监控台勾选启用）。支持「汉字数字 + 小写数字 + 小数点」混合大数的智能注音，如 <code>24</code>、<code>2十5</code>、<code>100本</code>、<code>三百27</code>。</li>
+          <li><b>底层优化：</b>利用前瞻断言 <code>(?=...)</code> 实现「只吃十位 / 百位，个位留给量词规则」的分工策略；利用负向后顾 <code>(?&lt;!...)</code> 防止把更长数字中的片段误识别为独立数字。</li>
+          <li><b>规则补全：</b>内置 <code>本 / 杯 / 匹</code> 三大高频量词的完整音变表（促音、浊化、半浊化），并兼容全角 / 半角数字输入。采用 <code>&lt;= count:99</code> 权重优先级，确保高级数字规则永远压过普通词典中的同词规则。</li>
         </ul>
       </div>
 
@@ -3327,12 +3587,9 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.8</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>新增 Edge TTS 引擎支持（需安装 <code>edge-tts</code> 库）。</li>
-          <li>新增 Windows 讲述人原生语音支持。</li>
-          <li>新增全局背景图配置与界面毛玻璃（亚克力）效果。</li>
-          <li>重构数据统计面板，改为 5+5 居中布局。</li>
-          <li>优化悬浮编辑按钮的弹窗位置，防止遮挡文本。</li>
-          <li>修复了词库检测搜索功能无法检索未启用文件的 Bug。</li>
+          <li><b>新增引擎：</b>新增 Edge TTS 引擎支持（需安装 <code>edge-tts</code> 库），以及 Windows 讲述人原生语音支持。</li>
+          <li><b>UI 功能：</b>新增全局背景图配置与界面毛玻璃（亚克力）效果；重构数据统计面板，改为 5+5 居中布局；优化悬浮编辑按钮的弹窗位置，防止遮挡文本。</li>
+          <li><b>修复 BUG：</b>修复了词库检测搜索功能无法检索未启用文件的问题。</li>
         </ul>
       </div>
 
@@ -3340,12 +3597,11 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.7</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>全面重写「📖 使用说明」页面，加入配色图例。</li>
-          <li>新增“疑似小字”拆分为“常见小字”和“特殊小字”并更新筛选逻辑。</li>
-          <li>新增了 <code>(A|B|C) => (a|b|c)</code>人名映射语法。</li>
-          <li>新增人名词典 <code>person_dict.txt</code> 自动生成与优先级锁定。</li>
-          <li>新增了 <code>[suffix] 君 => くん</code> 的 <code>person_dict.txt</code> 专属语法。</li>
-          <li>新增“导出自动归一化西文大小写与全半角”功能。</li>
+          <li><b>文档重构：</b>全面重写「📖 使用说明」页面，加入配色图例。</li>
+          <li><b>功能增强：</b>新增“疑似小字”拆分为“常见小字”和“特殊小字”并更新筛选逻辑。</li>
+          <li><b>语法支持：</b>新增了 <code>(A|B|C) => (a|b|c)</code> 人名映射语法，以及 <code>[suffix] 君 => くん</code> 的 <b>固有名词</b> 专属的 <b>后缀词映射</b> 语法，并新增人名词典自动生成与优先级锁定。</li>
+          <li><b>文件</b><code>person_dict.txt</code>，该文件将在首次运行时自动建立。</li>
+          <li><b>导出优化：</b>新增“导出自动归一化西文大小写与全半角”功能。</li>
         </ul>
       </div>
 
@@ -3353,11 +3609,9 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.6</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>再次更新并重写映射的算法机制。</li>
-          <li>新增了 <code>&lt;= count:n</code> 的权重加强语法。</li>
-          <li>更新了 Ruby 提取的算法机制。</li>
-          <li>优化了 Ruby 标注的 UI / UX 体验。</li>
-          <li>重新设计了悬浮按钮的功能和 UI。</li>
+          <li><b>算法更新：</b>再次更新并重写映射的算法机制；更新了 Ruby 提取的算法机制。</li>
+          <li><b>语法</b>新增了 <code>&lt;= count:n</code> 的权重加强语法。</li>
+          <li><b>UI 优化：</b>优化了 Ruby 标注的 UI / UX 体验；重新设计了悬浮按钮的功能和 UI。</li>
         </ul>
       </div>
 
@@ -3365,8 +3619,8 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.5</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>删除 <code>README.md</code>，更新 License，许可协议更换为 <b>CC BY-NC 4.0</b>。</li>
-          <li>设计了「📖 使用说明」页面。</li>
+          <li><b>协议变更：</b>重写 <code>README.md</code>，更新 License，许可协议更换为 <b>CC BY-NC-SA 4.0</b>。</li>
+          <li><b>页面</b>设计了「📖 使用说明」页面。</li>
         </ul>
       </div>
 
@@ -3374,9 +3628,9 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.4</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>引入了 CeVIO AI 通过 COM 实现情感参数控制的功能。</li>
-          <li>放弃了让工具箱自行修复小字的功能，改为在导出时分组的功能。</li>
-          <li>新增了 <code>skill.md</code> 文件，用于 AI 辅助完成小字修复。</li>
+          <li><b>引擎接入：</b>引入了 CeVIO AI 通过 COM 实现情感参数控制的功能。</li>
+          <li><b>功能调整：</b>放弃了让工具箱自行修复小字的功能，改为在导出时分组的功能。</li>
+          <li><b>文件</b>新增了 <code>skill.md</code> 文件，用于 AI 辅助完成小字修复。</li>
         </ul>
       </div>
 
@@ -3384,7 +3638,7 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.3</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>引入了 CeVIO AI 的 SAPI 接入功能。</li>
+          <li><b>引擎接入：</b>引入了 CeVIO AI 的 SAPI 接入功能。</li>
         </ul>
       </div>
 
@@ -3392,9 +3646,9 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.2</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>重新设计了页面 UI。</li>
-          <li>新增 VOICEVOX 音色速查功能。</li>
-          <li>新增 <code>README.md</code> 与 <code>MIT License.txt</code> 文件。</li>
+          <li><b>UI 重构：</b>重新设计了页面 UI。</li>
+          <li><b>功能</b>新增 VOICEVOX 音色速查功能。</li>
+          <li><b>文件</b>新增 <code>README.md</code> 与 <code>MIT License.txt</code> 文件。</li>
         </ul>
       </div>
 
@@ -3402,10 +3656,8 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.1</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>更新了多种独创的语法结构。</li>
-          <li>新增了<code>A => a</code>标准注音语法。</li>
-          <li>新增了<code>A|AA|AAA => a</code>多对一标注语法。</li>
-          <li>新增了<code>A => a1(1)|a2(1)|a3(3)</code>一对多概率抽取的标注语法。</li>
+          <li><b>语法</b>更新了多种独创的语法结构。</li>
+          <li><b>语法</b>新增了 <code>A => a</code> 标准注音语法、<code>A|AA|AAA => a</code> 多对一标注语法、<code>A => a1(1)|a2(1)|a3(3)</code> 一对多概率抽取的标注语法。</li>
         </ul>
       </div>
 
@@ -3413,7 +3665,7 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
       <div class="cl-item" style="margin-bottom: 8px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.0</div>
         <ul style="margin: 0; padding-left: 20px;">
-          <li>初步完成了 TTS 引擎的设计与测试，接下来将着重于设计词条映射机制。</li>
+          <li><b>项目启动：</b>初步完成了 TTS 引擎的设计与测试，接下来将着重于设计词条映射机制。</li>
         </ul>
       </div>
 
@@ -3425,6 +3677,31 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
   @keyframes modalPop {
     0% { transform: scale(0.9); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ★ 自动记忆登记超量闪烁动画 */
+  @keyframes flashAlert {
+    0%, 100% { 
+      opacity: 1; 
+      transform: scale(1); 
+      color: var(--danger);
+    }
+    50% { 
+      opacity: 0.4; 
+      /* ★ 修改这里：最大放大到 1.5 倍 */
+      transform: scale(1.5); 
+      color: var(--danger); 
+    }
+  }
+
+  .flashing-alert {
+    display: inline-block;
+    /* ★ 以右侧为中心放大，防止往左撑开挤压“自动记忆登记”的文字 */
+    transform-origin: right center; 
+    animation-name: flashAlert;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-duration: 1.5s; 
   }
 </style>
 
@@ -3627,41 +3904,69 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 })();
 </script>
 
-<!-- 脚本 4：返回顶部 -->
+<!-- 脚本 4：悬浮按钮组交互 -->
 <script>
 (function () {
   const btnTop = document.getElementById('backToTop');
+  const btnBottom = document.getElementById('backToBottom');
   const btnSet = document.getElementById('floatSettings');
-  if (!btnTop || !btnSet) return;
+  if (!btnTop || !btnSet || !btnBottom) return;
   
-  const SHOW_AFTER = 400;
+  const SHOW_AFTER = 400; // 滚动多少像素后才显示按钮
   let ticking = false;
   
   function update() {
-	if (window.scrollY > SHOW_AFTER) {
-	  btnTop.classList.add('show');
-	  btnSet.classList.add('show');
-	} else {
-	  btnTop.classList.remove('show');
-	  btnSet.classList.remove('show');
-	}
-	ticking = false;
+    const scrollY = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight;
+    const winHeight = window.innerHeight;
+    
+    // 判断是否到底部（误差 10px 以内算作底部）
+    const isBottom = scrollY + winHeight >= docHeight - 10;
+    
+    // 统一控制是否整体显示
+    if (scrollY > SHOW_AFTER) {
+      btnSet.classList.add('show');
+    } else {
+      btnSet.classList.remove('show');
+    }
+    
+    // 前往顶部：只要离开顶部区域就显示
+    if (scrollY > SHOW_AFTER) {
+      btnTop.classList.add('show');
+    } else {
+      btnTop.classList.remove('show');
+    }
+    
+    // 前往底部：只要离开顶部区域，且还没到最底部，就显示
+    if (scrollY > SHOW_AFTER && !isBottom) {
+      btnBottom.classList.add('show');
+    } else {
+      btnBottom.classList.remove('show');
+    }
+    
+    ticking = false;
   }
   
   window.addEventListener('scroll', () => {
-	if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
   }, { passive: true });
   
-  // 返回顶部点击
+  // 前往顶部点击
   btnTop.addEventListener('click', () => {
-	const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-	window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  });
+  
+  // 前往底部点击
+  btnBottom.addEventListener('click', () => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
   });
   
   // 打开设置抽屉
   btnSet.addEventListener('click', () => {
-	const origSetBtn = document.getElementById('btnOpenSettings');
-	if (origSetBtn) origSetBtn.click();
+    const origSetBtn = document.getElementById('btnOpenSettings');
+    if (origSetBtn) origSetBtn.click();
   });
   
   update();
@@ -4038,10 +4343,20 @@ function summarizeDist(options) {
 
   function loadStateFromLocal() {
 	const saved = localStorage.getItem(STORAGE_KEY);
-	if (!saved) return false;
+	
+	// ★ 核心修复：如果没有缓存，也要调用渲染函数，让步骤3的教程显示出来
+	if (!saved) { 
+	  renderResults(); 
+	  return false; 
+	}
+	
 	try {
 	  const data = JSON.parse(saved);
-	  if (!data.entries || !data.entries.length) return false;
+	  // ★ 核心修复：如果缓存里没数据，也调用渲染函数
+	  if (!data.entries || !data.entries.length) { 
+	    renderResults(); 
+	    return false; 
+	  }
 	  
 	  state.files = data.files || [];
 	  state.entries = data.entries || [];
@@ -4068,6 +4383,7 @@ function summarizeDist(options) {
 	  return true;
 	} catch (e) {
 	  console.error('恢复数据失败', e);
+	  renderResults(); // 即使报错也渲染一下
 	  return false;
 	}
   }
@@ -4664,14 +4980,51 @@ function summarizeDist(options) {
 
   function renderResults() {
 	const card = document.getElementById('resultCard');
-	const exportCard = document.getElementById('exportCard');
+	const workbenchCard = document.getElementById('workbenchCard');
+	const exportCard = document.getElementById('ruby-sec-export');
+
+	// 无论有无词条，步骤 3 概览卡片始终显示
+	card.style.display = ''; 
+
 	if (state.entries.length === 0) {
-	  card.style.display = 'none'; exportCard.style.display = 'none';
+	  // 空状态下，隐藏工作台、导出和统计面板
+	  if (workbenchCard) workbenchCard.style.display = 'none';
+	  if (exportCard) exportCard.style.display = 'none';
+	  document.getElementById('stats').style.display = 'none'; // ★ 这里：没有数据时隐藏统计面板
+	  
 	  document.querySelectorAll('.float-btn').forEach(b => b.classList.remove('show'));
 	  updateFloatButton();
+
+	  // 隐藏多余的提示（教程部分会自动保留）
+	  document.getElementById('mergeHint').style.display = 'none';
+	  
+	  // 初始状态下显示操作指南与参考
+	  const suspHint = document.getElementById('suspHint');
+	  suspHint.style.display = '';
+	  
+	  // 修改首行红色的提示文字，让它更像是一个教程
+	  const textNodes = Array.from(suspHint.childNodes);
+	  const firstText = textNodes.find(n => n.nodeType === 3 && n.textContent.includes('检测到'));
+	  if (firstText) {
+		  firstText.textContent = '💡 新手向导与错标参考：';
+		  const countEl = document.getElementById('suspCount');
+		  if (countEl) countEl.style.display = 'none';
+	  }
+	  
+	  document.getElementById('typeHint').style.display = 'none';
+	  
+	  // 清空工作台列表防止残留
+	  document.getElementById('entries').innerHTML = '';
+	  
 	  return;
 	}
-	card.style.display = ''; exportCard.style.display = '';
+
+	// ===== 以下是“有数据”的情况 =====
+	
+	// 有数据时，恢复显示统计面板和工作台
+	document.getElementById('stats').style.display = 'flex'; // ★ 这里：有数据时恢复统计面板显示
+	if (workbenchCard) workbenchCard.style.display = '';
+	if (exportCard) exportCard.style.display = '';
 	document.querySelectorAll('.float-btn').forEach(b => b.classList.add('show'));
 
 	const stats = {
@@ -4689,20 +5042,9 @@ function summarizeDist(options) {
 	  userdict: state.entries.filter(e => e.fromUserDict).length,
 	  multi: state.entries.filter(e => e.isMulti).length,
 	};
-	
-	document.getElementById('stats').innerHTML = `
-	  <div class="stat" onclick="clearAndFilter('all', 'all')"><div class="num">${fmt(stats.total)}</div><div class="lbl">总条目</div><div class="sub" style="opacity:0.6">点击筛选</div></div>
-	  <div class="stat word" onclick="clearAndFilter('g1', 'word')"><div class="num">${fmt(stats.word)}</div><div class="lbl">组词</div><div class="sub" style="opacity:${stats.wordNew > 0 ? 1 : 0.6}">${stats.wordNew > 0 ? '新增 ' + fmt(stats.wordNew) : '点击筛选'}</div></div>
-	  <div class="stat susp" onclick="clearAndFilter('g2', 'suspCommon')"><div class="num">${fmt(stats.suspCommon)}</div><div class="lbl">疑似常见小字</div><div class="sub" style="opacity:0.6">点击筛选</div></div>
-	  <div class="stat katakana" onclick="clearAndFilter('g2', 'rubyKatakana')"><div class="num">${fmt(stats.katakana)}</div><div class="lbl">カ 含片假名</div><div class="sub" style="opacity:0.6">点击筛选</div></div>
-	  <div class="stat userdict" onclick="clearAndFilter('g3', 'userdict')"><div class="num">${fmt(stats.userdict)}</div><div class="lbl">★ 已收录</div><div class="sub" style="opacity:0.6">点击筛选</div></div>
-	  
-	  <div class="stat" onclick="clearAndFilter('g3', 'unchecked')"><div class="num" id="statChecked">${fmt(stats.checked)}</div><div class="lbl">已勾选</div><div class="sub" style="opacity:0.6">点击筛选</div></div>
-	  <div class="stat single" onclick="clearAndFilter('g1', 'single')"><div class="num">${fmt(stats.single)}</div><div class="lbl">单字</div><div class="sub" style="opacity:${stats.singleNew > 0 ? 1 : 0.6}">${stats.singleNew > 0 ? '新增 ' + fmt(stats.singleNew) : '点击筛选'}</div></div>
-	  <div class="stat susp" onclick="clearAndFilter('g2', 'suspSpecial')"><div class="num">${fmt(stats.suspSpecial)}</div><div class="lbl">疑似特殊小字</div><div class="sub" style="opacity:0.6">点击筛选</div></div>
-	  <div class="stat latin" onclick="clearAndFilter('g2', 'rubyLatin')"><div class="num">${fmt(stats.latin)}</div><div class="lbl">A 含西文</div><div class="sub" style="opacity:0.6">点击筛选</div></div>
-	  <div class="stat conflict" onclick="clearAndFilter('g3', 'conflict')"><div class="num">${fmt(stats.conflict)}</div><div class="lbl">冲突</div><div class="sub" style="opacity:0.6">点击筛选</div></div>
-	`;
+
+	  // ★ 核心修改：没有数据时，隐藏统计面板，把空间留给教程
+	  document.getElementById('stats').style.display = 'none';
 
 	const mergeHint = document.getElementById('mergeHint');
 	const totalMergedGroups = state.files.filter(f => f.status === 'ok' && !f.fromTxt).reduce((s, f) => s + (f.mergedGroups || 0), 0);
@@ -4715,10 +5057,19 @@ function summarizeDist(options) {
 	/* ★ 修改：兼容拆分的两个小字提示计数 */
 	const totalSuspNew = stats.suspCommon + stats.suspSpecial;
 	const suspHint = document.getElementById('suspHint');
-	if (totalSuspNew > 0) {
-	  suspHint.style.display = '';
-	  document.getElementById('suspCount').textContent = fmt(totalSuspNew);
-	} else suspHint.style.display = 'none';
+	
+	// ★ 核心修改：无论如何都显示这个框（因为里面包含操作说明）
+	suspHint.style.display = '';
+	document.getElementById('suspCount').textContent = fmt(totalSuspNew);
+	
+	// 还原正常的头部文字
+	const textNodes = Array.from(suspHint.childNodes);
+	const firstText = textNodes.find(n => n.nodeType === 3 && n.textContent.includes('新手向导'));
+	if (firstText) {
+		firstText.textContent = '🌀 检测到 ';
+		const countEl = document.getElementById('suspCount');
+		if (countEl) countEl.style.display = '';
+	}
 
 	document.getElementById('typeHint').style.display = stats.single > 0 ? '' : 'none';
 
@@ -6014,7 +6365,7 @@ function normalizeRubyForExport(s) {
 	}
 	renderEntryList();
 
-	// ★ 新增：点击统计卡片后，平滑滚动到下方的筛选栏/编辑区
+	// ★ 点击统计卡片后，平滑滚动到下方的筛选栏/编辑区
 	const targetEl = document.getElementById('filterBar') || document.getElementById('resultCard');
 	if (targetEl) {
 	  // 减去 20px 的偏移量，避免贴顶太死
@@ -6373,6 +6724,12 @@ function normalizeRubyForExport(s) {
   let retryCount = 0;
   const MAX_RETRY = 5;
 
+  // ★ 用于缓存语音列表和记录当前语种
+  let _allWindowsVoices = [];
+  let _allEdgeVoices = [];
+  let _currentLang = 'ja';  // 实际生效的语种
+  let _pendingLang = 'ja';  // 用户在 UI 上暂存选中的语种
+
   const $ = id => document.getElementById(id);
 
   function escapeHtml(s) {
@@ -6468,6 +6825,8 @@ function normalizeRubyForExport(s) {
           }
           if (globalCfg.lang) {
             localStorage.setItem('ttsLang', globalCfg.lang);
+            _currentLang = globalCfg.lang;
+            _pendingLang = globalCfg.lang; // 同步暂存
             // 如果 initLangSelector 已经加载，手动同步一下UI
             const langBtns = document.querySelectorAll('.lang-btn');
             if (langBtns.length > 0) {
@@ -6500,10 +6859,11 @@ function normalizeRubyForExport(s) {
     }
   }
 
-  // ★ 语种选择逻辑
+  // ★ 语种选择逻辑（仅暂存，不立即生效）
   function initLangSelector() {
     const langBtns = document.querySelectorAll('.lang-btn');
-    let currentLang = localStorage.getItem('ttsLang') || 'ja';
+    _currentLang = localStorage.getItem('ttsLang') || 'ja';
+    _pendingLang = _currentLang; // 初始化暂存状态
 
     function updateLangUI(lang) {
       langBtns.forEach(btn => {
@@ -6523,20 +6883,19 @@ function normalizeRubyForExport(s) {
       });
     }
 
-    updateLangUI(currentLang);
+    updateLangUI(_pendingLang);
 
     langBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        currentLang = btn.dataset.lang;
-        localStorage.setItem('ttsLang', currentLang);
-        updateLangUI(currentLang);
+        // 仅改变 UI 暂存状态
+        _pendingLang = btn.dataset.lang;
+        updateLangUI(_pendingLang);
         
-        // ★ 核心：把语种同步给 tts.py
-        fetch(API_BASE + '/v1/global/config', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ lang: currentLang })
-        }).catch(e => console.warn("同步语种配置失败", e));
+        // ★ 立刻刷新下拉菜单和预览，不发送任何请求给 tts.py
+        fillModelSelect(); 
+        renderWindowsVoices();
+        renderEdgeVoices();
+        updateAutoConfigPreview();
       });
     });
   }
@@ -6567,15 +6926,179 @@ function normalizeRubyForExport(s) {
     loadRulesFiles(); loadAutoConfig(); connectSSE();
   }
 
+  let _autoDictWordsCache = {};
+
   async function refreshAutoDictCount() {
     try {
       const r = await fetch(API_BASE + '/v1/auto_dict');
       if (r.ok) {
         const data = await r.json();
-        $('autoDictCount').innerText = data.count;
+        _autoDictWordsCache = data.words || {}; // 缓存数据
+        const count = data.count;
+        const el = $('autoDictCount');
+        el.innerText = count;
+
+        // 当数量超过 20 时，触发闪烁动画
+        if (count > 20) {
+          el.classList.add('flashing-alert');
+          let duration = 2.0 - (count - 20) * 0.1;
+          if (duration < 1.0) duration = 1.0;
+          el.style.animationDuration = duration + 's';
+        } else {
+          el.classList.remove('flashing-alert');
+          el.style.animationDuration = '';
+        }
+
+        // ★ 如果详情面板是打开的，实时刷新内容
+        const detailBox = $('autoDictDetails');
+        if (detailBox && detailBox.style.display !== 'none') {
+          renderAutoDictDetails();
+        }
       }
     } catch(e) {}
   }
+
+  // ★ 新增：渲染详情列表（带删除按钮）
+  function renderAutoDictDetails() {
+    const contentBox = $('autoDictListContent');
+    if (!contentBox) return;
+
+    const words = _autoDictWordsCache;
+    const multiWords = [];
+    const singleWords = [];
+
+    for (const [k, v] of Object.entries(words)) {
+      if (k.length > 1) multiWords.push({ k, v });
+      else singleWords.push({ k, v });
+    }
+
+    if (multiWords.length === 0 && singleWords.length === 0) {
+      contentBox.innerHTML = '<div style="color:var(--muted);text-align:center;padding:10px;">暂无登记词条</div>';
+      return;
+    }
+
+    let html = '';
+
+    // 通用词条渲染函数（带 [x] 按钮）
+    const renderTag = (item, isSingle) => {
+      const k = escapeHtml(item.k);
+      const v = escapeHtml(item.v);
+      const bg = isSingle ? 'background:transparent; border:1px dashed var(--border); color:var(--muted);' : 'background:var(--panel-bg); border:1px solid var(--border);';
+      
+      return `
+        <div style="display:inline-flex; align-items:center; ${bg} padding:2px 6px; border-radius:4px; gap:6px; transition:0.15s;">
+          <span style="cursor:pointer;" onclick="navigator.clipboard.writeText('${k} => ${v}'); this.style.color='var(--primary)'; setTimeout(()=>this.style.color='', 300);" title="点击复制">
+            ${k} <span style="font-size:11px; opacity:0.6;">=&gt;</span> ${v}
+          </span>
+          <span class="btn-delete-tag" 
+                style="cursor:pointer; color:var(--muted); font-weight:bold; font-size:11px; padding:0 4px; border-radius:2px; transition:0.15s;" 
+                onclick="window.__deleteAutoDictItem('${k}', '${v}', this)" 
+                title="点击两次确认删除">
+            ✕
+          </span>
+        </div>`;
+    };
+
+    // 渲染组词
+    if (multiWords.length > 0) {
+      html += '<div style="font-weight:bold; color:var(--primary-dark); margin-bottom:4px;">组词 (需人工确认)</div>';
+      html += '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">';
+      multiWords.forEach(item => { html += renderTag(item, false); });
+      html += '</div>';
+    }
+
+    // 渲染单字
+    if (singleWords.length > 0) {
+      html += '<div style="font-weight:bold; color:var(--muted); margin-bottom:4px; margin-top:8px;">单字 (占位防抖，通常无需处理)</div>';
+      html += '<div style="display:flex; flex-wrap:wrap; gap:6px;">';
+      singleWords.forEach(item => { html += renderTag(item, true); });
+      html += '</div>';
+    }
+
+    contentBox.innerHTML = html;
+  }
+
+  // ★ 新增：处理删除逻辑（二次点击确认）
+  window.__deleteAutoDictItem = async function(base, ruby, el) {
+    // 第一次点击，变红警告
+    if (!el.dataset.confirm) {
+      el.dataset.confirm = 'true';
+      el.style.color = '#fff';
+      el.style.background = 'var(--danger)';
+      el.style.fontWeight = '900';
+      el.title = '再次点击确认删除！';
+      
+      // 3秒后没有第二次点击，自动恢复原状
+      setTimeout(() => {
+        if (el.dataset.confirm === 'true') {
+          el.dataset.confirm = '';
+          el.style.color = 'var(--muted)';
+          el.style.background = 'transparent';
+          el.style.fontWeight = 'bold';
+          el.title = '点击两次确认删除';
+        }
+      }, 3000);
+      return;
+    }
+
+    // 第二次点击，执行删除
+    el.dataset.confirm = '';
+    el.style.color = '#fff';
+    el.style.background = '#999'; // 等待中颜色
+    el.innerHTML = '⏳';
+    
+    try {
+      const r = await fetch(API_BASE + '/v1/auto_dict/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ base: base, ruby: ruby })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || '删除失败');
+      
+      // 删除成功后，重新拉取数据刷新面板
+      await refreshAutoDictCount();
+      
+    } catch (e) {
+      // 如果失败，还原按钮
+      el.innerHTML = '✕';
+      el.style.color = 'var(--muted)';
+      el.style.background = 'transparent';
+      alert('删除失败：' + e.message);
+    }
+  };
+
+  // ★ 绑定详情切换与刷新按钮事件
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnRefresh = $('btnRefreshAutoDict');
+    if (btnRefresh) {
+      btnRefresh.addEventListener('click', async function() {
+        const oldText = this.innerText;
+        this.innerText = '刷新中...';
+        this.disabled = true;
+        await refreshAutoDictCount();
+        this.innerText = oldText;
+        this.disabled = false;
+      });
+    }
+
+    const btn = $('btnToggleAutoDict');
+    if (btn) {
+      btn.addEventListener('click', function() {
+        const box = $('autoDictDetails');
+        if (box.style.display === 'none') {
+          box.style.display = 'block';
+          this.innerText = '收起详情';
+          this.classList.add('active');
+          renderAutoDictDetails();
+        } else {
+          box.style.display = 'none';
+          this.innerText = '查看详情';
+          this.classList.remove('active');
+        }
+      });
+    }
+  });
 
   function updateAutoConfigPreview() {
     const engine = $('monitorEngine').value;
@@ -6592,73 +7115,97 @@ function normalizeRubyForExport(s) {
     }
     const speed = parseFloat($('monitorSpeed').value) || 1.0;
 
+    // ★ 显示代码 // 注释 的格式
+    let langText = 'jp /* 日语 */';
+    if (_pendingLang === 'zh') langText = 'cn /* 汉语 */';
+    if (_pendingLang === 'en') langText = 'en /* 英语 */';
+
     $('monitorAutoInfo').innerHTML = `
+      lang = <span style="color:var(--primary-dark);font-weight:bold;">${langText}</span><br>
       model = <span style="color:var(--primary-dark);font-weight:bold;">${model || '-'}</span><br>
       speed = <span style="color:var(--primary-dark);font-weight:bold;">${speed}</span>
     `;
   }
 
   function fillModelSelect() {
+    // ★ 根据暂存语种动态隐藏引擎选项
     const engineSel = $('monitorEngine');
+    const isJa = (_pendingLang === 'ja' || _pendingLang === 'auto');
+    
+    const optCevio = engineSel.querySelector('option[value="cevio"]');
+    const optVoicevox = engineSel.querySelector('option[value="voicevox"]');
+    
+    if (!isJa) {
+      if (optCevio) { optCevio.hidden = true; optCevio.style.display = 'none'; }
+      if (optVoicevox) { optVoicevox.hidden = true; optVoicevox.style.display = 'none'; }
+      if (engineSel.value === 'cevio' || engineSel.value === 'voicevox') {
+        engineSel.value = 'edge'; // 强制切换到 Edge
+      }
+    } else {
+      if (optCevio) { optCevio.hidden = false; optCevio.style.display = ''; }
+      if (optVoicevox) { optVoicevox.hidden = false; optVoicevox.style.display = ''; }
+    }
+
     const cevioSel = $('monitorCevioModel');
-
     cevioSel.innerHTML = '';
-    if (MODEL_CONFIGS.sapi) {
-      for (const [key, val] of Object.entries(MODEL_CONFIGS.sapi)) {
-        const o = document.createElement('option'); o.value = key; o.textContent = val; cevioSel.appendChild(o);
+    
+    let hasCevioData = false;
+    if (MODEL_CONFIGS.sapi && Object.keys(MODEL_CONFIGS.sapi).length > 0) hasCevioData = true;
+    if (MODEL_CONFIGS.cevio_com && Object.keys(MODEL_CONFIGS.cevio_com).length > 0) hasCevioData = true;
+
+    if (!isJa) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = '（当前语种无可用模型，CeVIO 仅支持日语）';
+      cevioSel.appendChild(o);
+    } else if (hasCevioData) {
+      if (MODEL_CONFIGS.sapi) {
+        for (const [key, val] of Object.entries(MODEL_CONFIGS.sapi)) {
+          const o = document.createElement('option'); o.value = key; o.textContent = val; cevioSel.appendChild(o);
+        }
       }
-    }
-    if (MODEL_CONFIGS.cevio_com) {
-      for (const [key, val] of Object.entries(MODEL_CONFIGS.cevio_com)) {
-        const o = document.createElement('option'); o.value = key; o.textContent = `${val.cast || key} (${key})`; cevioSel.appendChild(o);
-      }
-    }
-
-    // 从后端返回的 MODELS 动态计算 VOICEVOX 最大编号
-    const ttsList = MODELS.filter(m => /^\d+$/.test(m));
-    _ttsMax = 0;
-    ttsList.forEach(m => {
-      const n = parseInt(m, 10);
-      if (n > _ttsMax) _ttsMax = n;
-    });
-    if (_ttsMax === 0) {
-      _ttsMax = 1; // 如果后端没返回模型，只留一个默认的 1，避免输入框报错
-    }
-
-    if ($('monitorTtsNum')) {
-      $('monitorTtsNum').max = String(_ttsMax);
-      if ($('ttsNumLabel')) $('ttsNumLabel').textContent = `Model ID（1–${_ttsMax}）`;
-    }
-
-    // ★ 默认优先选中 CeVIO AI 引擎
-    if (MODEL_CONFIGS.cevio_com && Object.keys(MODEL_CONFIGS.cevio_com).length > 0) {
-      engineSel.value = 'cevio';
-      
-      // 1. 优先寻找完美预设
-      if (MODEL_CONFIGS.cevio_com['com-karin-happy']) {
-        $('monitorCevioModel').value = 'com-karin-happy';
-      } else {
-        // 2. 退而求其次，寻找名字里包含 karin 的预设
-        const karinKey = Object.keys(MODEL_CONFIGS.cevio_com).find(k => k.includes('karin'));
-        if (karinKey) {
-          $('monitorCevioModel').value = karinKey;
-        } else {
-          // 3. 如果连 karin 都没有，就直接选中列表里的第一个
-          $('monitorCevioModel').selectedIndex = 0;
+      if (MODEL_CONFIGS.cevio_com) {
+        for (const [key, val] of Object.entries(MODEL_CONFIGS.cevio_com)) {
+          const o = document.createElement('option'); o.value = key; o.textContent = `${val.cast || key} (${key})`; cevioSel.appendChild(o);
         }
       }
     } else {
-      // 只有当 CeVIO 预设完全为空时，才回退到 VOICEVOX
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = '未检测到任何 CeVIO 配置';
+      cevioSel.appendChild(o);
+    }
+
+    const ttsWrap = $('ttsNumWrap');
+    const ttsInput = $('monitorTtsNum');
+    if (!isJa) {
+      ttsWrap.style.display = 'none';
+    } else {
+      ttsWrap.style.display = '';
+      const ttsList = MODELS.filter(m => /^\d+$/.test(m));
+      _ttsMax = 0;
+      ttsList.forEach(m => {
+        const n = parseInt(m, 10);
+        if (n > _ttsMax) _ttsMax = n;
+      });
+      if (_ttsMax === 0) _ttsMax = 1;
+      ttsInput.max = String(_ttsMax);
+      $('ttsNumLabel').textContent = `Model ID（1–${_ttsMax}）`;
+    }
+
+    if (MODEL_CONFIGS.cevio_com && Object.keys(MODEL_CONFIGS.cevio_com).length > 0 && isJa) {
+      engineSel.value = 'cevio';
+      if (MODEL_CONFIGS.cevio_com['com-karin-happy']) $('monitorCevioModel').value = 'com-karin-happy';
+      else {
+        const karinKey = Object.keys(MODEL_CONFIGS.cevio_com).find(k => k.includes('karin'));
+        if (karinKey) $('monitorCevioModel').value = karinKey;
+        else $('monitorCevioModel').selectedIndex = 0;
+      }
+    } else if (isJa) {
       engineSel.value = 'voicevox';
     }
     
     updateEngineVisibility();
-    updateAutoConfigPreview(); // 立刻刷新下方的配置预览
-    
-    // ★ 核心修复：在设定默认值后，手动调用一次同步函数，确保底部面板刷新
-    if (typeof syncComPanelFromTop === 'function') {
-      syncComPanelFromTop();
-    }
+    updateAutoConfigPreview();
+    if (typeof syncComPanelFromTop === 'function') syncComPanelFromTop();
   }
 
   function updateEngineVisibility() {
@@ -6669,15 +7216,23 @@ function normalizeRubyForExport(s) {
     $('edgeModelWrap').style.display = 'none';
 
     if (engine === 'voicevox') {
-      $('ttsNumWrap').style.display = '';
+      // VOICEVOX 仅限日语
+      if (_pendingLang !== 'ja' && _pendingLang !== 'auto') {
+        $('ttsNumWrap').style.display = '';
+        $('monitorTtsNum').value = ''; // 清空提示用户
+      } else {
+        $('ttsNumWrap').style.display = '';
+      }
     } else if (engine === 'cevio') {
       $('cevioModelWrap').style.display = '';
     } else if (engine === 'windows') {
       $('windowsModelWrap').style.display = '';
-      if ($('monitorWindowsModel').options.length <= 1) loadWindowsVoices(); // 延迟加载
+      if (_allWindowsVoices.length === 0) loadWindowsVoices(); // 首次加载
+      else renderWindowsVoices();
     } else if (engine === 'edge') {
       $('edgeModelWrap').style.display = '';
-      if ($('monitorEdgeModel').options.length <= 1) loadEdgeVoices(); // 延迟加载
+      if (_allEdgeVoices.length === 0) loadEdgeVoices();
+      else renderEdgeVoices();
     }
   }
 
@@ -6709,14 +7264,35 @@ function normalizeRubyForExport(s) {
       const r = await fetch(API_BASE + '/v1/voices/windows');
       if (r.ok) {
         const data = await r.json();
-        const sel = $('monitorWindowsModel');
-        sel.innerHTML = '';
-        data.voices.forEach(v => {
-          const o = document.createElement('option');
-          o.value = v; o.textContent = v; sel.appendChild(o);
-        });
+        _allWindowsVoices = data.voices || [];
+        renderWindowsVoices();
       }
     } catch(e) { console.warn("Windows voices 加载失败", e); }
+  }
+
+  function renderWindowsVoices() {
+    const sel = $('monitorWindowsModel');
+    if (!sel) return;
+    sel.innerHTML = '';
+
+    const filtered = _allWindowsVoices.filter(v => {
+      const name = v.toLowerCase();
+      if (_pendingLang === 'zh') return name.includes('chinese') || name.includes('huihui') || name.includes('yaoyao') || name.includes('kangkang');
+      if (_pendingLang === 'en') return name.includes('english') || name.includes('zira') || name.includes('david') || name.includes('mark');
+      if (_pendingLang === 'ja') return name.includes('japanese') || name.includes('haruka') || name.includes('ayumi') || name.includes('ichiro');
+    });
+
+    if (filtered.length === 0) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = '（无匹配语种的语音，请去系统设置安装）';
+      sel.appendChild(o);
+    } else {
+      filtered.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = v; sel.appendChild(o);
+      });
+    }
+    updateAutoConfigPreview();
   }
 
   async function loadEdgeVoices() {
@@ -6724,15 +7300,37 @@ function normalizeRubyForExport(s) {
       const r = await fetch(API_BASE + '/v1/voices/edge');
       if (r.ok) {
         const data = await r.json();
-        const sel = $('monitorEdgeModel');
-        sel.innerHTML = '';
-        data.voices.forEach(v => {
-          const o = document.createElement('option');
-          o.value = v.ShortName; o.textContent = `[${v.Locale}] ${v.ShortName} (${v.Gender})`;
-          sel.appendChild(o);
-        });
+        _allEdgeVoices = data.voices || [];
+        renderEdgeVoices();
       }
     } catch(e) { console.warn("Edge voices 加载失败", e); }
+  }
+
+  function renderEdgeVoices() {
+    const sel = $('monitorEdgeModel');
+    if (!sel) return;
+    sel.innerHTML = '';
+
+    const filtered = _allEdgeVoices.filter(v => {
+      const sn = v.ShortName.toLowerCase();
+      if (_pendingLang === 'zh') return sn.startsWith('zh-');
+      if (_pendingLang === 'en') return sn.startsWith('en-');
+      if (_pendingLang === 'ja') return sn.startsWith('ja-');
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = '（无匹配语种的 Edge 语音）';
+      sel.appendChild(o);
+    } else {
+      filtered.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v.ShortName; o.textContent = `[${v.Locale}] ${v.ShortName} (${v.Gender})`;
+        sel.appendChild(o);
+      });
+    }
+    updateAutoConfigPreview();
   }
 
   /* ===== 规则文件 ===== */
@@ -6777,7 +7375,7 @@ function normalizeRubyForExport(s) {
     }).join('');
 
     // ==========================================
-    // ★ 新增：动态高度计算
+    // ★ 动态高度计算
     // ==========================================
     // 1. 先临时清除高度，让内容撑开以获取真实的单条高度
     list.style.height = 'auto';
@@ -6879,10 +7477,13 @@ function normalizeRubyForExport(s) {
   function updateAutoConfigDisplay() {
     const ac = window.__autoConfig;
     if (ac) {
-      $('monitorAutoInfo').innerHTML = `
-        model = <span style="color:var(--primary-dark);font-weight:bold;">${ac.model}</span><br>
-        voice = <span style="color:var(--primary-dark);font-weight:bold;">${ac.voice || '(默认)'}</span> &nbsp;&nbsp; speed = <span style="color:var(--primary-dark);font-weight:bold;">${ac.speed}</span>
-      `;
+      // 如果后端返回了 lang（未来可能实现），同步给前端暂存变量
+      if (ac.lang) {
+        _currentLang = ac.lang;
+        _pendingLang = ac.lang;
+      }
+      // 直接用统一的预览刷新函数去渲染，确保 UI 结构始终是最新的
+      updateAutoConfigPreview();
     }
   }
 
@@ -6910,6 +7511,22 @@ function normalizeRubyForExport(s) {
     btn.disabled = true;
 
     try {
+      // ★ 核心：在此刻才真正应用语种并触发菜单刷新
+      if (_pendingLang !== _currentLang) {
+        _currentLang = _pendingLang;
+        localStorage.setItem('ttsLang', _currentLang);
+        
+        fetch(API_BASE + '/v1/global/config', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ lang: _currentLang })
+        }).catch(e => console.warn("同步语种配置失败", e));
+
+        fillModelSelect();
+        renderWindowsVoices();
+        renderEdgeVoices();
+      }
+
       const r = await fetch(API_BASE + '/v1/auto/config', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ model: model, voice: voice, speed: speed }),
@@ -7044,11 +7661,19 @@ function normalizeRubyForExport(s) {
 
   /* ===== 记录 ===== */
   function renderRecord(rec) {
+    // 将数据缓存到全局对象，方便重播时提取
+    window.__recordsMap = window.__recordsMap || {};
+    window.__recordsMap[rec.id] = rec;
+
     const div = document.createElement('div');
     div.className = 'record'; div.id = 'record-' + rec.id;
     const statusTag = rec.status === 'ok'
       ? '<span class="tag ok">OK</span>' : '<span class="tag err">ERR</span>';
     const modelTag = (rec.auto_used ? '<span style="color:#fbbf24">auto</span> → ' : '') + escapeHtml(rec.model || '-');
+    
+    // ★ 重播按钮
+    const replayBtnHtml = `<button class="btn ghost small replay-btn" style="margin-left:auto; padding: 0 8px; height: 22px; font-size: 11px; line-height: 1; display: flex; align-items: center; gap: 4px;" title="重播此记录">▶ 重播</button>`;
+
     const rubyHtml = (rec.ruby_findings && rec.ruby_findings.length)
       ? '<div class="label">Ruby</div><div class="val ruby">' +
         rec.ruby_findings.map(f => {
@@ -7060,6 +7685,7 @@ function normalizeRubyForExport(s) {
       ? '<div class="label">错误</div><div class="val error">' + escapeHtml(rec.error) + '</div>' : '';
     const finalHtml = splitSentences(rec.final_text)
       .map(s => '<span class="sentence">' + escapeHtml(s) + '</span>').join('');
+      
     div.innerHTML =
       '<div class="meta">' + statusTag +
         '<span>' + escapeHtml(rec.timestamp) + '</span>' +
@@ -7068,11 +7694,60 @@ function normalizeRubyForExport(s) {
         '<span class="tag">x' + rec.speed + '</span>' +
         '<span class="tag">' + escapeHtml(rec.backend || '-') +
           (rec.speaker ? ' | ' + escapeHtml(rec.speaker) : '') + '</span>' +
+        replayBtnHtml +
       '</div>' +
       '<div class="label">原始文本</div><div class="val record-text-box">' + escapeHtml(rec.raw_text) + '</div>' +
       rubyHtml +
       '<div class="label">最终朗读</div><div class="final-text-box record-text-box">' + finalHtml + '</div>' +
       errHtml;
+
+    // ★ 绑定重播按钮事件
+    const btn = div.querySelector('.replay-btn');
+    if (btn) {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '⏳ 加载中';
+        btn.disabled = true;
+
+        // 1. 如果记录里已经有 base64 音频，直接播放
+        if (rec.audio) {
+          playWithHighlight('data:audio/wav;base64,' + rec.audio, rec.id);
+          btn.innerHTML = oldHtml;
+          btn.disabled = false;
+          return;
+        }
+
+        // 2. 如果没有缓存音频（比如是历史快照），则向后端重新请求合成
+        try {
+          const req = {
+            input: rec.raw_text,
+            model: rec.auto_used ? 'auto' : rec.model, // 保留 auto 状态
+            speed: rec.speed || 1.0
+          };
+          
+          const r = await fetch(API_BASE + '/v1/monitor/synthesize', {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify(req)
+          });
+          
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.detail || '合成失败');
+          
+          // 把新生成的音频存入缓存，下次点击就不用再请求了
+          rec.audio = data.audio; 
+          playWithHighlight('data:audio/wav;base64,' + data.audio, rec.id);
+          
+        } catch (err) {
+          alert('重播失败：' + err.message);
+        } finally {
+          btn.innerHTML = oldHtml;
+          btn.disabled = false;
+        }
+      });
+    }
+
     return div;
   }
   function clearRecords() {
@@ -7198,43 +7873,110 @@ function normalizeRubyForExport(s) {
 
   $('ruleSearchBtn').addEventListener('click', async () => {
     const keyword = $('ruleSearchInput').value.trim();
+    const mode = $('ruleSearchMode').value; // 'all', 'base', 'ruby'
     if (!keyword) return;
 
     const resBox = $('ruleSearchResult');
     resBox.innerHTML = '<span class="spinner"></span>检测中...';
 
     try {
-      // 假定后端接口：POST /v1/rules/search
+      // 将 mode 传给后端（如果后端暂不支持会自动忽略）
       const r = await fetch(API_BASE + '/v1/rules/search', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ keyword: keyword })
+        body: JSON.stringify({ keyword: keyword, mode: mode })
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || 'HTTP ' + r.status);
 
       if (!data.matches || data.matches.length === 0) {
-        resBox.innerHTML = `<span style="color:var(--warn)">未在任何规则文件中找到「${escapeHtml(keyword)}」</span>`;
+        resBox.innerHTML = `<span style="color:var(--warn)">未在任何规则文件中找到匹配项</span>`;
+        return;
+      }
+
+      // ★ 核心：前端二次过滤，精准匹配 A 或 B
+      const filteredMatches = data.matches.filter(m => {
+        if (mode === 'all') return true;
+        
+        // 剥离行号前缀："第 123 行: 身体能力 => しんたいのうりょく"
+        const lineText = m.line.replace(/^第\s*\d+\s*行:\s*/, '');
+        const parts = lineText.split('=>');
+        const basePart = parts[0] || '';
+        const rubyPart = parts[1] || '';
+
+        const kw = keyword.toLowerCase();
+        if (mode === 'base') return basePart.toLowerCase().includes(kw);
+        if (mode === 'ruby') return rubyPart.toLowerCase().includes(kw);
+        return true;
+      });
+
+      if (filteredMatches.length === 0) {
+        resBox.innerHTML = `<span style="color:var(--warn)">未找到符合当前搜索范围（${mode === 'base' ? 'A部分' : 'B部分'}）的匹配项</span>`;
+        return;
+      }
+
+      // 分离启用和未启用的匹配项
+      const enabledMatches = filteredMatches.filter(m => m.enabled);
+      const disabledMatches = filteredMatches.filter(m => !m.enabled);
+
+      // 单个匹配项的渲染函数
+      const renderMatchItem = (m) => {
+        const colorStyle = m.enabled ? 'color: var(--primary-dark);' : 'color: var(--muted);';
+        const statusTag = m.enabled ? '' : '<span style="font-size:11px;font-weight:normal;color:var(--muted);margin-left:6px;border:1px solid var(--border);padding:0 4px;border-radius:2px;background:var(--panel-bg);">未启用</span>';
+        
+        return `
+        <div style="margin-bottom:8px; padding:8px; background:var(--panel-bg); border-radius:6px; border:1px dashed var(--panel-border); line-height:1.5;">
+          <div style="margin-bottom:4px; font-weight:600; cursor:pointer; text-decoration:underline; text-decoration-color:transparent; transition:0.15s; ${colorStyle}"
+               onclick="window.openRuleFile('${escapeHtml(m.file)}')"
+               onmouseover="this.style.textDecorationColor='var(--primary)';"
+               onmouseout="this.style.textDecorationColor='transparent';"
+               title="点击直接用系统默认程序打开">
+            📄 ${escapeHtml(m.file)} ${statusTag}
+          </div>
+          <code style="font-size:12px;color:var(--text);opacity:0.85;word-break:break-all;">${escapeHtml(m.line)}</code>
+        </div>
+      `;
+      };
+
+      let html = '';
+      
+      // 1. 渲染启用的结果
+      if (enabledMatches.length > 0) {
+        html += `<div style="color:var(--ok);margin-bottom:8px;font-weight:600;">在已启用的文件中找到 ${enabledMatches.length} 处匹配：</div>`;
+        html += enabledMatches.map(renderMatchItem).join('');
       } else {
-        resBox.innerHTML = `<div style="color:var(--ok);margin-bottom:8px;font-weight:600;">找到 ${data.matches.length} 处匹配：</div>` +
-          data.matches.map(m => {
-            // ★ 核心修改：根据启用状态判断颜色和标识
-            const colorStyle = m.enabled ? 'color: var(--primary-dark);' : 'color: var(--muted);';
-            const statusTag = m.enabled ? '' : '<span style="font-size:11px;font-weight:normal;color:var(--muted);margin-left:6px;border:1px solid var(--border);padding:0 4px;border-radius:2px;background:var(--panel-bg);">未启用</span>';
-            
-            return `
-            <div style="margin-bottom:8px; padding:8px; background:var(--panel-bg); border-radius:6px; border:1px dashed var(--panel-border); line-height:1.5;">
-              <div style="margin-bottom:4px; font-weight:600; cursor:pointer; text-decoration:underline; text-decoration-color:transparent; transition:0.15s; ${colorStyle}"
-                   onclick="window.openRuleFile('${escapeHtml(m.file)}')"
-                   onmouseover="this.style.textDecorationColor='var(--primary)';"
-                   onmouseout="this.style.textDecorationColor='transparent';"
-                   title="点击直接用系统默认程序打开">
-                📄 ${escapeHtml(m.file)} ${statusTag}
-              </div>
-              <code style="font-size:12px;color:var(--text);opacity:0.85;word-break:break-all;">${escapeHtml(m.line)}</code>
-            </div>
-          `;
-          }).join('');
+        html += `<div style="color:var(--warn);margin-bottom:8px;">在已启用的文件中未找到匹配。</div>`;
+      }
+
+      // 2. 渲染未启用的折叠面板
+      if (disabledMatches.length > 0) {
+        html += `
+          <div id="toggleDisabledSearch" style="margin-top:12px; margin-bottom:8px; display:flex; align-items:center; cursor:pointer; color:var(--primary-dark); font-weight:600; font-size:12px; user-select:none;">
+            <span id="toggleDisabledIcon" style="display:inline-block; transition:transform 0.2s; margin-right:6px; font-size:10px; line-height:1;">▶</span>
+            在未启用的文件中找到 ${disabledMatches.length} 处匹配 (点击展开/折叠)
+          </div>
+          <div id="disabledSearchResults" style="display:none;">
+            ${disabledMatches.map(renderMatchItem).join('')}
+          </div>
+        `;
+      }
+
+      resBox.innerHTML = html;
+
+      // 3. 绑定折叠/展开事件
+      const toggleBtn = document.getElementById('toggleDisabledSearch');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+          const container = document.getElementById('disabledSearchResults');
+          const icon = document.getElementById('toggleDisabledIcon');
+          if (container.style.display === 'none') {
+            container.style.display = 'block';
+            icon.style.transform = 'rotate(90deg)';
+          } else {
+            container.style.display = 'none';
+            icon.style.transform = 'rotate(0deg)';
+          }
+        });
       }
     } catch (e) {
       resBox.innerHTML = `<span style="color:var(--danger)">查询失败：${e.message}<br>请确认 tts.py 后端是否已实现搜索接口。</span>`;
@@ -7505,22 +8247,43 @@ function normalizeRubyForExport(s) {
 })();
 </script>
 
-<!-- 全局代码点击复制功能 -->
+<!-- 全局代码点击复制功能（带悬浮图标） -->
 <script>
 (function() {
-  // 监听整个文档的点击事件
+  // 1. 动态注入 SVG 复制按钮
+  function injectCopyButtons() {
+    document.querySelectorAll('pre').forEach(pre => {
+      if (pre.querySelector('.code-copy-btn')) return; // 避免重复注入
+      
+      const btn = document.createElement('button');
+      btn.className = 'code-copy-btn';
+      btn.type = 'button';
+      btn.title = '复制代码';
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+      
+      pre.appendChild(btn);
+    });
+  }
+
+  // 初始化注入
+  document.addEventListener('DOMContentLoaded', injectCopyButtons);
+  setTimeout(injectCopyButtons, 500); // 兜底，防止动态生成的代码块漏掉
+
+  // 2. 点击事件处理
   document.addEventListener('click', async (e) => {
-    // ★ 修改：优先查找 <pre>，如果没有则查找 <code>
+    const copyBtn = e.target.closest('.code-copy-btn');
     const targetEl = e.target.closest('pre') || e.target.closest('code');
     if (!targetEl) return;
 
     const textToCopy = targetEl.innerText.trim();
     if (!textToCopy) return;
 
+    // 复制逻辑
     try {
       // 现代浏览器 API
       await navigator.clipboard.writeText(textToCopy);
       showCopyToast(e.clientX, e.clientY, '已复制!');
+      animateBtnSuccess(copyBtn);
     } catch (err) {
       // 兼容老版本浏览器的回退方案
       try {
@@ -7533,11 +8296,26 @@ function normalizeRubyForExport(s) {
         document.execCommand('copy');
         document.body.removeChild(ta);
         showCopyToast(e.clientX, e.clientY, '已复制!');
+        animateBtnSuccess(copyBtn);
       } catch (e2) {
         showCopyToast(e.clientX, e.clientY, '复制失败', true);
       }
     }
   });
+
+  // 复制成功后的图标动画
+  function animateBtnSuccess(btn) {
+    if (!btn) return;
+    const originalSvg = btn.innerHTML;
+    btn.classList.add('copied');
+    // 换成绿色的对勾
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = originalSvg;
+    }, 2000);
+  }
 
   // 显示提示框的函数
   function showCopyToast(x, y, msg, isError = false) {
@@ -7545,23 +8323,19 @@ function normalizeRubyForExport(s) {
     toast.className = 'copy-toast';
     toast.textContent = msg;
     
-    // 如果失败，把背景色改成红色
     if (isError) {
       toast.style.background = 'var(--danger)';
       toast.style.borderColor = 'color-mix(in srgb, var(--danger) 70%, #000)';
     }
 
-    // 定位到鼠标点击位置稍上方
     toast.style.left = x + 'px';
     toast.style.top = y + 'px';
     document.body.appendChild(toast);
 
-    // 触发进入动画
     requestAnimationFrame(() => {
       toast.classList.add('show');
     });
 
-    // 1秒后自动移除
     setTimeout(() => {
       toast.classList.remove('show');
       setTimeout(() => toast.remove(), 200);
@@ -7570,6 +8344,7 @@ function normalizeRubyForExport(s) {
 })();
 </script>
 
+<!-- 自定义下拉菜单（替换原生 Select 的蓝底问题） -->
 <script>
 (function initCustomDropdowns() {
   let activeSelect = null;
@@ -7586,6 +8361,9 @@ function normalizeRubyForExport(s) {
 
   // 创建选项节点
   function createOptionItem(opt, selectEl) {
+    // ★ 如果选项被隐藏，则不渲染到自定义菜单中
+    if (opt.hidden || opt.style.display === 'none') return null; 
+
     const div = document.createElement('div');
     div.className = 'custom-option';
     if (opt.selected) div.classList.add('selected');
@@ -7620,16 +8398,23 @@ function normalizeRubyForExport(s) {
     for (let i = 0; i < list.length; i++) {
       const child = list[i];
       if (child.tagName === 'OPTGROUP') {
-        const groupLabel = document.createElement('div');
-        groupLabel.className = 'custom-optgroup';
-        groupLabel.textContent = child.label;
-        popupEl.appendChild(groupLabel);
-        
+        // 收集可见的子项
+        const visibleItems = [];
         for (let j = 0; j < child.children.length; j++) {
-          popupEl.appendChild(createOptionItem(child.children[j], selectEl));
+          const item = createOptionItem(child.children[j], selectEl);
+          if (item) visibleItems.push(item);
+        }
+        // 如果分组下有可见项，才渲染分组名
+        if (visibleItems.length > 0) {
+          const groupLabel = document.createElement('div');
+          groupLabel.className = 'custom-optgroup';
+          groupLabel.textContent = child.label;
+          popupEl.appendChild(groupLabel);
+          visibleItems.forEach(el => popupEl.appendChild(el));
         }
       } else if (child.tagName === 'OPTION') {
-        popupEl.appendChild(createOptionItem(child, selectEl));
+        const item = createOptionItem(child, selectEl);
+        if (item) popupEl.appendChild(item);
       }
     }
 
@@ -7695,25 +8480,50 @@ function normalizeRubyForExport(s) {
     if (body.dataset.hasSidebar) return;
     body.dataset.hasSidebar = 'true';
 
-    const headings = Array.from(body.querySelectorAll('h2, h3'));
+    // 1. 抓取 h2, h3, h4 标题
+    const headings = Array.from(body.querySelectorAll('h2, h3, h4'));
     if (headings.length === 0) return;
 
+    // 读取折叠状态
+    const isH4Visible = localStorage.getItem('md_sidebar_h4') === 'true';
+
+    const sidebarDiv = document.createElement('div');
+    sidebarDiv.className = 'md-sidebar';
+    if (isH4Visible) sidebarDiv.classList.add('show-h4');
+
+    // 2. 构建头部与切换按钮
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'md-sidebar-header';
+    headerDiv.innerHTML = `
+      <h4>📑 目录索引</h4>
+      <button class="toggle-h4-btn" title="展开/折叠详细目录">${isH4Visible ? '▲' : '▼'}</button>
+    `;
+    sidebarDiv.appendChild(headerDiv);
+
     const sidebarList = document.createElement('ul');
-    
+    sidebarDiv.appendChild(sidebarList);
+
+    // 3. 生成目录列表
     headings.forEach((h, index) => {
       if (!h.id) h.id = 'md-heading-' + index;
+      
+      const tag = h.tagName.toLowerCase();
       const li = document.createElement('li');
+      
+      // 如果是 h4，添加特定类名用于折叠控制
+      if (tag === 'h4') li.className = 'h4-item';
+
       const a = document.createElement('a');
       a.href = '#' + h.id;
       a.textContent = h.textContent;
-      if (h.tagName.toLowerCase() === 'h3') a.className = 'h3-link';
+      
+      if (tag === 'h3') a.className = 'h3-link';
+      if (tag === 'h4') a.className = 'h4-link';
       
       a.addEventListener('click', (e) => {
         e.preventDefault();
-        // ★ 核心修复：点击时立即更新高亮状态，防止平滑滚动时没触发事件
         sidebarList.querySelectorAll('a').forEach(el => el.classList.remove('active'));
         a.classList.add('active');
-        
         h.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
 
@@ -7721,14 +8531,9 @@ function normalizeRubyForExport(s) {
       sidebarList.appendChild(li);
     });
 
-    const sidebarDiv = document.createElement('div');
-    sidebarDiv.className = 'md-sidebar';
-    sidebarDiv.innerHTML = '<h4>📑 目录索引</h4>';
-    sidebarDiv.appendChild(sidebarList);
-
+    // 4. 构建主体内容区
     const contentDiv = document.createElement('div');
     contentDiv.className = 'md-content';
-    
     while (body.firstChild) {
       contentDiv.appendChild(body.firstChild);
     }
@@ -7741,33 +8546,48 @@ function normalizeRubyForExport(s) {
     body.appendChild(layoutDiv);
     body.classList.add('has-sidebar');
 
-    // ==========================================
-    // ★ 滚动监听与高亮逻辑
-    // ==========================================
+    // 5. 绑定折叠按钮点击事件
+    const toggleBtn = headerDiv.querySelector('.toggle-h4-btn');
+    toggleBtn.addEventListener('click', () => {
+      const isNowVisible = sidebarDiv.classList.toggle('show-h4');
+      // ★ 修改这里，去除方括号
+      toggleBtn.textContent = isNowVisible ? '▲' : '▼';
+      localStorage.setItem('md_sidebar_h4', isNowVisible);
+      
+      // 状态切换后可能高度发生变化，延迟刷新一下高亮
+      setTimeout(updateActiveLink, 50);
+    });
+
+    // 6. 滚动监听与高亮逻辑
     let ticking = false;
     
     function updateActiveLink() {
-      // 如果当前面板不可见，跳过计算
       const pane = body.closest('.pane');
       if (pane && !pane.classList.contains('active')) {
         ticking = false;
         return;
       }
 
+      // 如果在折叠状态，则过滤掉 h4 标题
+      const isExpanded = sidebarDiv.classList.contains('show-h4');
+      const visibleHeadings = headings.filter(h => isExpanded || h.tagName.toLowerCase() !== 'h4');
+      
+      if (visibleHeadings.length === 0) return;
+
       let activeIndex = 0;
-      for (let i = 0; i < headings.length; i++) {
-        const rect = headings[i].getBoundingClientRect();
+      for (let i = 0; i < visibleHeadings.length; i++) {
+        const rect = visibleHeadings[i].getBoundingClientRect();
         // 如果标题距离顶部超过 150px，说明属于下一个章节了
         if (rect.top > 150) break;
         activeIndex = i;
       }
       
-      // 强制修正：如果在页面最顶部，无条件高亮第一个
+      // 强制修正：如果在页面最顶部，无条件高亮第一个可见标题
       if (window.scrollY <= 20) {
         activeIndex = 0;
       }
 
-      const currentId = headings[activeIndex].id;
+      const currentId = visibleHeadings[activeIndex].id;
       sidebarList.querySelectorAll('a').forEach(a => {
         if (a.getAttribute('href') === '#' + currentId) {
           a.classList.add('active');
@@ -7847,6 +8667,7 @@ function normalizeRubyForExport(s) {
 })();
 </script>
 
+<!-- 背景图像渲染与面板毛玻璃化 -->
 <script>
 (function initBackgroundImage() {
   const STORAGE_KEY = 'novel_tts_bg_config';
@@ -7881,7 +8702,7 @@ function normalizeRubyForExport(s) {
   let carouselIndex = 0;
   let flipTimeout = null; // 用于控制动画切换的 setTimeout
 
-  // ★ 新增：执行翻牌切换的动画函数
+  // ★ 执行翻牌切换的动画函数
   function changeExtText(newExt) {
     if (!extTextEl || extTextEl.textContent === newExt) return;
     
@@ -8168,6 +8989,28 @@ function normalizeRubyForExport(s) {
 })();
 </script>
 
+<!-- 黑窗口提示词：点击立即弹出 -->
+<script>
+(function initBlackWindowTipClick() {
+  document.addEventListener('click', function(e) {
+    const tipEl = e.target.closest('.black-window-tip');
+    
+    // 如果点击的是“黑窗口”这个元素本身
+    if (tipEl) {
+      // 切换 show-tip 类，实现点击打开/关闭
+      tipEl.classList.toggle('show-tip');
+      e.stopPropagation(); 
+    } else {
+      // 如果点击了页面的其他区域，自动收起所有点击打开的提示框
+      document.querySelectorAll('.black-window-tip.show-tip').forEach(el => {
+        el.classList.remove('show-tip');
+      });
+    }
+  });
+})();
+</script>
+
+<!-- 更新日志弹窗交互与版本号同步 -->
 <script>
 (function initChangelog() {
   const btn = document.getElementById('changelogBtn');
@@ -8244,5 +9087,248 @@ function normalizeRubyForExport(s) {
   });
 })();
 </script>
+
+<script>
+(function initContentFade() {
+  const FADE = 72; // 渐变高度 72px
+  let el = null;
+  
+  function updateMask() {
+    // 每次尝试获取，因为 DOM 是动态生成的
+    if (!el) el = document.querySelector('.md-content');
+    if (!el) return;
+
+    // 如果当前不在“使用说明”标签页，直接清空遮罩
+    const pane = el.closest('.pane');
+    if (pane && !pane.classList.contains('active')) {
+      el.style.webkitMaskImage = 'none';
+      el.style.maskImage = 'none';
+      return;
+    }
+
+    const rect = el.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    
+    // 计算需要渐变的距离
+    let topFade = 0;
+    let bottomFade = 0;
+
+    if (rect.top < 0) {
+      topFade = Math.min(FADE, Math.abs(rect.top));
+    }
+    if (rect.bottom > vh) {
+      bottomFade = Math.min(FADE, rect.bottom - vh);
+    }
+
+    // 如果上下都不需要渐变（比如整个卡片都在视口内），恢复原样
+    if (topFade === 0 && bottomFade === 0) {
+      el.style.webkitMaskImage = 'none';
+      el.style.maskImage = 'none';
+      return;
+    }
+
+    // 计算视口上下边缘在元素内部的 Y 坐标绝对值
+    const viewTopY = -rect.top;
+    const viewBottomY = viewTopY + vh;
+
+    // 构建顶部渐变节点
+    // 如果滚上去了，0 到 viewTopY 是透明，viewTopY 到 viewTopY+topFade 是渐变，之后是黑色
+    let topStopStr = topFade > 0 
+      ? `transparent 0px, transparent ${viewTopY}px, black ${viewTopY + topFade}px` 
+      : `black 0px`;
+      
+    // 构建底部渐变节点
+    // 如果没到底，viewBottomY-bottomFade 到 viewBottomY 是渐变，之后是透明
+    let bottomStopStr = bottomFade > 0 
+      ? `black ${viewBottomY - bottomFade}px, transparent ${viewBottomY}px, transparent 100%` 
+      : `black 100%`;
+
+    const cssGrad = `linear-gradient(to bottom, ${topStopStr}, ${bottomStopStr})`;
+    
+    // 应用真正的透明蒙版
+    el.style.webkitMaskImage = cssGrad;
+    el.style.maskImage = cssGrad;
+  }
+
+  // 绑定事件监听
+  window.addEventListener('scroll', updateMask, { passive: true });
+  window.addEventListener('resize', updateMask, { passive: true });
+  
+  // 页面初始化
+  document.addEventListener('DOMContentLoaded', () => setTimeout(updateMask, 100));
+  if (document.readyState !== 'loading') setTimeout(updateMask, 100);
+  
+  // 挂载到目录更新事件（确保切换页面时也能重新计算）
+  const orig = window.updateMdSidebar;
+  window.updateMdSidebar = function() {
+    if (orig) orig();
+    updateMask();
+  };
+})();
+</script>
+
+<!-- 监控台左下角快捷导航交互 -->
+<script>
+(function initMonitorNav() {
+  const navBar = document.getElementById('monitorNavSidebar');
+  if (!navBar) return;
+
+  const buttons = navBar.querySelectorAll('.monitor-nav-item');
+  const sections = Array.from(buttons).map(btn => document.getElementById(btn.dataset.target)).filter(Boolean);
+
+  // 1. 点击平滑滚动
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        const y = targetEl.getBoundingClientRect().top + window.scrollY - 80;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    });
+  });
+
+  // 2. 滚动监听（Scroll Spy）自动高亮
+  let ticking = false;
+  function updateActiveNav() {
+    const pane = document.getElementById('pane-monitor');
+    if (!pane || !pane.classList.contains('active')) {
+      ticking = false;
+      return;
+    }
+
+    let currentId = sections[0].id;
+    for (const sec of sections) {
+      const rect = sec.getBoundingClientRect();
+      if (rect.top <= 150) {
+        currentId = sec.id;
+      }
+    }
+
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 50) {
+      currentId = sections[sections.length - 1].id;
+    }
+
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.target === currentId);
+    });
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateActiveNav);
+      ticking = true;
+    }
+  }, { passive: true });
+
+  // 3. ★ 核心监听 Tab 切换来控制导航栏显隐
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach(mutation => {
+      if (mutation.attributeName === 'class') {
+        const isMonitorActive = document.getElementById('pane-monitor').classList.contains('active');
+        if (isMonitorActive) {
+          navBar.classList.add('show-nav');
+          setTimeout(updateActiveNav, 100); // 延迟刷新高亮状态
+        } else {
+          navBar.classList.remove('show-nav');
+        }
+      }
+    });
+  });
+
+  const monitorPane = document.getElementById('pane-monitor');
+  if (monitorPane) {
+    observer.observe(monitorPane, { attributes: true });
+    
+    // 初始化检查一次
+    if (monitorPane.classList.contains('active')) {
+      navBar.classList.add('show-nav');
+    }
+  }
+})();
+</script>
+
+<!-- Ruby 页面左下角快捷导航交互 -->
+<script>
+(function initRubyNav() {
+  const navBar = document.getElementById('rubyNavSidebar');
+  if (!navBar) return;
+
+  const buttons = navBar.querySelectorAll('.monitor-nav-item');
+  const sections = Array.from(buttons).map(btn => document.getElementById(btn.dataset.target)).filter(Boolean);
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetEl = document.getElementById(btn.dataset.target);
+      if (targetEl) {
+        const y = targetEl.getBoundingClientRect().top + window.scrollY - 80;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    });
+  });
+
+  let ticking = false;
+  function updateActiveNav() {
+    const pane = document.getElementById('pane-ruby');
+    if (!pane || !pane.classList.contains('active')) {
+      ticking = false;
+      return;
+    }
+
+    let currentId = sections[0].id;
+    for (const sec of sections) {
+      const rect = sec.getBoundingClientRect();
+      // 如果该区块被隐藏（比如还没提取数据），不参与高亮
+      if (sec.style.display === 'none') continue; 
+      if (rect.top <= 150) {
+        currentId = sec.id;
+      }
+    }
+
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 50) {
+      for (let i = sections.length - 1; i >= 0; i--) {
+        if (sections[i].style.display !== 'none') {
+           currentId = sections[i].id;
+           break;
+        }
+      }
+    }
+
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.target === currentId);
+    });
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateActiveNav);
+      ticking = true;
+    }
+  }, { passive: true });
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach(mutation => {
+      if (mutation.attributeName === 'class') {
+        const isActive = document.getElementById('pane-ruby').classList.contains('active');
+        if (isActive) {
+          navBar.classList.add('show-nav');
+          setTimeout(updateActiveNav, 100);
+        } else {
+          navBar.classList.remove('show-nav');
+        }
+      }
+    });
+  });
+
+  const targetPane = document.getElementById('pane-ruby');
+  if (targetPane) {
+    observer.observe(targetPane, { attributes: true });
+    if (targetPane.classList.contains('active')) navBar.classList.add('show-nav');
+  }
+})();
+</script>
+
 </body>
 </html>

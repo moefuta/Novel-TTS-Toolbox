@@ -5,8 +5,8 @@ Copyright (c) 2026 MoeFuta Studio / 珠峰山脚土地庙
 
 【漢文版】
 
-本项目采用 知识共享 署名-非商业性使用 4.0 国际 (CC BY-NC 4.0) 许可协议发布，
-并附加原作者的专属豁免条款（Custom Exception）。
+本项目采用 知识共享 署名-非商业性使用-相同方式共享 4.0 国际 (CC BY-NC-SA 4.0) 
+许可协议发布，并附加原作者的专属豁免条款（Custom Exception）。
 
 你可以自由地：
   - 共享 — 以任何媒介或格式复制和分发本软件
@@ -20,16 +20,20 @@ Copyright (c) 2026 MoeFuta Studio / 珠峰山脚土地庙
                         用于商业目的，包括但不限于销售、付费服务、广告变现、
                         企业内训、内置到付费产品中。
 
-【专属附加豁免条款：修改版商业授权】
-  尽管有上述 NC 限制，原作者额外授予以下权利：
+  - 相同方式共享 (SA) — 若修改、转换或以本作品为基础进行创作，必须采用与本作品
+                        相同的许可协议发布衍生作品。
+
+【专属附加豁免条款：修改版商业授权与取消传染】
+  尽管有上述 NC 与 SA 限制，原作者额外授予以下权利：
   ✅ 若你对本项目进行了【实质性代码修改】（如新增功能、重构逻辑、接入新引擎等），
      衍生出的“修改版”允许用于商业盈利（如内置售卖、提供付费服务），
-     但必须严格遵循上述 BY 署名条款，并声明修改内容。
+     且【不强制要求】采用相同的开源协议（即豁免 SA 条款）。
+     （注：必须严格遵循上述 BY 署名条款，并声明修改内容。）
 
 【纯文本翻译限制条款】
   ⚠️ 若你仅将本软件本体翻译作其他语言（无论机翻还是人工精翻），而没有实质性代码修改，
-     该衍生版本依然强制继承 SA 条款（相同方式共享），
-     不享受上述的修改版商业豁免。
+     该衍生版本依然强制继承 SA 条款（必须开源并采用相同协议），
+     且不得用于商业盈利，不享受上述的修改版商业豁免。
 
 免责声明：
   本软件按「原样」提供，不附带任何明示或暗示的担保，包括但不限于
@@ -38,16 +42,16 @@ Copyright (c) 2026 MoeFuta Studio / 珠峰山脚土地庙
   索赔、损害或其他责任负责。
 
 完整法律文本（基础协议）：
-  中文：https://creativecommons.org/licenses/by-nc/4.0/legalcode.zh-hans
-  英文：https://creativecommons.org/licenses/by-nc/4.0/legalcode.en
+  中文：https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.zh-hans
+  英文：https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en
 
 
 ================================================================================
 【English Version】
 
-This project is released under the Creative Commons Attribution-NonCommercial 
-4.0 International (CC BY-NC 4.0) License, with an additional custom exception 
-provided by the original author.
+This project is released under the Creative Commons Attribution-NonCommercial-
+ShareAlike 4.0 International (CC BY-NC-SA 4.0) License, with an additional custom 
+exception provided by the original author.
 
 You are free to:
   - Share — copy and redistribute the material in any medium or format
@@ -64,18 +68,23 @@ Under the following terms:
     to sales, paid services, advertising monetization, corporate training, or 
     bundling into paid products.
 
-[Custom Exception: Commercial Use of Modified Versions]
-  Notwithstanding the NC restriction above, the original author grants the following:
+  - ShareAlike (SA) — If you remix, transform, or build upon the material, you 
+    must distribute your contributions under the same license as the original.
+
+[Custom Exception: Commercial Use & SA Waiver for Modified Versions]
+  Notwithstanding the NC and SA restrictions above, the original author grants the following:
   ✅ If you make 【substantial code modifications】 to this project (e.g., adding new 
      features, refactoring logic, integrating new engines), the resulting "modified 
      version" is permitted for commercial profit (e.g., bundled sales, paid services), 
-     PROVIDED THAT you strictly comply with the BY attribution terms and declare your 
-     modifications.
+     AND is 【exempted from the SA (ShareAlike) requirement】. 
+     (Provided that you strictly comply with the BY attribution terms and declare your 
+     modifications.)
 
 [Restriction on Pure Translation]
   ⚠️ If you merely translate the software's text into other languages (whether machine 
      translation or manual translation) without substantial code modifications, the 
-     derivative version MUST inherit the SA (ShareAlike) clause and is NOT eligible 
+     derivative version MUST inherit the SA (ShareAlike) clause (i.e., must be open-source 
+     under the same license), MUST NOT be used commercially, and is NOT eligible 
      for the commercial exception mentioned above.
 
 Disclaimer:
@@ -87,13 +96,13 @@ Disclaimer:
   DEALINGS IN THE SOFTWARE.
 
 Full Legal Code (Base License):
-  https://creativecommons.org/licenses/by-nc/4.0/legalcode.en
+  https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en
 
 
 ================================================================================
 【日本語版】
 
-本プロジェクトは「クリエイティブ・コモンズ 表示-非営利 4.0 国際 (CC BY-NC 4.0)」 
+本プロジェクトは「クリエイティブ・コモンズ 表示-非営利-継承 4.0 国際 (CC BY-NC-SA 4.0)」 
 ライセンスの下で公開されており、原作者による独自の追加免除条項（Custom Exception）が
 適用されます。
 
@@ -110,17 +119,22 @@ Full Legal Code (Base License):
     販売、有料サービス、広告収益化、企業研修、有料製品への組み込みなどの
     商業目的で使用することはできません。
 
-【独自の追加免除条項：改変版の商用利用】
-  上記の NC 制限にかかわらず、原作者は以下の権利を追加で付与します：
+  - 継承 (SA) — 本ソフトウェアを改変、変換し、それを基に新たな作品を作った場合、
+    元の作品と同じライセンスの下で配布しなければなりません。
+
+【独自の追加免除条項：改変版の商用利用とSA免除】
+  上記の NC および SA 制限にかかわらず、原作者は以下の権利を追加で付与します：
   ✅ 本プロジェクトに【実質的なコード改変】（新機能の追加、ロジックの再構築、
      新しいエンジンの統合など）を加えた場合、その「改変版」は商用利用
-     （同梱販売、有料サービスなど）が許可されます。
-     ただし、上記の BY 表示条項を厳守し、変更内容を明記する必要があります。
+     （同梱販売、有料サービスなど）が許可され、かつ【SA（同一条件許諾）条項からの
+     免除】が適用されます。
+     （ただし、上記の BY 表示条項を厳守し、変更内容を明記する必要があります。）
 
 【純粋な翻訳に対する制限】
   ⚠️ 実質的なコード改変を伴わず、ソフトウェア本体を他言語に翻訳したのみ
      （機械翻訳・手動翻訳を問わず）の場合、その派生版は SA（同一条件許諾）条項を
-     継承する必要があり、上記の商用免除は適用されません。
+     継承する必要があり（同一ライセンスでの公開が必須）、商用利用はできず、
+     上記の商用免除は適用されません。
 
 免責事項：
   本ソフトウェアは「現状のまま」提供され、明示的または黙示的を問わず、いかなる保証も
@@ -130,4 +144,4 @@ Full Legal Code (Base License):
   責任を負いません。
 
 完全な法的テキスト（基本ライセンス）：
-  https://creativecommons.org/licenses/by-nc/4.0/legalcode.ja
+  https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.ja
