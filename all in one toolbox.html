@@ -918,14 +918,109 @@
 
   /* --- 25. CeVIO 特定修复 --- */
   #comEmotionSliders input[type="range"] { -webkit-appearance: none; appearance: none; height: 20px; background: transparent; outline: none; cursor: pointer; }
-  #comEmotionSliders input[type="range"]::-webkit-slider-runnable-track { height: 6px; background: var(--border); border: none; border-radius: 3px; box-shadow: none; }
-  #comEmotionSliders input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--primary-dark); margin-top: -4px; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-  #comSpeed, #comTone { background: var(--input-bg); border: 1px solid var(--border); box-shadow: var(--sunken-panel); padding: 6px 8px; border-radius: 4px; color: var(--primary-dark); font-weight: 700; text-align: center; outline: none; cursor: ns-resize; transition: all .15s ease; -moz-appearance: textfield; }
-  #comSpeed:hover, #comTone:hover { border-color: var(--border-strong); }
-  #comSpeed:focus, #comTone:focus { border-color: var(--primary-dark); }
-  #comSpeed::-webkit-outer-spin-button, #comSpeed::-webkit-inner-spin-button, #comTone::-webkit-outer-spin-button, #comTone::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .com-num-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 26px; padding: 0 6px; font-size: 12px; font-weight: 700; color: var(--primary-dark); background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px; cursor: ns-resize; user-select: none; transition: all 0.15s ease; }
-  .com-num-badge:hover { border-color: var(--primary-dark); background: var(--hover-bg); box-shadow: var(--raised-btn); }
+  
+  /* 针对 Chrome/Edge/Safari 的滑块轨道 */
+  #comEmotionSliders input[type="range"]::-webkit-slider-runnable-track { 
+    height: 6px; 
+    background: color-mix(in srgb, var(--text) 25%, transparent); /* ★ 核心修复：根据文字色动态计算灰线，任何背景都能看清 */
+    border: none; 
+    border-radius: 3px; 
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); /* 增加内阴影，更有凹槽感 */
+  }
+  
+  /* 针对 Chrome/Edge/Safari 的滑块圆点 */
+  #comEmotionSliders input[type="range"]::-webkit-slider-thumb { 
+    -webkit-appearance: none; 
+    appearance: none; 
+    width: 14px; 
+    height: 14px; 
+    border-radius: 50%; 
+    background: var(--primary-dark); 
+    margin-top: -4px; 
+    border: none; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+  }
+  
+  /* 针对 Firefox 的滑块轨道和圆点（顺手补全兼容） */
+  #comEmotionSliders input[type="range"]::-moz-range-track { 
+    height: 6px; 
+    background: color-mix(in srgb, var(--text) 25%, transparent); 
+    border: none; 
+    border-radius: 3px; 
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); 
+  }
+  #comEmotionSliders input[type="range"]::-moz-range-thumb { 
+    width: 14px; 
+    height: 14px; 
+    border-radius: 50%; 
+    background: var(--primary-dark); 
+    border: none; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+  }
+  /* ============================================================
+   * 语速 / 音调输入框
+   * ============================================================ */
+  #comSpeed, 
+  #comTone { 
+    background: var(--input-bg); 
+    border: 1px solid var(--border); 
+    box-shadow: var(--sunken-panel); 
+    padding: 6px 8px; 
+    border-radius: 4px; 
+    color: var(--primary-dark); 
+    font-weight: 700; 
+    text-align: center; 
+    outline: none; 
+    cursor: ns-resize; 
+    transition: all .15s ease; 
+    -moz-appearance: textfield; 
+  }
+  
+  #comSpeed:hover, 
+  #comTone:hover { 
+    border-color: var(--border-strong); 
+  }
+  
+  #comSpeed:focus, 
+  #comTone:focus { 
+    border-color: var(--primary-dark); 
+  }
+  
+  /* 隐藏数字输入框的上下微调箭头 */
+  #comSpeed::-webkit-outer-spin-button, 
+  #comSpeed::-webkit-inner-spin-button, 
+  #comTone::-webkit-outer-spin-button, 
+  #comTone::-webkit-inner-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+  }
+
+  /* ============================================================
+   * 情绪数值徽章（右侧可滚轮调整的方块）
+   * ============================================================ */
+  .com-num-badge { 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    min-width: 40px; 
+    height: 26px; 
+    padding: 0 6px; 
+    font-size: 12px; 
+    font-weight: 700; 
+    color: var(--primary-dark); 
+    background: var(--input-bg); 
+    border: 1px solid var(--border); 
+    border-radius: 4px; 
+    cursor: ns-resize; 
+    user-select: none; 
+    transition: all 0.15s ease; 
+  }
+  
+  .com-num-badge:hover { 
+    border-color: var(--primary-dark); 
+    background: var(--hover-bg); 
+    box-shadow: var(--raised-btn); 
+  }
 
   /* --- 26. 修复 EPUB 页面宽度 --- */
   #pane-ruby { width: 100%; max-width: 100%; box-sizing: border-box; }
@@ -1572,6 +1667,57 @@ body.has-bg::before {
     transform: scale(1.1);
     filter: drop-shadow(0 0 5px color-mix(in srgb, var(--primary-dark) 60%, transparent));
   }
+
+  /* ★ 隐藏数字输入框的上下微调箭头 */
+  .jump-input::-webkit-outer-spin-button,
+  .jump-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .jump-input {
+    -moz-appearance: textfield; /* Firefox */
+  }
+
+  /* ★ 专属于 Ruby 识别的代码块样式 */
+  .ruby-map-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    border-radius: 4px;
+    background: light-dark(color-mix(in srgb, #e0f2fe 70%, transparent), color-mix(in srgb, #0c4a6e 70%, transparent)) !important;
+    color: light-dark(#0369a1, #7dd3fc) !important;
+    border: 1px solid light-dark(#bae6fd, #075985) !important;
+    text-shadow: none;
+    cursor: pointer;
+    user-select: all;
+    transition: all 0.15s;
+    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1) !important; /* ★ 内凹阴影 */
+  }
+  .ruby-map-tag:hover {
+    filter: brightness(1.05);
+    box-shadow: inset 1px 1px 5px rgba(0,0,0,0.2) !important; /* ★ 悬停加深内凹，不再上浮 */
+    transform: none;
+  }
+  .ruby-note-text {
+    font-size: 11px; /* ★ 这里也改小了（原本12px） */
+    color: var(--muted);
+    margin-left: 6px;
+    font-family: var(--font-family);
+  }
+  /* ★ 隐藏预览、自动记忆、历史记录区域的滚动条 */
+  #monitorRubyList,
+  #autoDictListContent,
+  #monitorRecords {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  #monitorRubyList::-webkit-scrollbar,
+  #autoDictListContent::-webkit-scrollbar,
+  #monitorRecords::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
 </style>
 </head>
 <body>
@@ -1621,7 +1767,9 @@ body.has-bg::before {
 	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">背景图像</h3>
 	<div class="bg-image-panel" style="margin-bottom: 20px;">
 	  <div class="bg-input-row">
-		<span class="bg-path-prefix">bg/</span>
+		<span class="bg-path-prefix" id="btnOpenBgFolder" title="点击打开 bg 文件夹" style="cursor: pointer; transition: all .2s ease;">
+		  📂 bg/
+		</span>
 		<input type="text" id="bgFilename" class="bg-filename-input" placeholder="例如: bg02" spellcheck="false">
 		<span id="bgExtDisplay" class="bg-ext-display"></span>
 	  </div>
@@ -1732,7 +1880,7 @@ body.has-bg::before {
 		<textarea id="pasteInput" placeholder="把带 ruby 标注的文本粘贴到这里……&#10;也支持粘贴「汉字 => 读音」格式的规则（自动识别）。"></textarea>
 		<div class="row" style="margin-top:10px">
 		  <button class="btn" id="btnPasteParse">📋 从粘贴内容提取</button>
-		  <button class="btn ghost small" id="btnPasteClear">清空</button>
+		  <button class="btn ghost small" id="btnPasteClear">🗑️ 清空</button>
 		  <span class="hint">每次点击都会生成一条独立的「粘贴文本 #N」，可以多次粘贴不同内容</span>
 		</div>
 	  </div>
@@ -2189,7 +2337,7 @@ body.has-bg::before {
 	  </div>
 
 	  <ul>
-		<li>原文 = 读音时（如 <code>アスナ =&gt; アスナ</code>）只登记为人名，不生成替换规则。</li>
+		<li>原文 = 读音时（如 <code>(アスナ) =&gt; (アスナ)</code>）只登记为人名，不生成替换规则。</li>
 		<li>登记的人名会参与后缀修正。</li>
 	  </ul>
 
@@ -2346,10 +2494,10 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 	  <ul>
 		<li><b>输出文本</b>：显示解析替换后、真正送去给语音引擎朗读的最终文本。如果你发现读音不对，可以直接在这里手动修改。</li>
 		<li><b>预览</b>：只执行规则替换并在输出框显示结果，不发声。</li>
-		<li><b>合成并播放</b>：执行替换并合成声音，并在右侧历史记录里逐句高亮播放。<br><span style="color: var(--text-secondary); font-size: 12.5px;">（注：如果你在输出框里手动改过字，系统会<b>直接使用你改后的文本</b>合成（<b>绕过</b>规则库）。</span></li>
+		<li><b>合成</b>：执行替换并合成声音，并在右侧历史记录里逐句高亮播放。<br><span style="color: var(--text-secondary); font-size: 12.5px;">（注：如果你在输出框里手动改过字，系统会<b>直接使用你改后的文本</b>合成（<b>绕过</b>规则库）。</span></li>
 		<li>
 		  <b>验证实际效果</b>：在「输入文本」框中粘贴一段文本，如<br>
-		  <pre style="margin: 6px 0; padding: 8px 12px;"><code>今日は、昨日よりもっと沢山の漢字が読めるようになった。</code></pre>点击「预览」或「合成并播放」。<br>哪怕你的 <code>📂replace_rules/</code> 是一个完全初始的状态，自带的示例文件依然自带了一点点微不足道的映射规则。<br>此时在「输出文本」框中，它会被成功转译为：<br>
+		  <pre style="margin: 6px 0; padding: 8px 12px;"><code>今日は、昨日よりもっと沢山の漢字が読めるようになった。</code></pre>点击「预览」或「合成」。<br>哪怕你的 <code>📂replace_rules/</code> 是一个完全初始的状态，自带的示例文件依然自带了一点点微不足道的映射规则。<br>此时在「输出文本」框中，它会被成功转译为：<br>
 		  <pre style="margin: 6px 0; padding: 8px 12px;"><code>｜今日《きょう》は、｜昨日《きのう》よりもっと沢山の｜漢字《かんじ》が読めるようになった。</code></pre>
 		</li>
 	  </ul>
@@ -2386,7 +2534,7 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 		<li>SSE 实时推送，最多保留 40 条，展示阅读器或监控台发来的每一次合成请求。</li>
 		<li>每条记录包含：<b>状态</b>（OK/ERR）、<b>时间</b>、<b>模型</b>（带 auto 标记）、<b>voice</b>、<b>speed</b>、<b>后端</b>、<b>speaker</b>。</li>
 		<li>往下依次展示：<b>原始文本</b>、<b>Ruby 识别情况</b>、<b>最终朗读</b>。</li>
-		<li><b>逐句高亮（仅限监控台内部）</b>：当在左侧点击「合成并播放」时，右侧对应的「最终朗读」记录会逐句放大并高亮显示。</li>
+		<li><b>逐句高亮（仅限监控台内部）</b>：当在左侧点击「合成」时，右侧对应的「最终朗读」记录会逐句放大并高亮显示。</li>
 	  </ul>
 	  
 	  <div class="box-tip" style="margin-top: 14px;">
@@ -2990,10 +3138,10 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 	  <p style="font-size:15px;margin-bottom:16px;"><b>Copyright (c) 2026 MoeFuta Studio / 珠峰山脚土地庙</b></p>
 
 	  <!-- 双栏布局 -->
-	  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px;">
+	  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
 		
 		<!-- 左侧：原版 CC 协议 -->
-		<div class="box-tip" style="margin: 0; border-left: 4px solid var(--muted);">
+		<div class="box-tip" style="margin: 0;">
 		  <!-- 建议将标题改为 CC BY-NC-SA 4.0 以匹配右侧的 SA 豁免逻辑 -->
 		  <strong style="font-size: 15px; display: block; margin-bottom: 8px;">📄 基础协议：CC BY-NC-SA 4.0</strong>
 		  <p style="font-size: 13px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 8px;">
@@ -3008,7 +3156,7 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 		</div>
 
 		<!-- 右侧：你的专属豁免条款 -->
-		<div class="box-success" style="margin: 0; border-left: 4px solid var(--ok);">
+		<div class="box-success" style="margin: 0;">
 		  <strong style="font-size: 15px; display: block; margin-bottom: 8px; color: var(--ok);">✨ 专属附加条款：修改版商业豁免 (Custom Exception)</strong>
 		  <p style="font-size: 13px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 8px;">
 			原作者额外授予的权利（优先于基础协议的 NC 限制）：
@@ -3151,9 +3299,10 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 			</div>
 			
 			<!-- ★ 按钮固定在这个位置 -->
-			<div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
-				<button class="btn ghost small" id="btnRefreshAutoDict" style="padding: 2px 8px; font-size: 11px;" title="立刻从服务器拉取最新的待处理词条">刷新</button>
-				<button class="btn ghost small" id="btnToggleAutoDict" style="padding: 2px 8px; font-size: 11px;">查看详情</button>
+			<div style="display: flex; justify-content: flex-end; gap: 4px; margin-top: 10px;">
+				<button class="btn ghost small" id="btnOpenRulesFromAutoDict" title="打开 replace_rules 文件夹" style="padding: 4px 8px;">📂</button>
+				<button class="btn ghost small" id="btnRefreshAutoDict" title="立刻从服务器拉取最新的待处理词条">刷新</button>
+				<button class="btn small" id="btnToggleAutoDict">详情</button>
 			</div>
 
 			<!-- ★ 详情面板在按钮下方展开（默认隐藏） -->
@@ -3304,7 +3453,8 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 
 			<div style="display:flex;gap:8px;margin-top:12px;">
 			  <button class="btn" id="monitorPreviewBtn" style="flex:1; justify-content: center;">预览</button>
-			  <button class="btn" id="monitorSynthBtn" style="flex:1; justify-content: center;">合成并播放</button>
+			  <button class="btn" id="monitorSynthBtn" style="flex:1; justify-content: center;">合成</button>
+			  <button class="btn ghost" id="monitorClearTestBtn" style="justify-content: center; padding: 0 16px;" title="清空输入与输出文本">🗑️ 清空</button>
 			</div>
 		</div>
 
@@ -3355,11 +3505,15 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 		</div>
 	</div>
 
+
 		<!-- 右侧记录：配合父元素的 stretch，自动与左侧等高 -->
 		<div style="flex:2 1 500px; min-width:0; background:var(--panel-bg); border:1px dashed var(--panel-border); border-radius:10px; padding:14px; display:flex; flex-direction:column;">
 		  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
 			<span style="font-size:14px;font-weight:600;">历史记录</span>
-			<button class="btn ghost small" id="monitorClear">清空</button>
+			<div style="display:flex; gap:8px;">
+			  <button class="btn ghost small" id="monitorStopAudio" style="color: var(--danger); border-color: var(--danger);" title="立刻停止所有正在播放的音频">⏹ 停止播放</button>
+			  <button class="btn ghost small" id="monitorClear">🗑️ 清空</button>
+			</div>
 		  </div>
 		  <!-- 内部列表：flex:1 撑满，min-height:0 防止溢出撑大父容器，overflow-y:auto 内部滚动 -->
 		  <div id="monitorRecords" style="flex:1; min-height:0; overflow-y:auto; background:var(--input-bg); border:1px dashed var(--panel-border); border-radius:8px; padding:10px;">
@@ -3439,25 +3593,6 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
   </button>
 </div>
 
-<!-- Ruby 页面左下角快捷导航 -->
-<div class="monitor-nav-sidebar" id="rubyNavSidebar">
-  <button class="monitor-nav-item" data-target="ruby-sec-step1" title="1：选择文件">
-    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
-  </button>
-  <button class="monitor-nav-item" data-target="ruby-sec-step2" title="2：导入词典">
-    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
-  </button>
-  <button class="monitor-nav-item" data-target="resultCard" title="3：提取概览">
-    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
-  </button>
-  <button class="monitor-nav-item" data-target="workbenchCard" title="4：Ruby 工作台">
-    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
-  </button>
-  <button class="monitor-nav-item" data-target="ruby-sec-export" title="5：导出">
-    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
-  </button>
-</div>
-
 <!-- ================= 更新日志弹窗 ================= -->
 <div id="changelogModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100000; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
   <div style="background: var(--card); width: 100%; max-width: 500px; max-height: 80vh; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; animation: modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
@@ -3472,6 +3607,37 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 
     <!-- 内容区（你可以随时修改这里的内容） -->
     <div class="cl-content" style="padding: 20px; overflow-y: auto; font-size: 13.5px; line-height: 1.7; color: var(--text);">
+
+      <!-- v1.1.0 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.1.0</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>暴力测试与修复：</b>对全系统进行了一系列高强度的压力测试与边界条件测试，发现并修复了若干会导致前端崩溃或后端卡死的细碎 BUG。</li>
+          <li><b>体验优化：</b>针对测试中暴露的异常数据以及特定排版下的解析错乱问题，进行了底层逻辑的缝补与容错处理。</li>
+          <li><b>稳定性提升：</b>整体服务运行更加平滑，减少了极端情况下闪退或报错的概率。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.20 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.20</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>移除自动弹窗：</b>彻底删除后端自作聪明的“检测并唤起浏览器”逻辑。启动服务后不再强行弹窗，需用户手动打开前端网页（配合前端重连限制，彻底解决重启弹窗的顽疾）。</li>
+          <li><b>重连机制优化：</b>前端断线重连加入<b>最大 4 次</b>的限制，失败后停止空转并提示手动点击，避免后台无限发请求。</li>
+          <li><b>修复统计 BUG：</b>修复了在【EPUB Ruby 提取】页面载入大量词条后，顶部的<strong>数据统计卡片（总条目、组词等）不显示</strong>的致命问题。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.19 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.19</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>新增【停止播放】：</b>历史记录顶部新增停止按钮，一键中断所有合成与试听音频。</li>
+          <li><b>屏蔽英文注音：</b>自动拦截纯英文/数字的注音（如 <code>Sharpness</code>），防止引擎逐个字母拼读。</li>
+          <li><b>一键开文件夹：</b>【设置 → 背景图像】新增 📂 按钮，可直接打开 <code>bg/</code> 目录。</li>
+          <li><b>CeVIO 试听优化：</b>试听功能现在优先读取解析后的“输出文本”，不再读带标签的原文。</li>
+        </ul>
+      </div>
 
       <!-- v1.0.18 -->
       <div class="cl-item" style="margin-bottom: 24px;">
@@ -4245,12 +4411,18 @@ function summarizeDist(options) {
   }
 
   function parseOneRuby(inner) {
-	const rtAll = inner.match(RT_ALL) || [];
-	if (rtAll.length !== 1) return null;
-	const rtOne = inner.match(RT_ONE);
-	if (!rtOne) return null;
-	const ruby = cleanText(rtOne[1]);
-	const base = cleanText(inner.replace(RP_TAG, '').replace(RT_ALL, ''));
+	// 1. 先剥离 <rp> 标签（内含标注，不参与读音）
+	let cleanInner = inner.replace(RP_TAG, '');
+	
+	// 2. 提取所有的 <rt> 标签内容，并拼接作为读音
+	const rtAll = cleanInner.match(RT_ALL) || [];
+	if (rtAll.length === 0) return null;
+	const ruby = rtAll.map(rt => cleanText(rt.replace(/<rt\b[^>]*>|<\/rt>/gi, ''))).join('');
+	
+	// 3. 移除所有的 <rt> 和 <rb> 标签，剩下的纯净文本作为基础原文
+	let baseRaw = cleanInner.replace(RT_ALL, '').replace(/<rb\b[^>]*>|<\/rb>/gi, '');
+	const base = cleanText(baseRaw);
+	
 	if (!base || !ruby) return null;
 	return { base, ruby };
   }
@@ -4990,7 +5162,7 @@ function summarizeDist(options) {
 	  // 空状态下，隐藏工作台、导出和统计面板
 	  if (workbenchCard) workbenchCard.style.display = 'none';
 	  if (exportCard) exportCard.style.display = 'none';
-	  document.getElementById('stats').style.display = 'none'; // ★ 这里：没有数据时隐藏统计面板
+	  document.getElementById('stats').style.display = 'none'; // 没有数据时隐藏统计面板
 	  
 	  document.querySelectorAll('.float-btn').forEach(b => b.classList.remove('show'));
 	  updateFloatButton();
@@ -5022,7 +5194,7 @@ function summarizeDist(options) {
 	// ===== 以下是“有数据”的情况 =====
 	
 	// 有数据时，恢复显示统计面板和工作台
-	document.getElementById('stats').style.display = 'flex'; // ★ 这里：有数据时恢复统计面板显示
+	document.getElementById('stats').style.display = 'flex'; // 有数据时恢复统计面板显示
 	if (workbenchCard) workbenchCard.style.display = '';
 	if (exportCard) exportCard.style.display = '';
 	document.querySelectorAll('.float-btn').forEach(b => b.classList.add('show'));
@@ -5043,8 +5215,51 @@ function summarizeDist(options) {
 	  multi: state.entries.filter(e => e.isMulti).length,
 	};
 
-	  // ★ 核心修改：没有数据时，隐藏统计面板，把空间留给教程
-	  document.getElementById('stats').style.display = 'none';
+	// ★ 核心修复：补回丢失的统计卡片 HTML 渲染代码
+	document.getElementById('stats').innerHTML = `
+	  <div class="stat" onclick="clearAndFilter('all')" title="显示全部">
+		<div class="num">${fmt(stats.total)}</div>
+		<div class="lbl">总条目</div>
+	  </div>
+	  <div class="stat word" onclick="clearAndFilter('g1', 'word')" title="筛选组词">
+		<div class="num">${fmt(stats.word)}</div>
+		<div class="lbl">组词</div>
+		<div class="sub">新增 ${fmt(stats.wordNew)}</div>
+	  </div>
+	  <div class="stat single" onclick="clearAndFilter('g1', 'single')" title="筛选单字">
+		<div class="num">${fmt(stats.single)}</div>
+		<div class="lbl">单字</div>
+		<div class="sub">新增 ${fmt(stats.singleNew)}</div>
+	  </div>
+	  <div class="stat susp" onclick="clearAndFilter('g2', 'suspCommon')" title="筛选常见小字错标">
+		<div class="num">${fmt(stats.suspCommon)}</div>
+		<div class="lbl">常见小字</div>
+	  </div>
+	  <div class="stat susp" onclick="clearAndFilter('g2', 'suspSpecial')" title="筛选特殊小字错标">
+		<div class="num">${fmt(stats.suspSpecial)}</div>
+		<div class="lbl">特殊小字</div>
+	  </div>
+	  <div class="stat katakana" onclick="clearAndFilter('g2', 'rubyKana')" title="筛选包含假名的词条">
+		<div class="num">${fmt(stats.katakana)}</div>
+		<div class="lbl">カ 含片假名</div>
+	  </div>
+	  <div class="stat latin" onclick="clearAndFilter('g2', 'rubyLatin')" title="筛选包含西文的词条">
+		<div class="num">${fmt(stats.latin)}</div>
+		<div class="lbl">A 含西文</div>
+	  </div>
+	  <div class="stat userdict" onclick="clearAndFilter('g3', 'userdict')" title="筛选已收录在参考词典中的词条">
+		<div class="num">${fmt(stats.userdict)}</div>
+		<div class="lbl">★ 已收录</div>
+	  </div>
+	  <div class="stat conflict" onclick="clearAndFilter('g3', 'conflict')" title="筛选有冲突的读音">
+		<div class="num">${fmt(stats.conflict)}</div>
+		<div class="lbl">冲突</div>
+	  </div>
+	  <div class="stat dup" onclick="clearAndFilter('g3', 'checked')" title="筛选已勾选的词条">
+		<div class="num">${fmt(stats.checked)}</div>
+		<div class="lbl">已勾选</div>
+	  </div>
+	`;
 
 	const mergeHint = document.getElementById('mergeHint');
 	const totalMergedGroups = state.files.filter(f => f.status === 'ok' && !f.fromTxt).reduce((s, f) => s + (f.mergedGroups || 0), 0);
@@ -5308,17 +5523,27 @@ function summarizeDist(options) {
 	const wordCount = list.filter(e => e.type === 'word').length;
 	const singleCount = list.filter(e => e.type === 'single').length;
 	const shown = list.slice(0, 5000);
+	
 	let html = '';
 	let lastType = null;
+	let renderIdx = 0;
+
 	for (const e of shown) {
 	  if (showGroupHeader && e.type !== lastType) {
 		const label = e.type === 'word' ? '词库' : '单字';
 		const cnt = e.type === 'word' ? wordCount : singleCount;
+		
+		// ★ 修改：文字改为“跳至”，占位符改为“条目”，宽度略增
 		html += `<div class="group-header ${e.type === 'single' ? 'single' : ''}">
-		  <span>${label}</span><span class="count">共 ${fmt(cnt)} 条</span></div>`;
+		  <span>${label}</span>
+		  <span class="count" style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+			跳至 <input type="number" class="jump-input" data-start="${renderIdx}" min="1" max="${cnt}" placeholder="条目" style="width: 52px; padding: 0 4px; font-size: 12px; height: 20px; border: 1px solid var(--border); border-radius: 2px; background: var(--input-bg); color: var(--text); text-align: center; outline:none;">
+			/ ${fmt(cnt)} 条
+		  </span>
+		</div>`;
 		lastType = e.type;
 	  }
-	  html += renderEntryItem(e, idxMap.get(e));
+	  html += renderEntryItem(e, idxMap.get(e)).replace('class="entry', `data-render-idx="${renderIdx++}" class="entry`);
 	}
 	if (list.length > 5000) {
 	  html += `<div class="empty" style="padding:14px">还有 ${fmt(list.length - 5000)} 条未显示（仅影响预览，不影响导出）</div>`;
@@ -5328,6 +5553,57 @@ function summarizeDist(options) {
 	  const idx = Number(entryEl.dataset.idx);
 	  bindEntryEvents(entryEl, idx, state.entries[idx]);
 	});
+
+	// ★ 绑定 jump 输入框的事件
+	box.querySelectorAll('.jump-input').forEach(inp => {
+	  
+	  // ★ 支持鼠标滚轮微调数值
+	  inp.addEventListener('wheel', (e) => {
+		e.preventDefault(); // 阻止页面滚动
+		let val = parseInt(inp.value, 10);
+		if (isNaN(val)) val = 1;
+		
+		// 滚轮向上（-deltaY）加，向下（deltaY）减
+		val += (e.deltaY < 0 ? 1 : -1);
+		
+		const max = parseInt(inp.getAttribute('max'), 10) || 99999;
+		val = Math.max(1, Math.min(val, max));
+		inp.value = val;
+	  }, { passive: false });
+
+	  inp.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter') {
+		  let val = parseInt(inp.value, 10);
+		  if (isNaN(val) || val < 1) val = 1;
+		  
+		  const start = parseInt(inp.dataset.start, 10);
+		  const targetIdx = start + val - 1; // 计算目标元素在页面上的实际索引
+		  
+		  const entryEl = box.querySelector(`.entry[data-render-idx="${targetIdx}"]`);
+		  if (entryEl) {
+			entryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			
+			// ★ 闪烁高亮效果
+			const oldBg = entryEl.style.backgroundColor;
+			const oldBoxShadow = entryEl.style.boxShadow;
+			entryEl.style.transition = 'background-color 0.3s, box-shadow 0.3s';
+			entryEl.style.backgroundColor = 'var(--primary-light)';
+			entryEl.style.boxShadow = 'inset 0 0 0 2px var(--primary)';
+			
+			setTimeout(() => {
+			  entryEl.style.backgroundColor = oldBg;
+			  entryEl.style.boxShadow = oldBoxShadow;
+			}, 1500);
+		  } else {
+			alert('输入的序号超出了当前分组的显示范围。');
+		  }
+		  
+		  inp.value = ''; // 跳转后清空输入框
+		  inp.blur();     // 失去焦点
+		}
+	  });
+	});
+
 	updateFloatButton();
   }
 
@@ -6722,7 +6998,7 @@ function normalizeRubyForExport(s) {
   let currentAudio = null;
   let _rafId = null;
   let retryCount = 0;
-  const MAX_RETRY = 5;
+  const MAX_RETRY = 4;
 
   // ★ 用于缓存语音列表和记录当前语种
   let _allWindowsVoices = [];
@@ -6806,8 +7082,9 @@ function normalizeRubyForExport(s) {
       try {
         const rGlobal = await fetch(API_BASE + '/v1/global/config');
         if (rGlobal.ok) {
-          const globalCfg = await rGlobal.json();
-          if (globalCfg.output_format) {
+        const globalCfg = await rGlobal.json();
+        window.__savedGlobalConfig = globalCfg; // ★ 核心修复：将全局配置暂存起来，供 UI 恢复使用
+        if (globalCfg.output_format) {
             localStorage.setItem('outputFormat', globalCfg.output_format);
             const formatSelect = document.getElementById('globalOutputFormat');
             if (formatSelect) {
@@ -6843,6 +7120,14 @@ function normalizeRubyForExport(s) {
         }
       } catch (e) {}
       
+      // ★ 核心修复：拿到全局配置后，立刻让下拉框和预览区刷新，强行显示保存的模型
+      if (window.__savedGlobalConfig) {
+        fillModelSelect();
+        updateEngineVisibility();
+        updateAutoConfigPreview();
+        if (typeof syncComPanelFromTop === 'function') syncComPanelFromTop();
+      }
+      
       setConn('✓ 已连接 · ' + API_BASE, '#1a9e5c');
       refreshAutoDictCount();
       $('monitorWrap').style.display = '';
@@ -6852,9 +7137,14 @@ function normalizeRubyForExport(s) {
       setConn('✗ 未连接（请先启动 tts.py）', '#dc2626');
       $('monitorWrap').style.display = 'none';
       $('monitorReconnect').style.display = '';
+      
+      // ★ 核心修改：限制重试次数，并向用户展示当前进度
       if (retryCount < MAX_RETRY) {
         retryCount++;
-        setTimeout(() => { if (!inited) connect(); }, 5000);
+        setConn(`✗ 连接失败，正在重试 (${retryCount}/${MAX_RETRY})...`, '#dc2626');
+        setTimeout(() => { connect(); }, 1500);
+      } else {
+        setConn('✗ 自动重连已停止，请手动点击重连', '#dc2626');
       }
     }
   }
@@ -6958,7 +7248,7 @@ function normalizeRubyForExport(s) {
     } catch(e) {}
   }
 
-  // ★ 新增：渲染详情列表（带删除按钮）
+  // ★ 渲染详情列表（带删除按钮）
   function renderAutoDictDetails() {
     const contentBox = $('autoDictListContent');
     if (!contentBox) return;
@@ -6983,10 +7273,13 @@ function normalizeRubyForExport(s) {
     const renderTag = (item, isSingle) => {
       const k = escapeHtml(item.k);
       const v = escapeHtml(item.v);
-      const bg = isSingle ? 'background:transparent; border:1px dashed var(--border); color:var(--muted);' : 'background:var(--panel-bg); border:1px solid var(--border);';
+      // ★ 核心修复：使用 input-bg 和 sunken-panel 制造内凹感
+      const bg = isSingle 
+        ? 'background:var(--input-bg); border:1px solid var(--border); color:var(--text-secondary);' 
+        : 'background:var(--input-bg); border:1px solid var(--border-strong); color:var(--text);';
       
       return `
-        <div style="display:inline-flex; align-items:center; ${bg} padding:2px 6px; border-radius:4px; gap:6px; transition:0.15s;">
+        <div style="display:inline-flex; align-items:center; ${bg} padding:3px 8px; border-radius:4px; gap:6px; transition:0.15s; box-shadow:var(--sunken-panel);">
           <span style="cursor:pointer;" onclick="navigator.clipboard.writeText('${k} => ${v}'); this.style.color='var(--primary)'; setTimeout(()=>this.style.color='', 300);" title="点击复制">
             ${k} <span style="font-size:11px; opacity:0.6;">=&gt;</span> ${v}
           </span>
@@ -7001,24 +7294,26 @@ function normalizeRubyForExport(s) {
 
     // 渲染组词
     if (multiWords.length > 0) {
-      html += '<div style="font-weight:bold; color:var(--primary-dark); margin-bottom:4px;">组词 (需人工确认)</div>';
-      html += '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">';
+      html += `<div style="border:1px dashed var(--border-strong); border-radius:6px; padding:10px; margin-bottom:12px; background:var(--panel-bg);">
+        <div style="font-weight:800; color:var(--primary-dark); margin-bottom:8px; font-size:12px;">🔤 组词 (需人工确认)</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">`;
       multiWords.forEach(item => { html += renderTag(item, false); });
-      html += '</div>';
+      html += `</div></div>`;
     }
 
     // 渲染单字
     if (singleWords.length > 0) {
-      html += '<div style="font-weight:bold; color:var(--muted); margin-bottom:4px; margin-top:8px;">单字 (占位防抖，通常无需处理)</div>';
-      html += '<div style="display:flex; flex-wrap:wrap; gap:6px;">';
+      html += `<div style="border:1px dashed var(--border-strong); border-radius:6px; padding:10px; background:var(--panel-bg);">
+        <div style="font-weight:800; color:var(--muted); margin-bottom:8px; font-size:12px;">🔣 单字 (占位防抖，通常无需处理)</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">`;
       singleWords.forEach(item => { html += renderTag(item, true); });
-      html += '</div>';
+      html += `</div></div>`;
     }
 
     contentBox.innerHTML = html;
   }
 
-  // ★ 新增：处理删除逻辑（二次点击确认）
+  // ★ 处理删除逻辑（二次点击确认）
   window.__deleteAutoDictItem = async function(base, ruby, el) {
     // 第一次点击，变红警告
     if (!el.dataset.confirm) {
@@ -7068,8 +7363,25 @@ function normalizeRubyForExport(s) {
     }
   };
 
-  // ★ 绑定详情切换与刷新按钮事件
+  // ★ 绑定打开文件夹、详情切换与刷新按钮事件
   document.addEventListener('DOMContentLoaded', () => {
+    // 绑定打开文件夹按钮
+    const btnOpenDirAuto = $('btnOpenRulesFromAutoDict');
+    if (btnOpenDirAuto) {
+      btnOpenDirAuto.addEventListener('click', async () => {
+        try {
+          const r = await fetch(API_BASE + '/v1/rules/open', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ filename: '.' })
+          });
+          if (!r.ok) throw new Error('打开失败');
+        } catch (e) {
+          alert('打开文件夹失败：请确认后端 tts.py 的 /v1/rules/open 接口支持传入目录路径。');
+        }
+      });
+    }
+
     const btnRefresh = $('btnRefreshAutoDict');
     if (btnRefresh) {
       btnRefresh.addEventListener('click', async function() {
@@ -7088,12 +7400,12 @@ function normalizeRubyForExport(s) {
         const box = $('autoDictDetails');
         if (box.style.display === 'none') {
           box.style.display = 'block';
-          this.innerText = '收起详情';
+          this.innerText = '收起';
           this.classList.add('active');
           renderAutoDictDetails();
         } else {
           box.style.display = 'none';
-          this.innerText = '查看详情';
+          this.innerText = '详情';
           this.classList.remove('active');
         }
       });
@@ -7115,7 +7427,6 @@ function normalizeRubyForExport(s) {
     }
     const speed = parseFloat($('monitorSpeed').value) || 1.0;
 
-    // ★ 显示代码 // 注释 的格式
     let langText = 'jp /* 日语 */';
     if (_pendingLang === 'zh') langText = 'cn /* 汉语 */';
     if (_pendingLang === 'en') langText = 'en /* 英语 */';
@@ -7191,18 +7502,50 @@ function normalizeRubyForExport(s) {
       $('ttsNumLabel').textContent = `Model ID（1–${_ttsMax}）`;
     }
 
-    if (MODEL_CONFIGS.cevio_com && Object.keys(MODEL_CONFIGS.cevio_com).length > 0 && isJa) {
-      engineSel.value = 'cevio';
-      if (MODEL_CONFIGS.cevio_com['com-karin-happy']) $('monitorCevioModel').value = 'com-karin-happy';
-      else {
-        const karinKey = Object.keys(MODEL_CONFIGS.cevio_com).find(k => k.includes('karin'));
-        if (karinKey) $('monitorCevioModel').value = karinKey;
-        else $('monitorCevioModel').selectedIndex = 0;
+    // ★ 核心修复：只有没有保存的全局配置时，才使用硬编码的默认值
+    if (!window.__savedGlobalConfig || !window.__savedGlobalConfig.engine) {
+      if (MODEL_CONFIGS.cevio_com && Object.keys(MODEL_CONFIGS.cevio_com).length > 0 && isJa) {
+        engineSel.value = 'cevio';
+        if (MODEL_CONFIGS.cevio_com['com-karin-happy']) $('monitorCevioModel').value = 'com-karin-happy';
+        else {
+          const karinKey = Object.keys(MODEL_CONFIGS.cevio_com).find(k => k.includes('karin'));
+          if (karinKey) $('monitorCevioModel').value = karinKey;
+          else $('monitorCevioModel').selectedIndex = 0;
+        }
+      } else if (isJa) {
+        engineSel.value = 'voicevox';
       }
-    } else if (isJa) {
-      engineSel.value = 'voicevox';
     }
     
+    // ★ 核心修复：强行从 global_config 里恢复界面状态
+    if (window.__savedGlobalConfig) {
+      // 1. 恢复引擎
+      if (window.__savedGlobalConfig.engine) {
+        const opt = engineSel.querySelector(`option[value="${window.__savedGlobalConfig.engine}"]`);
+        if (opt && !opt.hidden) engineSel.value = window.__savedGlobalConfig.engine;
+      }
+      // 2. 恢复 Model ID（适配各种不同的引擎前缀）
+      if (window.__savedGlobalConfig.model) {
+        const targetModel = window.__savedGlobalConfig.model;
+        if (engineSel.value === 'voicevox') {
+          const num = targetModel.replace('tts-', '');
+          $('monitorTtsNum').value = num;
+        } else if (engineSel.value === 'cevio') {
+          if (MODEL_CONFIGS.cevio_com[targetModel]) $('monitorCevioModel').value = targetModel;
+        } else if (engineSel.value === 'edge') {
+          const v = targetModel.replace('edge:', '');
+          if (Array.from($('monitorEdgeModel').options).some(o => o.value === v)) $('monitorEdgeModel').value = v;
+        } else if (engineSel.value === 'windows') {
+          const v = targetModel.replace('windows:', '');
+          if (Array.from($('monitorWindowsModel').options).some(o => o.value === v)) $('monitorWindowsModel').value = v;
+        }
+      }
+      // 3. 恢复 Speed
+      if (window.__savedGlobalConfig.speed) {
+        $('monitorSpeed').value = window.__savedGlobalConfig.speed;
+      }
+    }
+
     updateEngineVisibility();
     updateAutoConfigPreview();
     if (typeof syncComPanelFromTop === 'function') syncComPanelFromTop();
@@ -7469,7 +7812,7 @@ function normalizeRubyForExport(s) {
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || ('HTTP ' + r.status));
       
-      window.__autoConfig = data; 
+      window.__autoConfig = data;
       updateAutoConfigDisplay();
     } catch (e) { $('monitorAutoInfo').textContent = '加载失败：' + e.message; }
   }
@@ -7477,12 +7820,10 @@ function normalizeRubyForExport(s) {
   function updateAutoConfigDisplay() {
     const ac = window.__autoConfig;
     if (ac) {
-      // 如果后端返回了 lang（未来可能实现），同步给前端暂存变量
       if (ac.lang) {
         _currentLang = ac.lang;
         _pendingLang = ac.lang;
       }
-      // 直接用统一的预览刷新函数去渲染，确保 UI 结构始终是最新的
       updateAutoConfigPreview();
     }
   }
@@ -7511,21 +7852,24 @@ function normalizeRubyForExport(s) {
     btn.disabled = true;
 
     try {
-      // ★ 核心：在此刻才真正应用语种并触发菜单刷新
-      if (_pendingLang !== _currentLang) {
-        _currentLang = _pendingLang;
-        localStorage.setItem('ttsLang', _currentLang);
-        
-        fetch(API_BASE + '/v1/global/config', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ lang: _currentLang })
-        }).catch(e => console.warn("同步语种配置失败", e));
+      // ★ 核心：在此刻才真正应用语种，并将页面上的语种、引擎、模型、速度一并同步到 global_config.json
+      _currentLang = _pendingLang;
+      localStorage.setItem('ttsLang', _currentLang);
+      
+      fetch(API_BASE + '/v1/global/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ 
+            lang: _currentLang,
+            engine: engine,
+            model: model,
+            speed: speed
+        })
+      }).catch(e => console.warn("同步全局配置失败", e));
 
-        fillModelSelect();
-        renderWindowsVoices();
-        renderEdgeVoices();
-      }
+      fillModelSelect();
+      renderWindowsVoices();
+      renderEdgeVoices();
 
       const r = await fetch(API_BASE + '/v1/auto/config', {
         method: 'POST', headers: {'Content-Type':'application/json'},
@@ -7567,9 +7911,13 @@ function normalizeRubyForExport(s) {
     if (findings && findings.length) {
       wrap.style.display = '';
       list.innerHTML = findings.map(f => {
-        let line = escapeHtml(f.base) + ' → ' + escapeHtml(f.ruby);
-        if (f.from_dict && f.final !== f.ruby) line += '（词典：' + escapeHtml(f.final) + '）';
-        return '<div>' + line + '</div>';
+        let mainText = escapeHtml(f.base) + ' => ' + escapeHtml(f.ruby);
+        let noteText = '';
+        if (f.from_dict && f.final !== f.ruby) noteText = '（词典：' + escapeHtml(f.final) + '）';
+        // ★ 核心修复：同样使用 flex
+        return `<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
+          <code class="ruby-map-tag">${mainText}</code><span class="ruby-note-text">${noteText}</span>
+        </div>`;
       }).join('');
     } else wrap.style.display = 'none';
   }
@@ -7677,10 +8025,14 @@ function normalizeRubyForExport(s) {
     const rubyHtml = (rec.ruby_findings && rec.ruby_findings.length)
       ? '<div class="label">Ruby</div><div class="val ruby">' +
         rec.ruby_findings.map(f => {
-          let l = escapeHtml(f.base) + ' → ' + escapeHtml(f.ruby);
-          if (f.from_dict && f.final !== f.ruby) l += '（词典：' + escapeHtml(f.final) + '）';
-          return l;
-        }).join('<br>') + '</div>' : '';
+          let mainText = escapeHtml(f.base) + ' => ' + escapeHtml(f.ruby);
+          let noteText = '';
+          if (f.from_dict && f.final !== f.ruby) noteText = '（词典：' + escapeHtml(f.final) + '）';
+          // ★ 核心修复：使用 flex 布局强制在同一行，并消除缩进
+          return `<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
+            <code class="ruby-map-tag">${mainText}</code><span class="ruby-note-text">${noteText}</span>
+          </div>`;
+        }).join('') + '</div>' : '';
     const errHtml = rec.error
       ? '<div class="label">错误</div><div class="val error">' + escapeHtml(rec.error) + '</div>' : '';
     const finalHtml = splitSentences(rec.final_text)
@@ -7765,6 +8117,14 @@ function normalizeRubyForExport(s) {
       setConn('SSE 断线重连中…', '#c9821a');
       const btn = $('monitorReconnect');
       if (btn) btn.style.display = '';
+      // ★ 核心修改：去掉独立的重连，统一交给 connect() 函数去管理尝试次数
+      if (retryCount < MAX_RETRY) {
+        retryCount++;
+        setConn(`✗ 连接断开，正在重试 (${retryCount}/${MAX_RETRY})...`, '#c9821a');
+        setTimeout(() => { connect(); }, 1500);
+      } else {
+        setConn('✗ 自动重连已停止，请手动点击重连', '#dc2626');
+      }
     };
     _sseConnection.onmessage = ev => {
       setConn('✓ 已连接 · ' + API_BASE, '#1a9e5c');
@@ -7796,11 +8156,34 @@ function normalizeRubyForExport(s) {
   /* ===== 绑定 ===== */
   $('monitorPreviewBtn').addEventListener('click', doPreview);
   $('monitorSynthBtn').addEventListener('click', doSynthesize);
+
+  // ★ 绑定清空测试区按钮
+  $('monitorClearTestBtn').addEventListener('click', () => {
+    $('monitorInput').value = '';
+    $('monitorPreviewBox').value = '';
+    $('monitorPreviewBox').dataset.edited = 'false';
+    $('monitorRubyWrap').style.display = 'none';
+    $('monitorRubyList').innerHTML = '';
+    $('monitorInput').focus(); // 清空后自动将光标放回输入框
+  });
+
   $('monitorClear').addEventListener('click', clearRecords);
+  
+  // ★ 绑定停止播放按钮
+  $('monitorStopAudio').addEventListener('click', () => {
+    stopPlayback();
+    // 如果用户点停止，顺便清空一下输入框里的编辑状态记录（可选，主要是为了视觉反馈）
+    document.querySelectorAll('#monitorRecords .sentence.active').forEach(el => el.classList.remove('active'));
+  });
   $('monitorReconnect').addEventListener('click', () => { 
-    retryCount = 0; 
-    connect(); 
-    connectSSE(); 
+    retryCount = 0; // ★ 核心：用户手动点击时，重置自动尝试次数
+    setConn('手动重新连接中…', 'var(--muted)');
+    connect().then(() => {
+      // connect() 成功后会自动去连 SSE，这里作为兜底
+      if (inited && _sseConnection && _sseConnection.readyState === 2) {
+        connectSSE();
+      }
+    });
   });
 
   // ★ 主动断开连接按钮
@@ -8003,7 +8386,7 @@ function normalizeRubyForExport(s) {
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     try {
-      const rConfig = await fetch(API_BASE + '/v1/models/config', { signal: controller.signal });
+      const rConfig = await fetch(API_BASE + '/v1/models/config', { cache: 'no-store', signal: controller.signal });
       clearTimeout(timeoutId);
       
       if (rConfig.ok) {
@@ -8143,13 +8526,31 @@ function normalizeRubyForExport(s) {
       emotions[inp.dataset.name] = parseInt(inp.value, 10);
     });
     
+    // ★ 核心修复：优先读取“输出文本”，如果为空再回退到“输入文本”
+    const outputText = $('monitorPreviewBox').value.trim();
+    const inputText = $('monitorInput').value.trim();
+    
+    let textToSpeak = '';
+    if (outputText && outputText !== '-') {
+      // 如果输出框有内容，且不是占位符，说明用户点过预览，优先使用解析后的纯文本
+      textToSpeak = outputText;
+    } else {
+      // 如果没点过预览，只能拿输入框的内容（可能会带有标签，但总比报错好）
+      textToSpeak = inputText;
+    }
+
+    // 如果全为空，给个默认测试句
+    if (!textToSpeak) {
+      textToSpeak = "只今、CeVIO AI の感情パラメータのお試しテスト運転しています。";
+    }
+
     const req = {
       model_id: 'preview', 
       cast: cast,
       emotions: emotions,
       speed: parseInt($('comSpeed').value, 10) || 50,
       tone_scale: parseInt($('comTone').value, 10) || 50,
-      text: $('monitorInput').value.trim() || "只今、CeVIO AI の感情パラメータのお試しテスト運転しています。"
+      text: textToSpeak  // ★ 使用修正后的文本
     };
     
     $('comPreviewBtn').innerText = '...';
@@ -8159,7 +8560,12 @@ function normalizeRubyForExport(s) {
       });
       if (!r.ok) throw new Error("合成失败");
       const blob = await r.blob();
-      new Audio(URL.createObjectURL(blob)).play();
+      
+      // ★ 核心修改：先停止可能正在播放的其他声音，再将当前音频挂载到全局变量
+      stopPlayback();
+      currentAudio = new Audio(URL.createObjectURL(blob));
+      currentAudio.play();
+      
     } catch (e) { alert(e.message); }
     $('comPreviewBtn').innerText = '试听';
   }
@@ -8203,7 +8609,7 @@ function normalizeRubyForExport(s) {
       alert(`模型 '${modelId}' 已保存！`);
       $('comSaveWrap').style.display = 'none';
       
-      const r2 = await fetch(API_BASE + '/v1/models/config');
+      const r2 = await fetch(API_BASE + '/v1/models/config', { cache: 'no-store' });
       if (r2.ok) MODEL_CONFIGS = await r2.json();
       
       fillModelSelect();
@@ -8899,6 +9305,33 @@ function normalizeRubyForExport(s) {
   applyStyleVars();
 
   /* ===== 事件 ===== */
+  
+  // ★ 核心修复：在这里直接绑定打开文件夹的事件，避免 onclick 丢失
+  const btnOpenBg = document.getElementById('btnOpenBgFolder');
+  if (btnOpenBg) {
+    btnOpenBg.addEventListener('mouseenter', () => {
+      btnOpenBg.style.background = 'var(--hover-bg)'; 
+      btnOpenBg.style.color = 'var(--primary-dark)';
+    });
+    btnOpenBg.addEventListener('mouseleave', () => {
+      btnOpenBg.style.background = 'var(--panel-bg)'; 
+      btnOpenBg.style.color = 'var(--muted)';
+    });
+    btnOpenBg.addEventListener('click', async () => {
+      try {
+        const r = await fetch('http://localhost:8000/v1/rules/open', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ filename: 'bg' })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || '后端返回错误');
+      } catch (e) {
+        alert('打开失败：' + e.message);
+      }
+    });
+  }
+
   applyBtn.addEventListener('click', applyBackground);
   
   filenameInput.addEventListener('keydown', (e) => {
@@ -9229,7 +9662,7 @@ function normalizeRubyForExport(s) {
         const isMonitorActive = document.getElementById('pane-monitor').classList.contains('active');
         if (isMonitorActive) {
           navBar.classList.add('show-nav');
-          setTimeout(updateActiveNav, 100); // 延迟刷新高亮状态
+          setTimeout(updateActiveNav, 100);
         } else {
           navBar.classList.remove('show-nav');
         }
@@ -9240,13 +9673,24 @@ function normalizeRubyForExport(s) {
   const monitorPane = document.getElementById('pane-monitor');
   if (monitorPane) {
     observer.observe(monitorPane, { attributes: true });
-    
-    // 初始化检查一次
-    if (monitorPane.classList.contains('active')) {
-      navBar.classList.add('show-nav');
-    }
+    if (monitorPane.classList.contains('active')) navBar.classList.add('show-nav');
   }
 })();
+
+// ★ 打开 bg 文件夹的全局函数
+window.openBgFolder = async function() {
+  try {
+    const r = await fetch('http://localhost:8000/v1/rules/open', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ filename: 'bg' })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || '后端返回错误');
+  } catch (e) {
+    alert('❌ 打开 bg 文件夹失败！\n\n错误信息：' + e.message + '\n\n👉 请确认是否已经重启了 tts.py？');
+  }
+};
 </script>
 
 <!-- Ruby 页面左下角快捷导航交互 -->
@@ -9279,7 +9723,6 @@ function normalizeRubyForExport(s) {
     let currentId = sections[0].id;
     for (const sec of sections) {
       const rect = sec.getBoundingClientRect();
-      // 如果该区块被隐藏（比如还没提取数据），不参与高亮
       if (sec.style.display === 'none') continue; 
       if (rect.top <= 150) {
         currentId = sec.id;

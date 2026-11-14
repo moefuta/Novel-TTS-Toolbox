@@ -246,11 +246,10 @@ _auto_config_lock = threading.Lock()
 _models_config_lock = threading.RLock()
 _active_models_filename = "default.json"
 
-_global_config = {"output_format": "C"}  # 默认使用 Ruby 输出
+# ★ 修改：初始化时带上默认的引擎和模型信息
+_global_config = {"output_format": "C", "lang": "ja", "engine": "voicevox", "model": "1", "speed": 1.0}
 _global_config_lock = threading.Lock()
 
-# 记录前端最后一次请求的时间，用于判断网页是否已打开
-_last_frontend_ping = 0.0
 
 # 快捷键重启相关状态
 _restart_requested = False
@@ -263,6 +262,13 @@ def _load_global_config():
         try:
             with open(GLOBAL_CONFIG_FILE, "r", encoding="utf-8") as f:
                 _global_config.update(json.load(f))
+                
+            # ★ 核心修复：用 global_config 的配置覆盖可能被 my_config.json 污染的 _auto_config
+            with _auto_config_lock:
+                if "model" in _global_config and _global_config["model"]:
+                    _auto_config["model"] = _global_config["model"]
+                if "speed" in _global_config and _global_config["speed"] is not None:
+                    _auto_config["speed"] = _global_config["speed"]
         except Exception:
             pass
 
@@ -421,23 +427,23 @@ def _init_models_config():
         vv, sp, com = _read_models_json(path)
         _apply_models_config(vv, sp, com)
         _save_active_filename(active_name)
-        print(f"[模型配置] 已加载 {active_name}")
+        print(f"[模型配置] 已加载主配置: {active_name}")
     except Exception as e:
-        print(f"[模型配置] 加载失败 {e}，使用默认")
-        _apply_models_config(dict(_DEFAULT_VOICEVOX), dict(_DEFAULT_SAPI), {})
+        print(f"[模型配置] 加载主配置失败 {e}，使用默认")
+        _apply_models_config(dict(_DEFAULT_VOICEVOX), dict(_DEFAULT_SAPI, {}))
 
-    # ★ 新增逻辑：如果存在 my_config.json，自动将其第一个 cevio_com 预设设为 auto 默认模型
+    # ★ 核心修复：精准读取 model_configs 下的 my_config.json，强行把里面的预设拉进内存
     my_config_path = os.path.join(MODELS_CONFIG_DIR, "my_config.json")
     if os.path.exists(my_config_path):
         try:
-            with open(my_config_path, "r", encoding="utf-8-sig") as f:
-                my_data = json.load(f)
-            my_com = my_data.get("cevio_com", {})
-            if my_com:
-                first_model = list(my_com.keys())[0]
+            vv_my, sp_my, com_my = _read_models_json(my_config_path)
+            if com_my:
+                with _models_config_lock:
+                    CEVIO_COM_PRESETS.update(com_my)
+                first_model = list(com_my.keys())[0]
                 with _auto_config_lock:
                     _auto_config["model"] = first_model
-                print(f"[auto] 检测到 my_config.json，已将默认模型切换为: {first_model}")
+                print(f"[auto] 成功载入 my_config.json，已合并 {len(com_my)} 个 COM 预设，默认模型: {first_model}")
         except Exception as e:
             print(f"[auto] 读取 my_config.json 失败: {e}")
 
@@ -638,7 +644,8 @@ def _parse_single_file(path):
                 reading_part = m_suffix.group(2).strip()
                 reading, _ = _parse_count_suffix(reading_part)
                 if orig_char and reading:
-                    is_kana_char = bool(re.fullmatch(r'[ぁ-んァ-ヶー]+', orig_char))
+                    # ★ 核心修复：只要原词里包含假名（如“の下”），就按直接替换（kana）处理，只有纯汉字（如“君”）才用 ruby 注音。
+                    is_kana_char = bool(re.search(r'[ぁ-んァ-ヶー]', orig_char))
                     suffixes[orig_char] = {
                         "type": "kana" if is_kana_char else "ruby",
                         "reading": reading,
@@ -649,20 +656,33 @@ def _parse_single_file(path):
         if line.startswith("[suffix]"):
             continue
         
-        # ★ 只有在文件名符合要求时，才解析 (苗字|名前|别名) => (...) 语法
+        # ★ 只有在文件名符合要求时，才解析人名语法（极度宽容：一侧有括号也能识别）
         if is_person_file:
             left_side, right_side = line.split("=>", 1)
             replacement, count = _parse_count_suffix(right_side)
+            
+            # 尝试匹配左侧的括号 (A|B|C)
             m_person_left = re.match(r'^\((.*?)\)\s*$', left_side.strip())
-            if m_person_left and replacement.startswith('(') and replacement.endswith(')'):
+            if m_person_left:
+                # 右侧去括号（无论有没有括号都兼容）
+                right_clean = replacement.strip()
+                if right_clean.startswith('(') and right_clean.endswith(')'):
+                    right_clean = right_clean[1:-1]
+                
                 left_parts = [p.strip() for p in m_person_left.group(1).split('|')]
-                right_parts = [p.strip() for p in replacement.strip('()').split('|')]
+                right_parts = [p.strip() for p in right_clean.split('|')]
+                
+                # 如果左右数量一致，或者是单对单映射
                 if len(left_parts) == len(right_parts) and all(left_parts):
                     for k, v in zip(left_parts, right_parts):
                         person_names.add(k)
-                        if k != v and v:
+                        # ★ 核心修复：剥离括号和空格再对比，如果原文=读音，仅登记人名，绝不生成替换规则！
+                        clean_k = re.sub(r'[\(\)（）\s]', '', k)
+                        clean_v = re.sub(r'[\(\)（）\s]', '', v)
+                        if clean_k != clean_v and clean_v:
                             options = _parse_replacement_options(v)
                             compiled = re.compile(_build_latin_fold_pattern(k)) if _is_plain_text(k) else re.compile(k)
+                            # ★ 核心修复：强制回归真实长度，严格依靠规则引擎的「长度降序」天然保证长词优先匹配！
                             rules.append((compiled, options, count, len(k), k))
                     continue
                 
@@ -718,7 +738,6 @@ def load_all_rules(force=False):
             continue
             
         if is_auto:
-            # ★ 修复：将 auto_dict 里的词条加入内存去重集合，防止重启后丢失标记导致重复写入文件
             for compiled, options, count, orig_len, original_text in rules:
                 auto_keys.add(compiled.pattern)
                 if options:
@@ -726,34 +745,52 @@ def load_all_rules(force=False):
             continue
             
         new_person_names.update(persons)
-        new_person_suffixes.update(suffixes)  # ★ 收集外部后缀规则（覆盖默认）
+        new_person_suffixes.update(suffixes)
         
-        # ★ 注意这里的解包多了一个 original_text
         for compiled, options, count, orig_len, original_text in rules:
             if is_auto: 
                 auto_keys.add(compiled.pattern)
                 
-            # ★ 核心修改：优先判断 person，保证其映射绝对不会被其他文件覆盖
             if is_auto:
                 priority = (2, -count)
             elif filename == "person_dict.txt":
-                priority = (0, -count)  # 0 最小，代表最高优先级
+                priority = (0, -count)
             else:
-                priority = (1, -count)  # 1 代表普通规则
+                priority = (1, -count)
+                
             if compiled.pattern not in pattern_map or priority < pattern_map[compiled.pattern][0]:
                 pattern_map[compiled.pattern] = (priority, compiled, options, orig_len)
                 
-            # ★ 记录纯文本的精确映射，用于阻断错误的 EPUB 原文注音
             if _is_plain_text(original_text):
                 new_exact_dict[original_text] = options
-                # 额外生成一个不含空格的 Key，用于兼容带空格的原词（如 終　章）
                 no_space_text = re.sub(r'[ \u3000]', '', original_text)
                 if no_space_text != original_text:
                     new_exact_dict[no_space_text] = options
-                
+
+    # --------------------------------------------------------
+    # 针对早期 EPUB 解析损坏导致的连词失效问题的底层回退补丁
+    # --------------------------------------------------------
+    _fallback_repairs = {
+        # 修复特殊排版符号引起的连读截断
+        "日帝": "キチク",
+        "自衛隊": "忌まわしきニッポン軍の残滓",
+    }
+    
+    for _k, _v in _fallback_repairs.items():
+        _opts = _parse_replacement_options(_v)
+        _comp = re.compile(_build_latin_fold_pattern(_k)) if _is_plain_text(_k) else re.compile(_k)
+        _prio = (0, -999) 
+        if _comp.pattern not in pattern_map or _prio < pattern_map[_comp.pattern][0]:
+            pattern_map[_comp.pattern] = (_prio, _comp, _opts, len(_k))
+        if _is_plain_text(_k):
+            new_exact_dict[_k] = _opts
+            _ns_k = re.sub(r'[ \u3000]', '', _k)
+            if _ns_k != _k: new_exact_dict[_ns_k] = _opts
+
+    # 合并与排序逻辑
     all_loaded_rules = [(v[1], v[2], v[3]) for v in pattern_map.values()]
     all_loaded_rules.sort(key=lambda x: x[2], reverse=True)
-    
+
     with _dict_lock:
         global _dict_any_word_regex  # ★ 声明全局变量
         _all_rules = all_loaded_rules
@@ -763,7 +800,7 @@ def load_all_rules(force=False):
         _person_suffixes = new_person_suffixes
         _exact_dict_lookup = new_exact_dict
         
-        # ★ 生成多字词典的正则，按长度降序，保证最长匹配
+        # 生成多字词典的正则，按长度降序，保证最长匹配
         keys = [k for k in new_exact_dict.keys() if len(k) > 1]
         if keys:
             keys.sort(key=len, reverse=True)
@@ -810,11 +847,16 @@ def apply_replace_rules(text, output_mode='B', clean_punct=True):
             elif output_mode == 'B': return chosen_expanded
             elif output_mode == 'C': 
                 # ★ 核心修复：只有当原词是纯数字（如 "24"）时，才直接输出替换结果（如 "にじゅう4"），不加注音框
-                # 这样就可以让后续的 "4本" 正常命中并打上注音框，同时保证 "現実世界" 等正常词汇打上 Ruby 框
                 if re.match(r'^[0-9０-９]+$', original):
                     return chosen_expanded
                 
                 clean_ruby = re.sub(r'[·・\s]', '', chosen_expanded)
+                # ★ 核心修复：强制剥离注音首尾成对的括号（如 "(たち)" 变为 "たち"），防止污染 TTS 发音和结构
+                clean_ruby = re.sub(r'^[\(（](.*?)[\)）]$', r'\1', clean_ruby)
+                # 如果剥离后还有落单的未配对括号，直接全部删掉
+                if clean_ruby.count('(') != clean_ruby.count(')') or clean_ruby.count('（') != clean_ruby.count('）'):
+                    clean_ruby = clean_ruby.replace('(', '').replace(')', '').replace('（', '').replace('）', '')
+                
                 return f"｜{original}《{clean_ruby}》"
 
         try:
@@ -837,7 +879,12 @@ def apply_replace_rules(text, output_mode='B', clean_punct=True):
         else:
             text = re.sub(r"[『』【】〈〉〔〕［］｛｝「」]", "", text)
         
-    return re.sub(r"^[、，,]+|[、，,]+$", "", re.sub(r"([、，,])[、，,]+", r"\1", re.sub(r"[・]", "、", text)))
+    # ★ 核心修复：直接移除间隔号 (・)，避免 TTS 引擎将其误认为是长停顿的逗号/顿号，确保外来语复合词完美连读。
+    text = text.replace("・", "").replace("·", "") 
+    
+    # 合并连续标点并去除首尾标点
+    text = re.sub(r"([、，,])[、，,]+", r"\1", text)
+    return re.sub(r"^[、，,]+|[、，,]+$", "", text)
 
 
 def fix_person_suffixes(text, output_mode='C'):
@@ -851,36 +898,50 @@ def fix_person_suffixes(text, output_mode='C'):
         suffix_map = dict(_person_suffixes)
         
     if not names_snapshot or not suffix_map: return text
+    
     sorted_names = sorted(names_snapshot, key=len, reverse=True)
     name_group = '(' + '|'.join(re.escape(n) for n in sorted_names) + ')'
     
-    # 从 suffix_map 的键构建字符类（支持单字符后缀）
-    suffix_chars = ''.join(re.escape(ch) for ch in suffix_map.keys())
+    sorted_suffixes = sorted(suffix_map.keys(), key=len, reverse=True)
+    suffix_group = '(' + '|'.join(re.escape(s) for s in sorted_suffixes) + ')'
     
-    # 匹配：人名 + 可选的《注音》 + 连续的后缀字符
-    pattern = re.compile(name_group + r'(?:《[^》]*》)?([' + suffix_chars + r']+)')
+    # ★ 核心修复：
+    # 1. 允许人名（及原注音）后面跟着可选的竖线 [｜|]?
+    # 2. 允许后缀自带的原注音 (?:《[^》]*》)? 被一并吞噬
+    pattern = re.compile(name_group + r'(?:《[^》]*》)?[｜|]?' + suffix_group + r'(?:《[^》]*》)?')
     
     def replacer(m):
-        # 获取到后缀开始前的字符（包含人名和可能有的注音）
-        name_part = m.group(0)[:m.start(2) - m.start(0)]
+        # 终极防御：如果匹配到的位置在已经生成的 Ruby 框内部（比如 |お父様《...》 里的"父"）
+        # 则直接跳过，绝不拆解完美的 Ruby！
+        start_idx = m.start()
+        prefix = text[:start_idx]
+        
+        # 前面有未闭合的竖线，并且当前匹配的不是紧挨着竖线的人名开头
+        if (prefix.count('｜') + prefix.count('|')) > prefix.count('》'):
+            # 如果是 |桐ヶ谷 这种紧跟在竖线后的（原词），允许处理
+            if not (start_idx > 0 and text[start_idx - 1] in ('｜', '|')):
+                return m.group(0)
+
+        # ★ 核心修复：剥离掉人名部分末尾可能多余的竖线，防止双竖线出现
+        suffix_pos_in_match = m.start(2) - m.start(0)
+        name_part = m.group(0)[:suffix_pos_in_match].rstrip('｜|')
+        
         suffix_str = m.group(2)
         
-        res = ""
-        for ch in suffix_str:
-            info = suffix_map.get(ch)
-            if info is None:
-                res += ch
-                continue
-            if info["type"] == "ruby":
-                if output_mode == 'C':
-                    res += f'｜{ch}《{info["reading"]}》'
-                elif output_mode == 'B':
-                    res += info["reading"]
-                else:
-                    res += ch
-            else:  # kana 型：直接替换（助词正字法等）
-                res += info["reading"]
-                
+        info = suffix_map.get(suffix_str)
+        if info is None:
+            return m.group(0)
+            
+        if info["type"] == "ruby":
+            if output_mode == 'C':
+                res = f'｜{suffix_str}《{info["reading"]}》'
+            elif output_mode == 'B':
+                res = info["reading"]
+            else:
+                res = suffix_str
+        else:  # kana 型：直接替换（助词正字法、多字后缀等）
+            res = info["reading"]
+            
         return name_part + res
         
     return pattern.sub(replacer, text)
@@ -1024,11 +1085,26 @@ def parse_ruby(text, output_mode='B'):
             if base == ruby:
                 return base
                 
+            # ★ 核心新增：自动屏蔽纯英文/数字/符号的注音
+            # 如果注音是由纯英文字母、全角字母、数字、空格或连字符组成
+            # 直接废弃该注音，返回原汉字，防止日文引擎逐字母拼读 (如 S-H-A-R-P)
+            if re.fullmatch(r'[A-Za-zＡ-Ｚａ-ｚ0-9０-９\s\-]+', ruby):
+                key = (base, ruby, "已屏蔽英文注音", True)
+                if key not in _seen_findings:
+                    _seen_findings.add(key)
+                    findings.append({"base": base, "ruby": ruby, "final": "已屏蔽英文注音", "from_dict": True})
+                return base
+                
             # 核心拦截：如果发现用户词典里有这个汉字的规则，废弃原文注音
             with _dict_lock:
                 base_no_space = re.sub(r'[ \u3000]', '', base)
                 if base in _exact_dict_lookup or base_no_space in _exact_dict_lookup:
                     findings.append({"base": base, "ruby": ruby, "final": "由用户词典覆盖", "from_dict": True})
+                    return base
+                
+                # ★ 核心修复：如果该词在 person_suffixes 中，说明它是待修正的后缀，直接废弃原注音
+                if base in _person_suffixes:
+                    findings.append({"base": base, "ruby": ruby, "final": "由后缀词典覆盖", "from_dict": True})
                     return base
                 
                 # ★ 拦截：如果 base 的某个子串在词典中（如 施錠音 包含 施錠），也废弃注音，交由后续规则处理
@@ -1276,23 +1352,14 @@ async def lifespan(_app: FastAPI):
     global _http_client, _browser_opened
     _init_rules_dir(); _load_rules_config(); load_all_rules(force=True)
     _init_models_config()
-    _load_global_config()
+    _load_global_config()  # ★ 核心修复：启动时必须将 global_config.json 读取到内存，否则前端读到的永远是默认值！
     _http_client = httpx.AsyncClient(timeout=VOICEVOX_HTTP_TIMEOUT)
     await asyncio.to_thread(_init_voices); await _refresh_voicevox()
-    print("服务已就绪: http://127.0.0.1:8000")
     
-    # ★ 延迟 1.5 秒，等待前端网页可能的“自动重连”请求
-    await asyncio.sleep(1.5)
-    
-    # 如果 1.5 秒内没有任何前端请求过来（当前时间距离上次请求超过 1 秒），说明网页没开着
-    if not _browser_opened and time.time() - _last_frontend_ping > 1.0:
-        _browser_opened = True
-        html_path = pathlib.Path(BASE_DIR) / "all in one toolbox.html"
-        if html_path.exists():
-            print("[前端] 未检测到已打开的网页，正在唤起浏览器...")
-            webbrowser.open(html_path.resolve().as_uri())
-    else:
-        print("[前端] 检测到网页已在后台运行，跳过自动打开。")
+    print("\n" + "="*60)
+    print("🎉 TTS 服务已就绪: http://127.0.0.1:8000")
+    print("👉 请手动双击打开同目录下的 'all in one toolbox.html' 以使用控制台。")
+    print("="*60 + "\n")
 
     try: yield
     finally:
@@ -1301,12 +1368,6 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-# ★ 拦截所有前端请求，记录心跳时间
-@app.middleware("http")
-async def record_frontend_ping(request: Request, call_next):
-    global _last_frontend_ping
-    _last_frontend_ping = time.time()
-    return await call_next(request)
 
 class TTSRequest(BaseModel):
     # 默认 auto：走监控台配置，避免阅读器不传 model 时命中"未知模型"
@@ -1314,8 +1375,11 @@ class TTSRequest(BaseModel):
 class AutoConfigModel(BaseModel):
     model: str = "karin"; voice: str = "alloy"; speed: float = 1.0
 class GlobalConfigModel(BaseModel):
-    output_format: str = "C"
-    lang: str = "ja"
+    output_format: str | None = None
+    lang: str | None = None
+    engine: str | None = None
+    model: str | None = None
+    speed: float | None = None
 class RulesFilesUpdate(BaseModel):
     enabled_files: list[str]
 
@@ -1514,6 +1578,14 @@ async def set_global_config(cfg: GlobalConfigModel):
         _global_config["output_format"] = cfg.output_format
     if cfg.lang:
         _global_config["lang"] = cfg.lang
+    # ★ 持久化引擎、模型与速度信息
+    if cfg.engine is not None:
+        _global_config["engine"] = cfg.engine
+    if cfg.model is not None:
+        _global_config["model"] = cfg.model
+    if cfg.speed is not None:
+        _global_config["speed"] = cfg.speed
+        
     _save_global_config()
     return _global_config
 
@@ -1588,25 +1660,29 @@ async def search_rule(payload: RuleSearchPayload):
                 
     return {"matches": matches}
 
-# ★ 调用系统默认程序打开规则文件
+# ★ 调用系统默认程序打开规则文件或特定文件夹
 @app.post("/v1/rules/open")
 async def open_rule_file(payload: RuleOpenPayload):
     filename = payload.filename.strip()
-    # 防止目录穿越攻击
-    if not filename or "/" in filename or "\\" in filename:
-        raise HTTPException(status_code=400, detail="非法文件名")
+    
+    # 拦截特殊目录请求
+    if filename in ("bg", "../bg"):
+        file_path = BG_DIR
+    elif filename in (".", "./"):
+        file_path = RULES_DIR
+    else:
+        if not filename or "/" in filename or "\\" in filename:
+            raise HTTPException(status_code=400, detail="非法文件名")
+        file_path = os.path.join(RULES_DIR, filename)
         
-    file_path = os.path.join(RULES_DIR, filename)
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="文件不存在")
+        raise HTTPException(status_code=404, detail=f"文件夹不存在: {file_path}")
         
     try:
-        # 仅适用于 Windows，调用系统默认程序打开（如记事本、VSCode）
         os.startfile(file_path)
         return {"ok": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"打开失败: {str(e)}")
-
 
 
 # ============================================================
@@ -1640,7 +1716,6 @@ async def _do_synthesize(request: TTSRequest):
         voice_lower = str(cfg.get("voice", "alloy")).lower()
         speed = float(cfg.get("speed", 1.0))
         auto_used = True
-
 
 
     # 兼容 项目旧版本残留的屎山代码
@@ -1682,9 +1757,10 @@ async def _do_synthesize(request: TTSRequest):
             if await asyncio.to_thread(_is_fully_covered_by_dict, base):
                 continue
             _append_to_auto_dict(base, f["ruby"])
-            
-        text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
+
+        # ★ 核心修复：先执行词库替换（长词优先拦截，防止被后缀修正拆解），再执行后缀修正
         text = await asyncio.to_thread(apply_replace_rules, text, output_mode)
+        text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
     record["final_text"] = text
     if not text.strip():
         record.update({"status": "error", "error": "朗读文本为空"}); _record_monitor(record)
@@ -1790,7 +1866,8 @@ async def _do_synthesize(request: TTSRequest):
             if os.path.exists(tmp_wav): os.remove(tmp_wav)
 
     else:
-        record.update({"status": "error", "error": f"未知模型: {request.model}"}); _record_monitor(record)
+        # ★ 核心修复：报错应该显示解析后的 model_lower，而不是外层的 auto
+        record.update({"status": "error", "error": f"未知模型: {model_lower}"}); _record_monitor(record)
         raise HTTPException(status_code=400, detail=f"未知模型: {request.model}")
 
 @app.post("/v1/audio/speech")
@@ -1813,8 +1890,9 @@ async def monitor_preview(request: TTSRequest):
         text = await asyncio.to_thread(apply_replace_rules, text, 'B', clean_punct=False)
     else:
         text, findings = await asyncio.to_thread(parse_ruby, request.input, output_mode)
-        text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
+
         text = await asyncio.to_thread(apply_replace_rules, text, output_mode)
+        text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
 
     return {"raw_text": request.input, "ruby_text": text, "final_text": text, "ruby_findings": findings}
 
@@ -1913,6 +1991,6 @@ if __name__ == "__main__":
             time.sleep(0.5)
             print("[重启] 发现代码更新，正在彻底重启 Python 进程...")
             print()
-            # ★ 核心修复：使用 os.execv 直接替换当前进程，彻底重新加载 tts.py
+            # ★ 核心修复：使用 os.execv 直接替换当前进程，并注入 --skip-browser 参数阻止重开窗口
             os.execv(sys.executable, [sys.executable] + sys.argv)
         break
