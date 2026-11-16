@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Novel TTS 服务 (tts.py) - 最终融合版
+Novel TTS 服务 (tts.py)
 面向日文小说朗读的本地 TTS 聚合服务，兼容任意支持 OpenAI TTS 接口的阅读器
 集成了：VOICEVOX、系统 SAPI、CeVIO AI (COM 情绪控制)、模型配置热重载
 """
@@ -675,10 +675,16 @@ def _parse_single_file(path):
                 # 如果左右数量一致，或者是单对单映射
                 if len(left_parts) == len(right_parts) and all(left_parts):
                     for k, v in zip(left_parts, right_parts):
-                        person_names.add(k)
+                        # ★ 核心修复：强行清理首尾可能存在的竖线，防止字典录入时手滑带入
+                        k = k.strip('｜|')
+                        v = v.strip('｜|')
+                        if not k or not v: continue
+
                         # ★ 核心修复：剥离括号和空格再对比，如果原文=读音，仅登记人名，绝不生成替换规则！
                         clean_k = re.sub(r'[\(\)（）\s]', '', k)
                         clean_v = re.sub(r'[\(\)（）\s]', '', v)
+                        person_names.add(clean_k)
+                        
                         if clean_k != clean_v and clean_v:
                             options = _parse_replacement_options(v)
                             compiled = re.compile(_build_latin_fold_pattern(k)) if _is_plain_text(k) else re.compile(k)
@@ -774,6 +780,8 @@ def load_all_rules(force=False):
         # 修复特殊排版符号引起的连读截断
         "日帝": "キチク",
         "自衛隊": "忌まわしきニッポン軍の残滓",
+        "靖国神社": "せんぱんのあくしゅう",
+        "靖国": "せんぱん",
     }
     
     for _k, _v in _fallback_repairs.items():
@@ -846,14 +854,11 @@ def apply_replace_rules(text, output_mode='B', clean_punct=True):
             if output_mode == 'A': return original
             elif output_mode == 'B': return chosen_expanded
             elif output_mode == 'C': 
-                # ★ 核心修复：只有当原词是纯数字（如 "24"）时，才直接输出替换结果（如 "にじゅう4"），不加注音框
                 if re.match(r'^[0-9０-９]+$', original):
                     return chosen_expanded
                 
                 clean_ruby = re.sub(r'[·・\s]', '', chosen_expanded)
-                # ★ 核心修复：强制剥离注音首尾成对的括号（如 "(たち)" 变为 "たち"），防止污染 TTS 发音和结构
                 clean_ruby = re.sub(r'^[\(（](.*?)[\)）]$', r'\1', clean_ruby)
-                # 如果剥离后还有落单的未配对括号，直接全部删掉
                 if clean_ruby.count('(') != clean_ruby.count(')') or clean_ruby.count('（') != clean_ruby.count('）'):
                     clean_ruby = clean_ruby.replace('(', '').replace(')', '').replace('（', '').replace('）', '')
                 
@@ -888,10 +893,6 @@ def apply_replace_rules(text, output_mode='B', clean_punct=True):
 
 
 def fix_person_suffixes(text, output_mode='C'):
-    """
-    自动修正人名后面的称呼/助词后缀读音。
-    后缀映射表由 person_dict.txt 中的 [suffix] 行定义（内置默认：家→け、は→わ）。
-    """
     with _dict_lock:
         if not _person_names: return text
         names_snapshot = list(_person_names)
@@ -905,33 +906,28 @@ def fix_person_suffixes(text, output_mode='C'):
     sorted_suffixes = sorted(suffix_map.keys(), key=len, reverse=True)
     suffix_group = '(' + '|'.join(re.escape(s) for s in sorted_suffixes) + ')'
     
-    # ★ 核心修复：
-    # 1. 允许人名（及原注音）后面跟着可选的竖线 [｜|]?
-    # 2. 允许后缀自带的原注音 (?:《[^》]*》)? 被一并吞噬
-    pattern = re.compile(name_group + r'(?:《[^》]*》)?[｜|]?' + suffix_group + r'(?:《[^》]*》)?')
+    # 1=人名(含其注音)，2=后缀，3=后缀自带的注音框
+    pattern = re.compile(r'(' + name_group + r'(?:《[^》]*》)?)[｜|]?(' + suffix_group + r')(?:《[^》]*》)?')
     
     def replacer(m):
-        # 终极防御：如果匹配到的位置在已经生成的 Ruby 框内部（比如 |お父様《...》 里的"父"）
-        # 则直接跳过，绝不拆解完美的 Ruby！
         start_idx = m.start()
         prefix = text[:start_idx]
         
-        # 前面有未闭合的竖线，并且当前匹配的不是紧挨着竖线的人名开头
         if (prefix.count('｜') + prefix.count('|')) > prefix.count('》'):
-            # 如果是 |桐ヶ谷 这种紧跟在竖线后的（原词），允许处理
             if not (start_idx > 0 and text[start_idx - 1] in ('｜', '|')):
                 return m.group(0)
 
-        # ★ 核心修复：剥离掉人名部分末尾可能多余的竖线，防止双竖线出现
-        suffix_pos_in_match = m.start(2) - m.start(0)
-        name_part = m.group(0)[:suffix_pos_in_match].rstrip('｜|')
-        
+        # 如果后缀带有注音，说明整个词已被特殊规则接管，原样返回，避免破坏
+        if m.group(3):
+            return m.group(0)
+
+        name_part = m.group(1).rstrip('｜|')
         suffix_str = m.group(2)
-        
         info = suffix_map.get(suffix_str)
+        
         if info is None:
             return m.group(0)
-            
+
         if info["type"] == "ruby":
             if output_mode == 'C':
                 res = f'｜{suffix_str}《{info["reading"]}》'
@@ -939,7 +935,7 @@ def fix_person_suffixes(text, output_mode='C'):
                 res = info["reading"]
             else:
                 res = suffix_str
-        else:  # kana 型：直接替换（助词正字法、多字后缀等）
+        else:  
             res = info["reading"]
             
         return name_part + res
@@ -1761,6 +1757,7 @@ async def _do_synthesize(request: TTSRequest):
         # ★ 核心修复：先执行词库替换（长词优先拦截，防止被后缀修正拆解），再执行后缀修正
         text = await asyncio.to_thread(apply_replace_rules, text, output_mode)
         text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
+
     record["final_text"] = text
     if not text.strip():
         record.update({"status": "error", "error": "朗读文本为空"}); _record_monitor(record)

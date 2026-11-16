@@ -2256,7 +2256,7 @@ body.has-bg::before {
 		<tr><th>配置项</th><th>填写内容</th><th>说明</th></tr>
 		<tr><td>API 地址</td><td><code>http://127.0.0.1:8000</code></td><td>固定填这个。<br>注意：它完全兼容写成 <code>http://localhost:8000</code>，两者等价，填哪个都可以。</td></tr>
 		<tr><td>API Key</td><td>任意（如 <code>123456</code>）</td><td>无验证</td></tr>
-		<tr><td>模型 ID</td><td><code>auto</code>（推荐）</td><td>走「监控台 → 以此配置运行」保存的当前配置，最省事</td></tr>
+				<tr><td>模型 ID</td><td><code>auto</code>（推荐）</td><td>走「监控台 → 以此配置运行」保存的当前配置。该配置会持久化保存在 <code>global_config.json</code> 中，重启不丢失。</td></tr>
 	  </table>
 
 	  <div class="box-data">
@@ -2403,7 +2403,8 @@ body.has-bg::before {
 		<tr><td>B</td><td>只保留读音</td><td><code>｜漢字《かんじ》</code></td><td><code>かんじ</code></td></tr>
 		<tr><td>C（默认）</td><td>Ruby 注音框</td><td><code>｜漢字《かんじ》</code></td><td><code>｜漢字《かんじ》</code></td></tr>
 	  </table>
-	  <p>在「⚙️ 设置 → TTS 输出形式」中切换，会同步写入 <code>global_config.json</code>，实时生效。</p>
+	  <p>在「⚙️ 设置 → TTS 输出形式」中切换，会同步写入 <code>global_config.json</code>，实时生效。<br>
+	  （注：监控台的引擎、模型与语速配置同样会持久化保存在这个文件中，作为全局唯一基准。）</p>
 
 	  <div class="box-success" style="margin-top: 14px;">
 		<strong>✅ 日语 TTS 引擎推荐配置：</strong>
@@ -2487,7 +2488,8 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 		<li><b>配置预览 + 以此配置运行</b>：核对下方的 <code>model</code> 和 <code>speed</code> 是否正确。点击按钮后，会立即将当前设置保存为 <code>auto</code> 模型，并使用这段配置<b>合成一次上方输入的文本</b>，方便你马上听到效果。</li>
 	  </ul>
 	  <div class="box-tip">
-		<b>💡 auto 配置不持久化：</b>只存在内存里，重启进程后回到默认 <code>karin / alloy / 0.9</code>。想长期固定，请直接填具体模型名，或每次重启后重新点一次「以此配置运行」。
+		<b>💡 auto 配置持久化机制：</b>点击「以此配置运行」后，当前的语种、引擎、模型与语速会自动写入根目录下的 <code>global_config.json</code> 中。<br>
+		<b>重启 <code>tts.py</code> 进程或刷新前端页面后，系统会自动恢复上一次的选择</b>，不再需要重复配置。
 	  </div>
 
 	  <h4>④ 文本输入与合成</h4>
@@ -7273,18 +7275,20 @@ function normalizeRubyForExport(s) {
     const renderTag = (item, isSingle) => {
       const k = escapeHtml(item.k);
       const v = escapeHtml(item.v);
-      // ★ 核心修复：使用 input-bg 和 sunken-panel 制造内凹感
       const bg = isSingle 
         ? 'background:var(--input-bg); border:1px solid var(--border); color:var(--text-secondary);' 
         : 'background:var(--input-bg); border:1px solid var(--border-strong); color:var(--text);';
       
+      // ★ 核心修复：外层既然用了 Grid，内层统一使用 flex 撑满宽度并两端对齐
+      const flexStyle = 'display: flex; justify-content: space-between; width: 100%; box-sizing: border-box;';
+      
       return `
-        <div style="display:inline-flex; align-items:center; ${bg} padding:3px 8px; border-radius:4px; gap:6px; transition:0.15s; box-shadow:var(--sunken-panel);">
-          <span style="cursor:pointer;" onclick="navigator.clipboard.writeText('${k} => ${v}'); this.style.color='var(--primary)'; setTimeout(()=>this.style.color='', 300);" title="点击复制">
+        <div style="${flexStyle} align-items:center; ${bg} padding:3px 8px; border-radius:4px; gap:4px; transition:0.15s; box-shadow:var(--sunken-panel);">
+          <span style="cursor:pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" onclick="navigator.clipboard.writeText('${k} => ${v}'); this.style.color='var(--primary)'; setTimeout(()=>this.style.color='', 300);" title="点击复制：${k} => ${v}">
             ${k} <span style="font-size:11px; opacity:0.6;">=&gt;</span> ${v}
           </span>
           <span class="btn-delete-tag" 
-                style="cursor:pointer; color:var(--muted); font-weight:bold; font-size:11px; padding:0 4px; border-radius:2px; transition:0.15s;" 
+                style="cursor:pointer; color:var(--muted); font-weight:bold; font-size:11px; padding:0 4px; border-radius:2px; transition:0.15s; flex-shrink: 0;" 
                 onclick="window.__deleteAutoDictItem('${k}', '${v}', this)" 
                 title="点击两次确认删除">
             ✕
@@ -7294,18 +7298,18 @@ function normalizeRubyForExport(s) {
 
     // 渲染组词
     if (multiWords.length > 0) {
-      html += `<div style="border:1px dashed var(--border-strong); border-radius:6px; padding:10px; margin-bottom:12px; background:var(--panel-bg);">
-        <div style="font-weight:800; color:var(--primary-dark); margin-bottom:8px; font-size:12px;">🔤 组词 (需人工确认)</div>
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">`;
+      html += `<div style="margin-bottom:16px;">
+        <div style="font-weight:800; color:var(--primary-dark); margin-bottom:8px; font-size:12px; border-bottom:1px dashed var(--border-strong); padding-bottom:6px;">🔤 组词 (需人工确认)</div>
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">`;
       multiWords.forEach(item => { html += renderTag(item, false); });
       html += `</div></div>`;
     }
 
     // 渲染单字
     if (singleWords.length > 0) {
-      html += `<div style="border:1px dashed var(--border-strong); border-radius:6px; padding:10px; background:var(--panel-bg);">
-        <div style="font-weight:800; color:var(--muted); margin-bottom:8px; font-size:12px;">🔣 单字 (占位防抖，通常无需处理)</div>
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">`;
+      html += `<div style="margin-bottom:4px;">
+        <div style="font-weight:800; color:var(--muted); margin-bottom:8px; font-size:12px; border-bottom:1px dashed var(--border-strong); padding-bottom:6px;">🔣 单字 (占位防抖，通常无需处理)</div>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">`;
       singleWords.forEach(item => { html += renderTag(item, true); });
       html += `</div></div>`;
     }
@@ -7866,6 +7870,15 @@ function normalizeRubyForExport(s) {
             speed: speed
         })
       }).catch(e => console.warn("同步全局配置失败", e));
+
+      // ★ 核心修复：保存成功后，必须同步更新内存中的全局配置快照！
+      // 否则下方调用 fillModelSelect() 刷新 UI 时，会拿着上一次的旧数据把你刚选好的模型强行覆盖掉。
+      window.__savedGlobalConfig = {
+          lang: _currentLang,
+          engine: engine,
+          model: model,
+          speed: speed
+      };
 
       fillModelSelect();
       renderWindowsVoices();
