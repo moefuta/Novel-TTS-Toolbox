@@ -1595,6 +1595,17 @@ body.has-bg::before {
     transition: none;
   }
 
+  /* ★ 拖拽排序样式 */
+  .custom-option[draggable="true"] {
+    cursor: grab;
+  }
+  .custom-option.dragging {
+    opacity: 0.4;
+    background: var(--primary-light) !important;
+    border: 1px dashed var(--primary-dark);
+    cursor: grabbing;
+  }
+
   /* ============================================================
    * 监控台左下角快捷导航
    * ============================================================ */
@@ -1717,6 +1728,25 @@ body.has-bg::before {
   #autoDictListContent::-webkit-scrollbar,
   #monitorRecords::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
+  }
+
+  /* ★ 专用于清空分组的三段式动画 */
+  @keyframes shake-and-scale {
+    0%   { transform: scale(1) rotate(0deg); }
+    20%  { transform: scale(1.15) rotate(6deg); }
+    40%  { transform: scale(1.15) rotate(-6deg); }
+    60%  { transform: scale(1.15) rotate(6deg); }
+    80%  { transform: scale(1.15) rotate(-6deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  .btn-delete-group-warning {
+    color: #fff !important;
+    background: var(--danger) !important;
+    border-color: color-mix(in srgb, var(--danger) 70%, #000) !important;
+    animation: shake-and-scale 0.6s ease-in-out;
+    /* ★ 核心修复：以右侧为中心放大，向左伸展，防止右侧被切 */
+    transform-origin: right center; 
+    z-index: 10;
   }
 </style>
 </head>
@@ -3260,7 +3290,7 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 	<h2 style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
 	  🎛 TTS 监控台
 	  <span class="hint" id="monitorConn" style="font-weight:400">连接中…</span>
-	  <button class="btn ghost small" id="monitorReconnect" style="display:none">重新连接</button>
+	  <button class="btn ghost small" id="monitorReconnect" style="display: inline-flex;">重新连接</button>
 	  <button class="btn alert small" id="monitorDisconnect" style="display:none">断开连接</button>
 	</h2>
 
@@ -3318,145 +3348,168 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 		<!-- 2. 核心配置区（语种 + 引擎 + 预览 合并） -->
 		<div id="monitor-sec-engine" style="padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
 			
-			<!-- TTS 语种选择 -->
-			<div style="margin-bottom:16px;">
-				<div style="margin-bottom:10px;">
-					<span style="font-size:14px; font-weight:600; color:var(--text);">🌐 TTS引擎选择</span>
+			<!-- 头部 -->
+			<div style="display:flex; justify-content:space-between; align-items:center;"> 
+				<span style="font-size:14px; font-weight:600; color:var(--text);">🌐 TTS引擎选择</span>
+				<button class="btn ghost small" id="toggleEngineBtn" style="padding: 0 10px; height: 26px; line-height: 24px; box-sizing: border-box;">▼</button>
+			</div>
+
+			<!-- 折叠内容区 -->
+			<div id="engine-details-content" style="margin-top: 12px;">
+				<!-- TTS 语种选择 -->
+				<div style="margin-bottom:16px;">
+					<div style="margin-bottom:10px;">
+						<span style="font-size:13px; font-weight:600; color:var(--muted);">选择语种</span>
+					</div>
+					<div style="display:flex; gap:10px;">
+						<!-- 英语 -->
+						<button class="btn ghost lang-btn" data-lang="en" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.7));">
+								<defs><linearGradient id="gloss-en" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.4)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
+								<rect width="24" height="24" rx="4" fill="#3b82f6"/><rect width="24" height="24" rx="4" fill="url(#gloss-en)"/>
+								<path d="M12 5c-3.3 0-6 2.7-6 6 0 2.2 1.2 4.1 3 5.2v2.8h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.3-2.7-6-6-6z" fill="#fff"/>
+								<circle cx="9.5" cy="11" r="1.5" fill="#3b82f6"/><circle cx="14.5" cy="11" r="1.5" fill="#3b82f6"/>
+								<path d="M11 13.5h2l-1 1.5-1-1.5z" fill="#3b82f6"/><path d="M9 16.5h6v1H9z M12 16.5v1" stroke="#3b82f6" stroke-width="1"/>
+							</svg>英语
+						</button>
+						<!-- 漢语 -->
+						<button class="btn ghost lang-btn" data-lang="zh" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(255, 51, 51, 0.7));">
+								<defs><linearGradient id="gloss-zh" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.15)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
+								<rect width="24" height="24" rx="4" fill="#111111"/><rect width="24" height="24" rx="4" fill="url(#gloss-zh)"/>
+								<text x="12" y="18" font-size="16" font-weight="300" fill="#ff3333" text-anchor="middle" font-family="'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif">漢</text>
+							</svg>漢语
+						</button>
+						<!-- 日语 -->
+						<button class="btn ghost lang-btn" data-lang="ja" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.7));">
+								<defs><linearGradient id="gloss-ja" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.15)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
+								<rect width="24" height="24" rx="4" fill="#111111"/><rect width="24" height="24" rx="4" fill="url(#gloss-ja)"/>
+								<path d="M12 3C8.5 3 6.5 5 6.5 7.5C6.5 9 7.2 10.3 8.5 11H15.5C16.8 10.3 17.5 9 17.5 7.5C17.5 5 15.5 3 12 3Z" fill="#ff8c00"/>
+								<path d="M9.5 11H14.5L15.5 16.5H8.5L9.5 11Z" fill="#ff8c00"/><ellipse cx="12" cy="18" rx="7.5" ry="2.5" fill="#ff8c00"/>
+								<path d="M4.5 18L2 17.5L4 16.5" fill="#ff8c00"/><path d="M19.5 18L22 17.5L20 16.5" fill="#ff8c00"/>
+							</svg>日语
+						</button>
+					</div>
 				</div>
-				<div style="display:flex; gap:10px;">
-					<!-- 英语 -->
-					<button class="btn ghost lang-btn" data-lang="en" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
-						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.7));">
-							<defs><linearGradient id="gloss-en" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.4)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
-							<rect width="24" height="24" rx="4" fill="#3b82f6"/><rect width="24" height="24" rx="4" fill="url(#gloss-en)"/>
-							<path d="M12 5c-3.3 0-6 2.7-6 6 0 2.2 1.2 4.1 3 5.2v2.8h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.3-2.7-6-6-6z" fill="#fff"/>
-							<circle cx="9.5" cy="11" r="1.5" fill="#3b82f6"/><circle cx="14.5" cy="11" r="1.5" fill="#3b82f6"/>
-							<path d="M11 13.5h2l-1 1.5-1-1.5z" fill="#3b82f6"/><path d="M9 16.5h6v1H9z M12 16.5v1" stroke="#3b82f6" stroke-width="1"/>
-						</svg>英语
-					</button>
-					<!-- 漢语 -->
-					<button class="btn ghost lang-btn" data-lang="zh" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
-						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(255, 51, 51, 0.7));">
-							<defs><linearGradient id="gloss-zh" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.15)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
-							<rect width="24" height="24" rx="4" fill="#111111"/><rect width="24" height="24" rx="4" fill="url(#gloss-zh)"/>
-							<text x="12" y="18" font-size="16" font-weight="300" fill="#ff3333" text-anchor="middle" font-family="'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif">漢</text>
-						</svg>漢语
-					</button>
-					<!-- 日语 -->
-					<button class="btn ghost lang-btn" data-lang="ja" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
-						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.7));">
-							<defs><linearGradient id="gloss-ja" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.15)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
-							<rect width="24" height="24" rx="4" fill="#111111"/><rect width="24" height="24" rx="4" fill="url(#gloss-ja)"/>
-							<path d="M12 3C8.5 3 6.5 5 6.5 7.5C6.5 9 7.2 10.3 8.5 11H15.5C16.8 10.3 17.5 9 17.5 7.5C17.5 5 15.5 3 12 3Z" fill="#ff8c00"/>
-							<path d="M9.5 11H14.5L15.5 16.5H8.5L9.5 11Z" fill="#ff8c00"/><ellipse cx="12" cy="18" rx="7.5" ry="2.5" fill="#ff8c00"/>
-							<path d="M4.5 18L2 17.5L4 16.5" fill="#ff8c00"/><path d="M19.5 18L22 17.5L20 16.5" fill="#ff8c00"/>
-						</svg>日语
-					</button>
+
+				<div style="border-top: 1px dashed var(--border); margin-bottom: 12px;"></div>
+
+				<!-- 引擎设置 -->
+				<label class="monitor-lbl">引擎</label>
+				<select id="monitorEngine" class="monitor-input">
+					<option value="auto" disabled>auto（系统自动，见下方配置）</option>
+					<option value="cevio">CeVIO AI</option>
+					<option value="voicevox">VOICEVOX</option>
+					<option value="windows">Windows 讲述人</option>
+					<option value="edge">Edge TTS</option>
+				</select>
+
+				<div id="ttsNumWrap" style="display:none;margin-top:8px;">
+				  <label class="monitor-lbl" id="ttsNumLabel">Model ID（1–27）</label>
+				  <input id="monitorTtsNum" type="number" min="1" max="27" value="1" class="monitor-input">
 				</div>
-			</div>
-
-			<div style="border-top: 1px dashed var(--border); margin-bottom: 12px;"></div>
-
-			<!-- 引擎设置 -->
-			<label class="monitor-lbl">引擎</label>
-			<select id="monitorEngine" class="monitor-input">
-				<option value="auto" disabled>auto（系统自动，见下方配置）</option>
-				<option value="cevio">CeVIO AI</option>
-				<option value="voicevox">VOICEVOX</option>
-				<option value="windows">Windows 讲述人</option>
-				<option value="edge">Edge TTS</option>
-			</select>
-
-			<div id="ttsNumWrap" style="display:none;margin-top:8px;">
-			  <label class="monitor-lbl" id="ttsNumLabel">Model ID（1–27）</label>
-			  <input id="monitorTtsNum" type="number" min="1" max="27" value="1" class="monitor-input">
-			</div>
-			<div id="cevioModelWrap" style="display:none;margin-top:8px;">
-			  <label class="monitor-lbl">Model ID</label>
-			  <select id="monitorCevioModel" class="monitor-input"></select>
-			</div>
-			<div id="windowsModelWrap" style="display:none;margin-top:8px;">
-			  <label class="monitor-lbl">Windows 语音</label>
-			  <select id="monitorWindowsModel" class="monitor-input"><option value="">加载中...</option></select>
-			</div>
-			<div id="edgeModelWrap" style="display:none;margin-top:8px;">
-			  <label class="monitor-lbl">Edge 语音</label>
-			  <select id="monitorEdgeModel" class="monitor-input"><option value="">加载中...</option></select>
-			</div>
-			<div style="margin-top:8px;">
-			  <label class="monitor-lbl">Speed</label>
-			  <input id="monitorSpeed" type="number" step="0.05" min="0.5" max="2" value="0.9" class="monitor-input">
-			</div>
-
-			<!-- 配置预览区 -->
-			<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);">
-				<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-				  <span class="monitor-lbl" style="margin:0;flex:1;line-height:1.4;">配置预览</span>
-				  <button class="btn small" id="monitorAutoSave">以此配置运行</button>
+				<div id="cevioModelWrap" style="display:none;margin-top:8px;">
+				  <label class="monitor-lbl">Model ID</label>
+				  <select id="monitorCevioModel" class="monitor-input"></select>
 				</div>
-				<div id="monitorAutoInfo" style="margin-top:8px;font-size:12px;color:var(--text);font-family:ui-monospace,Consolas,monospace;background:var(--input-bg);padding:8px 10px;border-radius:6px;border:1px dashed var(--panel-border);">加载中…</div>
+				<div id="windowsModelWrap" style="display:none;margin-top:8px;">
+				  <label class="monitor-lbl">Windows 语音</label>
+				  <select id="monitorWindowsModel" class="monitor-input"><option value="">加载中...</option></select>
+				</div>
+				<div id="edgeModelWrap" style="display:none;margin-top:8px;">
+				  <label class="monitor-lbl">Edge 语音</label>
+				  <select id="monitorEdgeModel" class="monitor-input"><option value="">加载中...</option></select>
+				</div>
+				<div style="margin-top:8px;">
+				  <label class="monitor-lbl">Speed</label>
+				  <input id="monitorSpeed" type="number" step="0.05" min="0.5" max="2" value="0.9" class="monitor-input">
+				</div>
+
+				<!-- 配置预览区 -->
+				<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);">
+					<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+					  <span class="monitor-lbl" style="margin:0;flex:1;line-height:1.4;">配置预览</span>
+					  <button class="btn small" id="monitorAutoSave">以此配置运行</button>
+					</div>
+					<div id="monitorAutoInfo" style="margin-top:8px;font-size:12px;color:var(--text);font-family:ui-monospace,Consolas,monospace;background:var(--input-bg);padding:8px 10px;border-radius:6px;border:1px dashed var(--panel-border);">加载中…</div>
+				</div>
 			</div>
 		</div>
 
-		<!-- 3. CeVIO COM 情绪预设生成器（上移） -->
-		<div id="monitor-sec-cevio" style="margin-top:12px;padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
-			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+		<!-- 3. CeVIO COM 情绪预设生成器 -->
+		<div id="monitor-sec-cevio" style="position: relative; margin-top:12px;padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
+			
+			<!-- 头部：只保留标题和收起按钮 -->
+			<div style="display:flex;justify-content:space-between;align-items:center;">
 			  <span style="font-size:14px; font-weight:600; color:var(--text);">🎭 CeVIO 情感参数</span>
-			  <button class="btn ghost small" id="comSaveBtn">保存为模型</button>
+			  <button class="btn ghost small" id="toggleCevioBtn" style="padding: 0 10px; height: 26px; line-height: 24px; box-sizing: border-box;">▼</button>
 			</div>
-			<div>
-			  <label class="monitor-lbl" style="margin-top:6px;">基于角色 / 已存预设</label>
-			  <select id="comCastSelect" class="monitor-input" style="margin-bottom:8px;">
-				<option value="">加载角色中...</option>
-			  </select>
-			  <div id="comEmotionSliders" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
-				<!-- 滑块动态生成 -->
-			  </div>
-			  
-			  <div style="display:flex; gap:12px; margin-top:8px; align-items:center; justify-content:space-between;">
-				<div style="display:flex; align-items:center; gap:6px;">
-				  <label class="monitor-lbl" style="margin:0; white-space:nowrap;">语速</label>
-				  <input type="number" id="comSpeed" value="50" min="0" max="100" class="com-wheel-input" style="width:46px;" onwheel="adjustComWheel(event, this)" title="滚轮或输入数字调整">
+			
+			<!-- 折叠内容区 -->
+			<div id="cevio-details-content" style="margin-top: 12px;">
+				<div>
+				  <label class="monitor-lbl" style="margin-top:6px;">基于角色 / 已存预设</label>
+				  <select id="comCastSelect" class="monitor-input" style="margin-bottom:8px;">
+					<option value="">加载角色中...</option>
+				  </select>
+				  <div id="comEmotionSliders" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+					<!-- 滑块动态生成 -->
+				  </div>
+				  
+				  <!-- ★ 核心修改：底部控制栏，统一高度，把保存按钮移进来 -->
+				  <div style="display:flex; gap:10px; margin-top:8px; align-items:center; justify-content:space-between;">
+					<div style="display:flex; align-items:center; gap:6px;">
+					  <label class="monitor-lbl" style="margin:0; white-space:nowrap;">语速</label>
+					  <input type="number" id="comSpeed" value="50" min="0" max="100" class="com-wheel-input" style="width:46px; height:30px; box-sizing:border-box;" onwheel="adjustComWheel(event, this)" title="滚轮或输入数字调整">
+					</div>
+					<div style="display:flex; align-items:center; gap:6px;">
+					  <label class="monitor-lbl" style="margin:0; white-space:nowrap;">音调</label>
+					  <input type="number" id="comTone" value="50" min="0" max="100" class="com-wheel-input" style="width:46px; height:30px; box-sizing:border-box;" onwheel="adjustComWheel(event, this)" title="滚轮或输入数字调整">
+					</div>
+					
+					<div style="display:flex; gap:6px; flex:1; justify-content:flex-end;">
+					  <button class="btn small" id="comPreviewBtn" style="height:30px; padding:0 16px; justify-content:center; box-sizing:border-box;">试听</button>
+					  <button class="btn ghost small" id="comSaveBtn" style="height:30px; padding:0 12px; justify-content:center; box-sizing:border-box;">保存为模型</button>
+					</div>
+				  </div>
+				  
+				  <div id="comSaveWrap" style="display:none; margin-top:8px;">
+					<input type="text" id="comNewModelId" class="monitor-input" placeholder="输入模型ID (如: com-sasara-happy)" style="margin-bottom:6px;">
+					
+					<div style="display:flex; align-items:center; gap:6px;">
+					  <input type="text" id="comTargetFilename" class="monitor-input" placeholder="留空则存入 my_config" style="flex:1;">
+					  <span style="color:var(--muted); font-size:14px; font-weight:600; user-select:none;">.json</span>
+					</div>
+					
+					<button class="btn small" id="comDoSaveBtn" style="width:100%;margin-top:6px;">写入配置文件</button>
+				  </div>
 				</div>
-				<div style="display:flex; align-items:center; gap:6px;">
-				  <label class="monitor-lbl" style="margin:0; white-space:nowrap;">音调</label>
-				  <input type="number" id="comTone" value="50" min="0" max="100" class="com-wheel-input" style="width:46px;" onwheel="adjustComWheel(event, this)" title="滚轮或输入数字调整">
-				</div>
-				<div style="flex:1; text-align:right; min-width:60px;">
-				  <button class="btn small" id="comPreviewBtn" style="width:100%; height:28px; padding:0 12px; justify-content: center;">试听</button>
-				</div>
-			  </div>
-			  
-			  <div id="comSaveWrap" style="display:none; margin-top:8px;">
-				<input type="text" id="comNewModelId" class="monitor-input" placeholder="输入模型ID (如: com-sasara-happy)" style="margin-bottom:6px;">
-				
-				<!-- 新增的文件名输入及 .json 后缀 -->
-				<div style="display:flex; align-items:center; gap:6px;">
-				  <input type="text" id="comTargetFilename" class="monitor-input" placeholder="留空则存入 my_config" style="flex:1;">
-				  <span style="color:var(--muted); font-size:14px; font-weight:600; user-select:none;">.json</span>
-				</div>
-				
-				<button class="btn small" id="comDoSaveBtn" style="width:100%;margin-top:6px;">写入配置文件</button>
-			  </div>
 			</div>
 		</div>
 
-		<!-- 4. 前端文本测试（下移） -->
+		<!-- 4. 前端文本测试 -->
 		<div id="monitor-sec-test" style="margin-top:12px; padding:12px; border:1px dashed var(--panel-border); border-radius:8px; background:var(--card); margin-bottom:12px;">
-			<div style="margin-bottom:12px;">
+			
+			<!-- 头部 -->
+			<div style="display:flex; justify-content:space-between; align-items:center;">
 				<span style="font-size:14px; font-weight:600; color:var(--text);">📝 前端文本测试</span>
+				<button class="btn ghost small" id="toggleTestBtn" style="padding: 0 10px; height: 26px; line-height: 24px; box-sizing: border-box;">▼</button>
 			</div>
 
-			<label class="monitor-lbl">输入文本（支持 ruby 语法）</label>
-			<textarea id="monitorInput" placeholder="例：&#10;|漢字《かんじ》&#10;{漢字|かんじ}&#10;<ruby>漢字<rt>かんじ</rt></ruby>"></textarea>
+			<!-- 折叠内容区 -->
+			<div id="test-details-content" style="margin-top: 12px;">
+				<label class="monitor-lbl">输入文本（支持 ruby 语法）</label>
+				<textarea id="monitorInput" placeholder="例：&#10;|漢字《かんじ》&#10;{漢字|かんじ}&#10;<ruby>漢字<rt>かんじ</rt></ruby>"></textarea>
 
-			<label class="monitor-lbl" style="margin-top:12px">输出文本</label>
-			<textarea id="monitorPreviewBox" class="monitor-box" placeholder="—"></textarea>
+				<label class="monitor-lbl" style="margin-top:12px">输出文本</label>
+				<textarea id="monitorPreviewBox" class="monitor-box" placeholder="—"></textarea>
 
-			<div style="display:flex;gap:8px;margin-top:12px;">
-			  <button class="btn" id="monitorPreviewBtn" style="flex:1; justify-content: center;">预览</button>
-			  <button class="btn" id="monitorSynthBtn" style="flex:1; justify-content: center;">合成</button>
-			  <button class="btn ghost" id="monitorClearTestBtn" style="justify-content: center; padding: 0 16px;" title="清空输入与输出文本">🗑️ 清空</button>
+				<div style="display:flex;gap:8px;margin-top:12px;">
+				  <button class="btn" id="monitorPreviewBtn" style="flex:1; justify-content: center;">预览</button>
+				  <button class="btn" id="monitorSynthBtn" style="flex:1; justify-content: center;">合成</button>
+				  <button class="btn ghost" id="monitorClearTestBtn" style="justify-content: center; padding: 0 16px;" title="清空输入与输出文本">🗑️ 清空</button>
+				</div>
 			</div>
 		</div>
 
@@ -3584,10 +3637,10 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
   <button class="monitor-nav-item" data-target="monitor-sec-engine" title="TTS引擎选择">
     <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
   </button>
-  <button class="monitor-nav-item" data-target="monitor-sec-test" title="前端文本测试">
+  <button class="monitor-nav-item" data-target="monitor-sec-cevio" title="CeVIO情感参数">
     <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
   </button>
-  <button class="monitor-nav-item" data-target="monitor-sec-cevio" title="CeVIO情感参数">
+  <button class="monitor-nav-item" data-target="monitor-sec-test" title="前端文本测试">
     <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
   </button>
   <button class="monitor-nav-item" data-target="monitor-sec-rules" title="规则文件启用">
@@ -3609,6 +3662,36 @@ output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
 
     <!-- 内容区（你可以随时修改这里的内容） -->
     <div class="cl-content" style="padding: 20px; overflow-y: auto; font-size: 13.5px; line-height: 1.7; color: var(--text);">
+
+      <!-- v1.1.1 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.1.1</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>核心底层 BUG 修复：</b>
+            <ul style="margin: 4px 0; padding-left: 20px;">
+              <li><b>彻底修复人名与后缀冲突</b>：解决了配置了 <code>(お父様) => (おとうさま)</code> 却仍被强行拆解为 <code>お父</code> 和 <code>様</code> 的严重问题。</li>
+              <li><b>多字符后缀完美适配</b>：修复了类似 <code>[suffix] の下 => のもと</code> 无法匹配的问题。</li>
+              <li><b>修复预设加载失效</b>：修复了 <code>my_config.json</code> 里的 COM 预设无法正常载入下拉框的致命 BUG。</li>
+              <li><b>修复删除被打断</b>：加入了防打断锁，彻底解决后台历史记录（SSE）推送时导致“自动记忆登记”的删除计数被重置的问题。</li>
+              <li><b>重连机制补全</b>：修复了点击强制重连后，右侧历史记录面板不显示的问题。</li>
+            </ul>
+          </li>
+          <li><b>新增功能：</b>
+            <ul style="margin: 4px 0; padding-left: 20px;">
+              <li><b>单字读音自动合并</b>：<code>auto_dict.txt</code> 中单字若出现新的不同读音，会自动更新为 <code>A => a1|a2</code>。</li>
+              <li><b>分组三连击清空</b>：为“自动记忆登记”的【组词】和【单字】分类标题新增 <code>✕</code> 按钮。连续点击三次（伴随变红与旋转放大动画）即可一键清空该分组。</li>
+              <li><b>一键复制搜索词</b>：在监控台【规则文件启用】搜索出结果后，点击文件名【打开文件】时会自动将【搜索关键词】复制到剪贴板。</li>
+            </ul>
+          </li>
+          <li><b>UI/UX 体验优化：</b>
+            <ul style="margin: 4px 0; padding-left: 20px;">
+              <li><b>折叠与展开</b>：为【TTS引擎选择】、【CeVIO情感参数】、【前端文本测试】添加了折叠功能，右上角按钮收起时突起，展开时内凹。</li>
+              <li><b>导航智能联动</b>：点击左下角快捷导航图标时，若目标区块为收起状态，会自动展开并平滑滚动过去。</li>
+              <li><b>常驻重连按钮</b>：监控台右上角的【重新连接】改为常驻，随时可点击强制刷新连接。</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
 
       <!-- v1.1.0 -->
       <div class="cl-item" style="margin-bottom: 24px;">
@@ -7042,28 +7125,28 @@ function normalizeRubyForExport(s) {
   }
   
   function setConn(text, color) {
-    const el = $('monitorConn'); el.textContent = text; el.style.color = color || 'var(--muted)';
+    const el = $('monitorConn'); 
+    if (el) {
+      el.textContent = text; 
+      el.style.color = color || 'var(--muted)';
+    }
+    
     const btnRe = $('monitorReconnect');
     const btnDis = $('monitorDisconnect');
     if (!btnRe || !btnDis) return;
     
+    // ★ 永远强制显示
+    btnRe.style.display = 'inline-flex';
+    
     if (text.includes('已连接')) {
-      btnRe.style.display = '';
-      btnRe.innerText = '刷新连接';
-      btnDis.style.display = '';
-    } else if (text.includes('未连接') || text.includes('断线') || text.includes('已手动断开')) {
-      btnRe.style.display = '';
-      btnRe.innerText = '重新连接';
-      btnDis.style.display = 'none';
-    } else if (text.includes('连接中')) {
-      btnRe.style.display = 'none';
+      btnDis.style.display = 'inline-flex';
+    } else {
       btnDis.style.display = 'none';
     }
   }
 
   async function connect() {
     setConn('连接中…', 'var(--muted)');
-    $('monitorReconnect').style.display = 'none';
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -7134,11 +7217,16 @@ function normalizeRubyForExport(s) {
       refreshAutoDictCount();
       $('monitorWrap').style.display = '';
       retryCount = 0;
-      if (!inited) { inited = true; bootstrap(); }
+      if (!inited) { 
+        inited = true; 
+        bootstrap(); 
+      } else {
+        // ★ 核心修复：如果已经初始化过，说明是重连，强制重建历史记录（SSE）通道
+        connectSSE();
+      }
     } catch (e) {
       setConn('✗ 未连接（请先启动 tts.py）', '#dc2626');
       $('monitorWrap').style.display = 'none';
-      $('monitorReconnect').style.display = '';
       
       // ★ 核心修改：限制重试次数，并向用户展示当前进度
       if (retryCount < MAX_RETRY) {
@@ -7192,6 +7280,45 @@ function normalizeRubyForExport(s) {
     });
   }
 
+  // ★ 收起/展开 功能
+  document.addEventListener('DOMContentLoaded', () => {
+    const setupToggle = (btnId, contentId) => {
+      const btn = $(btnId);
+      const content = $(contentId);
+      if (!btn || !content) return;
+      
+      // ★ 核心修复：初始化时，强行同步一次按钮状态
+      // 如果 HTML 默认是展开的（display 不是 none），立刻给它上内凹样式
+      if (content.style.display !== 'none') {
+        btn.textContent = '▼';
+        btn.classList.remove('ghost');
+        btn.classList.add('active');
+      } else {
+        btn.textContent = '▶';
+        btn.classList.add('ghost');
+        btn.classList.remove('active');
+      }
+
+      btn.addEventListener('click', () => {
+        if (content.style.display === 'none') {
+          content.style.display = 'block';
+          btn.textContent = '▼';
+          btn.classList.remove('ghost'); // 去掉空心，变成实心主色
+          btn.classList.add('active');   // 加上激活，产生内凹阴影
+        } else {
+          content.style.display = 'none';
+          btn.textContent = '▶';
+          btn.classList.add('ghost');    // 恢复空心
+          btn.classList.remove('active');// 去掉激活，恢复突起
+        }
+      });
+    };
+    
+    setupToggle('toggleEngineBtn', 'engine-details-content');
+    setupToggle('toggleCevioBtn', 'cevio-details-content');
+    setupToggle('toggleTestBtn', 'test-details-content');
+  });
+
   function bootstrap() {
     $('monitorEngine').addEventListener('change', () => {
       updateEngineVisibility();
@@ -7244,7 +7371,11 @@ function normalizeRubyForExport(s) {
         // ★ 如果详情面板是打开的，实时刷新内容
         const detailBox = $('autoDictDetails');
         if (detailBox && detailBox.style.display !== 'none') {
-          renderAutoDictDetails();
+          // ★ 核心修复：检查当前是否有按钮处于“待确认删除”状态，如果有，则暂停本次重绘，防止打断用户操作
+          const hasPendingConfirm = detailBox.querySelector('.btn-delete-tag[data-confirm="true"]');
+          if (!hasPendingConfirm) {
+            renderAutoDictDetails();
+          }
         }
       }
     } catch(e) {}
@@ -7299,7 +7430,10 @@ function normalizeRubyForExport(s) {
     // 渲染组词
     if (multiWords.length > 0) {
       html += `<div style="margin-bottom:16px;">
-        <div style="font-weight:800; color:var(--primary-dark); margin-bottom:8px; font-size:12px; border-bottom:1px dashed var(--border-strong); padding-bottom:6px;">🔤 组词 (需人工确认)</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800; color:var(--primary-dark); margin-bottom:8px; font-size:12px; border-bottom:1px dashed var(--border-strong); padding: 4px 0 6px 0;">
+          <span>🔤 组词 (需人工确认)</span>
+          <span class="btn-delete-group" data-group="word" style="position: relative; z-index: 1; cursor:pointer; color:var(--muted); font-size:14px; padding:2px 8px; border-radius:4px; border:1px solid transparent; transition:0.15s;" title="连续点击三次清空该分组">✕</span>
+        </div>
         <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">`;
       multiWords.forEach(item => { html += renderTag(item, false); });
       html += `</div></div>`;
@@ -7308,13 +7442,75 @@ function normalizeRubyForExport(s) {
     // 渲染单字
     if (singleWords.length > 0) {
       html += `<div style="margin-bottom:4px;">
-        <div style="font-weight:800; color:var(--muted); margin-bottom:8px; font-size:12px; border-bottom:1px dashed var(--border-strong); padding-bottom:6px;">🔣 单字 (占位防抖，通常无需处理)</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800; color:var(--muted); margin-bottom:8px; font-size:12px; border-bottom:1px dashed var(--border-strong); padding: 4px 0 6px 0;">
+          <span>🔣 单字 (占位防抖，通常无需处理)</span>
+          <span class="btn-delete-group" data-group="single" style="position: relative; z-index: 1; cursor:pointer; color:var(--muted); font-size:14px; padding:2px 8px; border-radius:4px; border:1px solid transparent; transition:0.15s;" title="连续点击三次清空该分组">✕</span>
+        </div>
         <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">`;
       singleWords.forEach(item => { html += renderTag(item, true); });
       html += `</div></div>`;
     }
 
     contentBox.innerHTML = html;
+
+    // ★ 核心：绑定组词的“三连击毁灭”逻辑
+    contentBox.querySelectorAll('.btn-delete-group').forEach(btn => {
+      let clickCount = 0;
+      let resetTimer = null;
+
+      btn.addEventListener('click', async function() {
+        clickCount++;
+        clearTimeout(resetTimer);
+
+        if (clickCount === 1) {
+          // 第一次：变红
+          this.style.color = '#fff';
+          this.style.background = 'var(--danger)';
+          this.style.borderColor = 'color-mix(in srgb, var(--danger) 70%, #000)';
+          this.title = '警告！再次点击触发最终确认';
+          resetTimer = setTimeout(() => resetState(this), 3000);
+        } else if (clickCount === 2) {
+          // 第二次：物理暴击动画
+          this.classList.add('btn-delete-group-warning');
+          this.title = '危险！再点一次将彻底清空所有组词！';
+          setTimeout(() => this.classList.remove('btn-delete-group-warning'), 600);
+          resetTimer = setTimeout(() => resetState(this), 3000);
+        } else if (clickCount === 3) {
+          // 第三次：执行毁灭
+          resetState(this); // 立刻重置样式
+          const group = this.dataset.group;
+          
+          try {
+            this.innerHTML = '⏳';
+            const r = await fetch(API_BASE + '/v1/auto_dict/delete_group', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ group: group })
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.detail || '清空失败');
+            
+            // 刷新面板数据
+            await refreshAutoDictCount();
+            
+          } catch (e) {
+            alert('清空分组失败：' + e.message);
+            this.innerHTML = '✕';
+          }
+        }
+      });
+
+      function resetState(el) {
+        clickCount = 0;
+        clearTimeout(resetTimer);
+        el.style.color = 'var(--muted)';
+        el.style.background = 'transparent';
+        el.style.borderColor = 'transparent';
+        el.classList.remove('btn-delete-group-warning');
+        el.title = '连续点击三次清空该分组';
+        if (el.innerHTML === '⏳') el.innerHTML = '✕';
+      }
+    });
   }
 
   // ★ 处理删除逻辑（二次点击确认）
@@ -7335,6 +7531,8 @@ function normalizeRubyForExport(s) {
           el.style.background = 'transparent';
           el.style.fontWeight = 'bold';
           el.title = '点击两次确认删除';
+          // ★ 核心修复：3秒后如果没点，强制重绘一次面板，把之前可能积压的后台新数据刷出来
+          renderAutoDictDetails();
         }
       }, 3000);
       return;
@@ -7440,6 +7638,34 @@ function normalizeRubyForExport(s) {
       model = <span style="color:var(--primary-dark);font-weight:bold;">${model || '-'}</span><br>
       speed = <span style="color:var(--primary-dark);font-weight:bold;">${speed}</span>
     `;
+  }
+
+  // ★ 恢复下拉框的自定义排序
+  function applyCustomSort(selectEl) {
+    const saved = localStorage.getItem(`sort_${selectEl.id}`);
+    if (!saved) return;
+    try {
+      const newOrder = JSON.parse(saved);
+      const options = Array.from(selectEl.options);
+      const groups = Array.from(selectEl.querySelectorAll('optgroup'));
+      
+      if (groups.length > 0) {
+        groups.forEach(g => {
+          const groupVals = Array.from(g.options).map(o => o.value);
+          newOrder.forEach(val => {
+            if (groupVals.includes(val)) {
+              const opt = options.find(o => o.value === val);
+              if (opt) g.appendChild(opt);
+            }
+          });
+        });
+      } else {
+        newOrder.forEach(val => {
+          const opt = options.find(o => o.value === val);
+          if (opt) selectEl.appendChild(opt);
+        });
+      }
+    } catch (e) {}
   }
 
   function fillModelSelect() {
@@ -7552,6 +7778,7 @@ function normalizeRubyForExport(s) {
 
     updateEngineVisibility();
     updateAutoConfigPreview();
+    applyCustomSort($('monitorCevioModel'));
     if (typeof syncComPanelFromTop === 'function') syncComPanelFromTop();
   }
 
@@ -7639,6 +7866,7 @@ function normalizeRubyForExport(s) {
         o.value = v; o.textContent = v; sel.appendChild(o);
       });
     }
+    applyCustomSort(sel);
     updateAutoConfigPreview();
   }
 
@@ -7677,6 +7905,7 @@ function normalizeRubyForExport(s) {
         sel.appendChild(o);
       });
     }
+    applyCustomSort(sel);
     updateAutoConfigPreview();
   }
 
@@ -8141,8 +8370,6 @@ function normalizeRubyForExport(s) {
     };
     _sseConnection.onmessage = ev => {
       setConn('✓ 已连接 · ' + API_BASE, '#1a9e5c');
-      const btn = $('monitorReconnect');
-      if (btn) btn.style.display = 'none';
 
       let data; try { data = JSON.parse(ev.data); } catch(_) { return; }
       refreshAutoDictCount();
@@ -8189,14 +8416,14 @@ function normalizeRubyForExport(s) {
     document.querySelectorAll('#monitorRecords .sentence.active').forEach(el => el.classList.remove('active'));
   });
   $('monitorReconnect').addEventListener('click', () => { 
-    retryCount = 0; // ★ 核心：用户手动点击时，重置自动尝试次数
-    setConn('手动重新连接中…', 'var(--muted)');
-    connect().then(() => {
-      // connect() 成功后会自动去连 SSE，这里作为兜底
-      if (inited && _sseConnection && _sseConnection.readyState === 2) {
-        connectSSE();
-      }
-    });
+    retryCount = 0; 
+    setConn('✗ 正在强制刷新连接...', 'var(--warn)');
+    
+    // 视觉反馈：强制清空当前面板
+    $('monitorWrap').style.display = 'none';
+    
+    // 直接发起连接
+    connect(); 
   });
 
   // ★ 主动断开连接按钮
@@ -8267,6 +8494,20 @@ function normalizeRubyForExport(s) {
     }
   };
 
+  // ★ 复制搜索关键词并打开文件
+  window.copyAndOpenRuleFile = async function(filename) {
+    const keyword = $('ruleSearchInput').value.trim();
+    if (keyword && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(keyword);
+        // 可选：如果你有全局的 toast 提示，可以在这里调用，比如 showCopyToast(...)
+      } catch (e) {
+        console.warn("复制搜索词失败:", e);
+      }
+    }
+    window.openRuleFile(filename);
+  };
+
   $('ruleSearchBtn').addEventListener('click', async () => {
     const keyword = $('ruleSearchInput').value.trim();
     const mode = $('ruleSearchMode').value; // 'all', 'base', 'ruby'
@@ -8323,7 +8564,7 @@ function normalizeRubyForExport(s) {
         return `
         <div style="margin-bottom:8px; padding:8px; background:var(--panel-bg); border-radius:6px; border:1px dashed var(--panel-border); line-height:1.5;">
           <div style="margin-bottom:4px; font-weight:600; cursor:pointer; text-decoration:underline; text-decoration-color:transparent; transition:0.15s; ${colorStyle}"
-               onclick="window.openRuleFile('${escapeHtml(m.file)}')"
+               onclick="window.copyAndOpenRuleFile('${escapeHtml(m.file)}')"
                onmouseover="this.style.textDecorationColor='var(--primary)';"
                onmouseout="this.style.textDecorationColor='transparent';"
                title="点击直接用系统默认程序打开">
@@ -8639,10 +8880,19 @@ function normalizeRubyForExport(s) {
   document.addEventListener('DOMContentLoaded', () => {
     $('comCastSelect').addEventListener('change', loadComEmotions);
     $('comPreviewBtn').addEventListener('click', previewCom);
+    
+    // ★ 核心修改：点击保存为模型时，如果已经展开则收起，反之展开并滚动到可见位置
     $('comSaveBtn').addEventListener('click', () => {
       const w = $('comSaveWrap');
-      w.style.display = w.style.display === 'none' ? 'block' : 'none';
+      if (w.style.display === 'none' || w.style.display === '') {
+        w.style.display = 'block';
+        // 自动滚动到底部，防止按钮被遮挡
+        setTimeout(() => w.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+      } else {
+        w.style.display = 'none';
+      }
     });
+    
     $('comDoSaveBtn').addEventListener('click', doSaveCom);
   });
 
@@ -8778,9 +9028,22 @@ function normalizeRubyForExport(s) {
     activeSelect = null;
   }
 
+  // 获取鼠标悬停位置所在的元素（用于拖拽）
+  function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.custom-option:not(.dragging)')];
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
   // 创建选项节点
   function createOptionItem(opt, selectEl) {
-    // ★ 如果选项被隐藏，则不渲染到自定义菜单中
     if (opt.hidden || opt.style.display === 'none') return null; 
 
     const div = document.createElement('div');
@@ -8789,17 +9052,54 @@ function normalizeRubyForExport(s) {
     if (opt.disabled) div.classList.add('disabled');
     
     div.textContent = opt.textContent;
+    div.dataset.value = opt.value;
+
+    // ★ 新增：长按拖拽排序功能
+    if (['monitorCevioModel', 'monitorWindowsModel', 'monitorEdgeModel'].includes(selectEl.id)) {
+      div.draggable = true;
+      
+      div.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => div.classList.add('dragging'), 0);
+        popupEl._draggedItem = div;
+      });
+
+      div.addEventListener('dragend', () => {
+        div.classList.remove('dragging');
+        popupEl._draggedItem = null;
+        
+        // 拖拽结束，将最新的顺序同步回原生的 select 并保存到 localStorage
+        const newOrder = Array.from(popupEl.querySelectorAll('.custom-option')).map(el => el.dataset.value);
+        localStorage.setItem(`sort_${selectEl.id}`, JSON.stringify(newOrder));
+
+        // 重排原生 select 的选项
+        const options = Array.from(selectEl.options);
+        const groups = Array.from(selectEl.querySelectorAll('optgroup'));
+        if (groups.length > 0) {
+           groups.forEach(g => {
+               const groupVals = Array.from(g.options).map(o => o.value);
+               newOrder.forEach(val => {
+                 if (groupVals.includes(val)) {
+                   const opt = options.find(o => o.value === val);
+                   if (opt) g.appendChild(opt);
+                 }
+               });
+           });
+        } else {
+           newOrder.forEach(val => {
+             const opt = options.find(o => o.value === val);
+             if (opt) selectEl.appendChild(opt);
+           });
+        }
+        
+        if (typeof updateAutoConfigPreview === 'function') updateAutoConfigPreview();
+      });
+    }
 
     div.addEventListener('mousedown', (e) => {
-      e.preventDefault(); // 阻止默认的失焦和点击行为
-      e.stopPropagation();
-      if (opt.disabled) return;
-      
-      // 同步值并触发原生的 change 事件
-      selectEl.value = opt.value;
-      selectEl.dispatchEvent(new Event('change', { bubbles: true }));
-      
-      closePopup();
+      if (popupEl && popupEl._draggedItem) return;
+      e.preventDefault(); e.stopPropagation(); if (opt.disabled) return;
+      selectEl.value = opt.value; selectEl.dispatchEvent(new Event('change', { bubbles: true })); closePopup();
     });
     return div;
   }
@@ -8812,18 +9112,15 @@ function normalizeRubyForExport(s) {
     popupEl = document.createElement('div');
     popupEl.className = 'custom-select-popup';
 
-    // 遍历选项（包含 optgroup）
     const list = selectEl.children;
     for (let i = 0; i < list.length; i++) {
       const child = list[i];
       if (child.tagName === 'OPTGROUP') {
-        // 收集可见的子项
         const visibleItems = [];
         for (let j = 0; j < child.children.length; j++) {
           const item = createOptionItem(child.children[j], selectEl);
           if (item) visibleItems.push(item);
         }
-        // 如果分组下有可见项，才渲染分组名
         if (visibleItems.length > 0) {
           const groupLabel = document.createElement('div');
           groupLabel.className = 'custom-optgroup';
@@ -8837,7 +9134,19 @@ function normalizeRubyForExport(s) {
       }
     }
 
-    // 先隐藏挂载以测量真实高度（防止出现闪烁）
+    // ★ 核心新增：在弹窗上监听 dragover 事件，实现实时位置交换
+    popupEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (!popupEl._draggedItem) return;
+      
+      const afterElement = getDragAfterElement(popupEl, e.clientY);
+      if (afterElement == null) {
+        popupEl.appendChild(popupEl._draggedItem);
+      } else {
+        popupEl.insertBefore(popupEl._draggedItem, afterElement);
+      }
+    });
+
     popupEl.style.visibility = 'hidden';
     document.body.appendChild(popupEl);
     
@@ -8849,7 +9158,6 @@ function normalizeRubyForExport(s) {
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
     
-    // 智能计算：如果下方空间不足，且上方空间比下方大，则往上弹
     if (spaceBelow < popupHeight + 10 && spaceAbove > spaceBelow) {
       popupEl.style.maxHeight = Math.max(100, spaceAbove - 15) + 'px';
       popupEl.style.top = (rect.top - Math.min(popupHeight, spaceAbove - 10) - 4) + 'px';
@@ -8861,28 +9169,22 @@ function normalizeRubyForExport(s) {
     popupEl.style.visibility = 'visible';
   }
 
-  // 拦截所有 select 的 mousedown 事件
   document.addEventListener('mousedown', (e) => {
     const selectEl = e.target.closest('select');
-    
     if (selectEl) {
-      e.preventDefault(); // 核心：阻止系统原生下拉框弹出
-      
-      // 如果点的正是当前打开的框，则关闭
+      e.preventDefault(); 
       if (activeSelect === selectEl && popupEl) {
         closePopup();
       } else {
         showPopup(selectEl);
       }
     } else {
-      // 点击了外部区域，关闭弹窗
       if (popupEl && !popupEl.contains(e.target)) {
         closePopup();
       }
     }
   });
 
-  // ★ 修复滚动逻辑：如果是滚动弹窗内部，不关闭；滚动外部页面，才关闭
   window.addEventListener('scroll', (e) => {
     if (popupEl && popupEl.contains(e.target)) return;
     closePopup();
@@ -9622,14 +9924,43 @@ function normalizeRubyForExport(s) {
   const buttons = navBar.querySelectorAll('.monitor-nav-item');
   const sections = Array.from(buttons).map(btn => document.getElementById(btn.dataset.target)).filter(Boolean);
 
-  // 1. 点击平滑滚动
+  // 1. 点击平滑滚动 + 强力展开
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
       const targetId = btn.dataset.target;
       const targetEl = document.getElementById(targetId);
       if (targetEl) {
-        const y = targetEl.getBoundingClientRect().top + window.scrollY - 80;
-        window.scrollTo({ top: y, behavior: 'smooth' });
+        // ★ 核心修复：加入自动记忆登记，并做差异化处理
+        const toggleMap = {
+          'monitor-sec-autodict': { btnId: 'btnToggleAutoDict', contentId: 'autoDictDetails', isAutoDict: true },
+          'monitor-sec-engine': { btnId: 'toggleEngineBtn', contentId: 'engine-details-content', isAutoDict: false },
+          'monitor-sec-cevio':  { btnId: 'toggleCevioBtn', contentId: 'cevio-details-content', isAutoDict: false },
+          'monitor-sec-test':   { btnId: 'toggleTestBtn', contentId: 'test-details-content', isAutoDict: false }
+        };
+        
+        const map = toggleMap[targetId];
+        if (map) {
+          const contentEl = document.getElementById(map.contentId);
+          const toggleBtn = document.getElementById(map.btnId);
+          if (contentEl && toggleBtn && contentEl.style.display === 'none') {
+            if (map.isAutoDict) {
+              // 如果是自动记忆登记，必须模拟点击
+              toggleBtn.click();
+            } else {
+              // 其他的面板直接改 display
+              contentEl.style.display = 'block';
+              toggleBtn.textContent = '▼';
+              toggleBtn.classList.remove('ghost'); // ★ 去掉空心
+              toggleBtn.classList.add('active');   // ★ 变成实心凹陷状态
+            }
+          }
+        }
+
+        // 执行平滑滚动（延迟 50ms 等待 DOM 重排，保证滚动位置精准）
+        setTimeout(() => {
+          const y = targetEl.getBoundingClientRect().top + window.scrollY - 80;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }, 50);
       }
     });
   });
