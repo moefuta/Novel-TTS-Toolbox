@@ -5,7 +5,7 @@
 
 # Novel-TTS-Toolbox
 一个为日语（屎山代码）小说打造的 TTS 前端工具箱。当然，也可以用来读汉语或英语。
-使用说明已经内置于 All in one toolbox.html，请下载HTML打开查看
+使用说明已经内置于工具箱中，请下载 launcher.html 打开查看
 
 日文里有非常多的小字，比如说｜凝視《ぎょうし》，但是epub的ruby标注通常是这样的<ruby>凝<rt>ぎよう</rt>視<rt>し</rt></ruby>。亦即，因为注音本身已经很小了，他不能再进一步缩小否则看不清了，所以Ruby注音便不再区分大字小字。
 
@@ -17,7 +17,8 @@
 # 运行须下载的文件
 ```
 📂Novel TTS/                	# 文件目录请自行建立
-├── 📝 all in one toolbox.html    	# 前端工具箱
+├── 📝 launcher.html              	# 前端启动器
+├── 📁 html_resources/            	# 前端资源目录（各功能模块 + 共享资源）
 ├── 📝 License.txt                	# 许可证
 ├── 📦 replace_rule.7z.backup     	# 开发者的规则参考包（仅供参考，不具备普适性）
 ├── 📝 run tts.bat                	# 启动脚本（请保存为 ANSI 编码）
@@ -63,7 +64,8 @@
 ├── 📝 model_config_active.json   	# 当前生效的模型配置文件名（运行后生成）
 ├── 📝 rules_enabled.json         	# 规则文件启用状态（运行后生成）
 │
-├── 📝 all in one toolbox.html    	# 前端工具箱
+├── 📝 launcher.html              	# 前端启动器
+├── 📁 html_resources/            	# 前端资源目录（各功能模块 + 共享资源）
 ├── 📝 License.txt                	# 许可证
 ├── 📦 replace_rule.7z.backup     	# 开发者的规则参考包（仅供参考，不具备普适性）
 ├── 📝 run tts.bat                	# 启动脚本（请保存为 ANSI 编码）
