@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 >nul
+title TTS 服务运行中
 :run_tts_service
 echo.
 echo ============================================
@@ -12,3 +13,12 @@ echo ============================================
 echo.
 
 py tts.py
+set "EXITCODE=%ERRORLEVEL%"
+
+echo.
+echo ============================================
+echo   服务已停止，退出码: %EXITCODE%
+if not "%EXITCODE%"=="0" echo   ^(非 0 表示启动失败，请复制上方报错内容^)
+echo ============================================
+echo.
+pause

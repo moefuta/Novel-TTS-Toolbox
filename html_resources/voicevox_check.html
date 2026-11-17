@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>音色速查 · Novel TTS 工具箱</title>
+<link rel="stylesheet" href="toolbox.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+	<h1>Novel TTS 工具箱</h1>
+	<button class="settings-btn" id="btnOpenSettings" title="全局设置">⚙️</button>
+  </header>
+  <!-- 设置抽屉 -->
+  <div class="settings-drawer" id="settingsDrawer">
+	<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+	  <h2 style="margin:0;font-size:18px;">⚙️ 全局设置</h2>
+	  <button id="btnCloseSettings" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✖</button>
+	</div>
+	
+	<h3 style="font-size:14px;color:var(--muted);margin-bottom:10px;">外观模式</h3>
+	<div class="theme-toggle-wrapper">
+	  <div class="theme-toggle-label" id="themeLabelGroup" style="gap: 6px;">
+		<span id="themeLabelLight" style="font-weight: 600; color: var(--muted); transition: all .2s; cursor: pointer;" onclick="document.getElementById('themeToggle').click()">☀️ 浅色</span>
+		<span style="color: var(--border-strong); font-size: 12px;">/</span>
+		<span id="themeLabelDark" style="font-weight: 600; color: var(--muted); transition: all .2s; cursor: pointer;" onclick="document.getElementById('themeToggle').click()">🌙 深色</span>
+	  </div>
+	  <label class="switch">
+		<input type="checkbox" id="themeToggle">
+		<span class="slider"></span>
+	  </label>
+	</div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">主题色</h3>
+	<div id="themeColors" class="theme-grid"></div>
+	<div class="custom-color-row" id="customColorRow">
+	  <input type="color" id="customColorPicker" value="#4f6ef7" title="选择自定义主题色">
+	  <input type="text" id="customColorHex" placeholder="#4f6ef7" maxlength="7" spellcheck="false" autocomplete="off" title="输入十六进制色值，例如 #4f6ef7">
+	  <button class="btn small" id="customColorApplyBtn">应用</button>
+	</div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">界面字体</h3>
+	<div id="fontList"></div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">TTS 输出形式</h3>
+	<div class="output-format-group" id="outputFormatGroup">
+	  <button class="btn ghost" data-fmt="A">A. 纯汉字</button>
+	  <button class="btn ghost" data-fmt="B">B. 纯注音</button>
+	  <button class="btn ghost active" data-fmt="C">C. Ruby输出</button>
+	</div>
+	<div class="hint" style="margin-bottom:6px;font-size:12px;">示例效果：</div>
+	<pre id="outputSampleBox" style="background:var(--panel-bg);border:1px dashed var(--panel-border);border-radius:6px;padding:10px;font-size:12px;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap;margin:0;color:var(--text);">加载中...</pre>
+
+<!-- 背景图像移到最下面 -->
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">背景图像</h3>
+	<div class="bg-image-panel" style="margin-bottom: 20px;">
+	  <div class="bg-input-row">
+		<span class="bg-path-prefix" id="btnOpenBgFolder" title="点击打开 bg 文件夹" style="cursor: pointer; transition: all .2s ease;">
+		  📂 bg/
+		</span>
+		<input type="text" id="bgFilename" class="bg-filename-input" placeholder="例如: bg02" spellcheck="false">
+		<span id="bgExtDisplay" class="bg-ext-display"></span>
+	  </div>
+	  <div style="display:flex;gap:8px;margin-top:8px;">
+		<button class="btn small" id="bgApplyBtn" style="flex:1;">应用</button>
+		<button class="btn ghost small" id="bgTestBtn" style="flex:1;">检测文件</button>
+		<button class="btn ghost small" id="bgClearBtn" style="flex:1;">清除</button>
+	  </div>
+	  <div id="bgStatus" class="hint" style="font-size:12px;margin-top:8px;min-height:16px;line-height:1.5;"></div>
+	  
+	  <div class="bg-slider-row">
+		<label>透明度</label>
+		<input type="range" id="bgOpacity" min="0" max="100" value="75">
+		<span id="bgOpacityVal">75%</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label>模糊度</label>
+		<input type="range" id="bgBlur" min="0" max="20" value="2">
+		<span id="bgBlurVal">2px</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label>背景暗化</label>
+		<input type="range" id="bgDim" min="0" max="100" value="20">
+		<span id="bgDimVal">20%</span>
+	  </div>
+
+	  <!-- 面板透明度与毛玻璃 -->
+	  <div style="border-top: 1px dashed var(--border); margin: 14px 0 10px;"></div>
+	  <div class="bg-slider-row">
+		<label title="调整面板/卡片的背景透明度">面板透明度</label>
+		<input type="range" id="uiOpacity" min="10" max="100" value="75">
+		<span id="uiOpacityVal">75%</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label title="调整面板/卡片的毛玻璃模糊半径">面板模糊</label>
+		<input type="range" id="uiBlur" min="0" max="30" value="6">
+		<span id="uiBlurVal">6px</span>
+	  </div>
+	</div>
+  </div>
+  <section class="pane active" id="pane-voice">
+	<div class="card">
+	  <div class="row" style="margin-top:0;margin-bottom:14px">
+		<a class="btn" href="https://voicevox.hiroshiba.jp/" target="_blank" rel="noopener">🔗 打开 VOICEVOX 官网试听</a>
+		<span class="hint">复制官网上的角色名，粘到下面查询</span>
+	  </div>
+	  <h2>① 查询角色 ID</h2>
+	  <textarea id="q" placeholder="每行一个，例如：&#10;四国めたん&#10;ずんだもん&#10;也可以直接输入数字 speaker ID，例如：38"></textarea>
+	  <div class="row">
+		<button class="btn" id="doSearch">🔍 查询</button>
+		<button class="btn ghost" id="doRefresh">🔄 从本地 VOICEVOX 获取实时列表</button>
+		<span class="hint">必须先启动 VOICEVOX 引擎</span>
+	  </div>
+	  <div class="banner" id="banner"></div>
+	  <div class="manual" id="manual">
+		<div class="hint" style="margin-bottom:8px">
+		  浏览器不允许跨域读取时，请手动完成：<br>
+		  1. 打开 <code>http://127.0.0.1:50021/speakers</code>；<br>
+		  2. 全选复制 JSON；3. 粘贴到下方点击解析。
+		</div>
+		<textarea id="jsonIn" placeholder="粘贴 JSON 到这里……"></textarea>
+		<div class="row"><button class="btn small" id="doParse">解析并更新</button></div>
+	  </div>
+	  <div class="results" id="results"></div>
+	</div>
+	
+	<div class="card">
+	  <h2>② 全量音色速查（监控台配置参考）</h2>
+	  <div class="hint" style="margin-bottom:14px">
+		在「监控台」中，将 Model ID 填写为对应的数字即可。初始状态为空，需先在上方获取列表。
+	  </div>
+	  <div id="grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px 20px; font-size: 13.5px;"></div>
+	</div>
+
+  </section>
+  <!-- ★ 页面最底部的版本号 -->
+  <div style="display: flex; justify-content: center; padding: 30px 0 20px;">
+    <div id="changelogBtn" style="
+      padding: 6px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      box-shadow: var(--raised-panel);
+      text-shadow: none;
+      user-select: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(var(--ui-blur, 0px));
+      -webkit-backdrop-filter: blur(var(--ui-blur, 0px));
+    " onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='none'; this.style.boxShadow='var(--raised-panel)';" title="点击查看更新日志">
+      Novel TTS Toolbox <span id="appVersion" style="font-weight: bold; color: var(--primary-dark); margin-left: 4px;">v1.1.2</span>
+    </div>
+  </div>
+</div>
+<div class="float-tools">
+  <!-- 前往顶部 -->
+  <button id="backToTop" class="float-tool-btn" type="button" title="前往顶部" aria-label="前往顶部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+  <!-- 设置 -->
+  <button id="floatSettings" class="float-tool-btn" type="button" title="设置" aria-label="设置">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
+  <!-- 前往底部 -->
+  <button id="backToBottom" class="float-tool-btn" type="button" title="前往底部" aria-label="前往底部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+  </button>
+</div>
+<script src="toolbox.common.js"></script>
+<script>
+(function () {
+  const VOICE_ORDER = ["alloy", "echo", "fable", "nova", "onyx", "shimmer"];
+  const MODEL_SPEAKERS = {
+	"tts-1":  ["0","1","2","3","4","5"],
+	"tts-2":  ["6","7","8","9","10","14"],
+	"tts-3":  ["15","16","17","18","19","20"],
+	"tts-4":  ["22","23","24","25","26","27"],
+	"tts-5":  ["28","29","30","31","36","37"],
+	"tts-6":  ["38","43","44","45","46","47"],
+	"tts-7":  ["48","49","50","54","55","56"],
+	"tts-8":  ["57","58","59","60","61","62"],
+	"tts-9":  ["63","64","65","66","67","68"],
+	"tts-10": ["69","70","71","72","73","74"],
+	"tts-11": ["75","76","77","78","79","80"],
+	"tts-12": ["87","88","89","90","91","92"],
+	"tts-13": ["93","94","95","96","97","98"],
+	"tts-14": ["99","100","101","102","103","104"],
+	"tts-15": ["105","106","107","108","109","110"],
+	"tts-16": ["111","112","113","114","115","116"],
+	"tts-17": ["117","118","119","120","121","122"],
+	"tts-18": ["123","124","125","126","127","128"],
+	"tts-19": ["129","130","131","132","133","134"],
+	"tts-20": ["135","136","137","138","139","140"],
+	"tts-21": ["141","142","143","144","145","146"],
+	"tts-22": ["147","148","149","150","151","152"],
+	"tts-23": ["153","154","155","156","157","158"],
+	"tts-24": ["159","160","161","162","163","164"],
+	"tts-25": ["165","166","167","168","169","170"],
+	"tts-26": ["171","172","173","174","175","176"],
+	"tts-27": ["177","178","179","180","181","182"],
+  };
+
+  let SPEAKER_DB = []; // 初始为空，强制要求用户从本地 VOICEVOX 获取
+  function findPosition(idStr) {
+    return null; // 已废弃分组映射，无需计算
+  }
+  function lookupNamesById(idStr) { return SPEAKER_DB.filter(x => String(x[0]) === String(idStr)); }
+  function searchOne(query) {
+	query = query.trim();
+	if (!query) return [];
+	if (/^\d+$/.test(query)) return [{ id: query, name: "（ID 直查）", style: "", byId: true }];
+	const both = SPEAKER_DB.filter(x => query.includes(x[1]) && x[2] && query.includes(x[2]));
+	if (both.length) return both.map(x => ({ id: x[0], name: x[1], style: x[2] }));
+	const byName = SPEAKER_DB.filter(x => query.includes(x[1]));
+	if (byName.length) return byName.map(x => ({ id: x[0], name: x[1], style: x[2] }));
+	const byStyle = SPEAKER_DB.filter(x => x[2] && query.includes(x[2]));
+	if (byStyle.length) return byStyle.map(x => ({ id: x[0], name: x[1], style: x[2] }));
+	return [];
+  }
+  function esc(s) {
+	return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+  const resultsEl = document.getElementById("results");
+  const bannerEl  = document.getElementById("banner");
+  const manualEl  = document.getElementById("manual");
+  const gridEl	= document.getElementById("grid");
+  function renderResults(queries) {
+	resultsEl.innerHTML = "";
+	
+	// ★ 如果还没获取数据就点查询，直接拦截
+	if (SPEAKER_DB.length === 0) {
+	  resultsEl.innerHTML = `<div class="hit miss"><div class="name">数据库为空</div><div class="meta">请先点击「🔄 从本地 VOICEVOX 获取实时列表」，或手动粘贴 JSON 后再查询。</div></div>`;
+	  return;
+	}
+	
+	const seen = new Set();
+	let any = false;
+	queries.forEach(q => {
+	  const hits = searchOne(q);
+	  if (!hits.length) {
+		const div = document.createElement("div");
+		div.className = "hit miss";
+		div.innerHTML = `<div class="name">${esc(q)}</div><div class="meta">未在默认库中找到。请点「🔄 从本地 VOICEVOX 获取实时列表」或手动粘贴 JSON 解析。</div>`;
+		resultsEl.appendChild(div); any = true; return;
+	  }
+	  hits.forEach(h => {
+		const key = h.id + "|" + h.name + "|" + h.style + "|" + q;
+		if (seen.has(key)) return;
+		seen.add(key); any = true;
+		const pos = findPosition(h.id);
+		let posHtml;
+		if (pos) {
+		  posHtml = `<span class="pos">tts.py 位置：${esc(pos.model)} · ${esc(pos.voice)}（组内第 ${pos.index}/${pos.total} 个）</span>`;
+		} else {
+		  posHtml = `<span class="pos">该 speaker ID 未被 tts.py 使用</span><div class="meta" style="margin-top:6px">如需使用，请扩展 tts.py 的 MODEL_SPEAKERS。</div>`;
+		}
+		const nameTxt = h.style ? `${esc(h.name)}（${esc(h.style)}）` : esc(h.name);
+		const div = document.createElement("div");
+		div.className = "hit" + (pos ? "" : " miss");
+		div.innerHTML = `<div class="name">${nameTxt} <span class="tag">speaker ID = ${esc(h.id)}</span></div><div class="meta">查询：${esc(q)}</div><div>${posHtml}</div>`;
+		resultsEl.appendChild(div);
+	  });
+	});
+	if (!any) resultsEl.innerHTML = `<div class="hint">没有输入内容。</div>`;
+  }
+  window.__maxVoicevoxId = 0; // 全局最大可用 ID
+
+  function renderGrid() {
+	gridEl.innerHTML = "";
+	
+	// ★ 如果数据为空，显示引导提示
+	if (SPEAKER_DB.length === 0) {
+	  window.__maxVoicevoxId = 0;
+	  gridEl.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted); background: var(--panel-bg); border: 2px dashed var(--border-strong); border-radius: 4px;"><div style="font-size: 24px; margin-bottom: 10px;">📭</div>暂无音色数据<br>请点击上方「🔄 从本地 VOICEVOX 获取实时列表」，<br>或手动粘贴 JSON 解析。</div>';
+	  return;
+	}
+	
+	// 从数据库提取当前本机最大的 Speaker ID
+	if (SPEAKER_DB.length > 0) {
+	  window.__maxVoicevoxId = Math.max(...SPEAKER_DB.map(x => x[0]));
+	}
+	// 从数据库提取当前本机最大的 Speaker ID
+	if (SPEAKER_DB.length > 0) {
+	  window.__maxVoicevoxId = Math.max(...SPEAKER_DB.map(x => x[0]));
+	}
+
+	SPEAKER_DB.forEach((sp, i) => {
+	  const id = sp[0];
+	  const name = sp[1];
+	  const style = sp[2] ? `（${sp[2]}）` : "";
+
+	  // 每 30 个插入一条分割线（3列，每列10个）
+	  if (i > 0 && i % 30 === 0) {
+		const divider = document.createElement("div");
+		divider.style.cssText = "grid-column: span 3; height: 1px; background: var(--border); margin: 8px 0;";
+		gridEl.appendChild(divider);
+	  }
+
+	  const item = document.createElement("div");
+	  // 顺便将圆角修正为 4px 以适配全局统一的方块风格
+	  item.style.cssText = "display: flex; justify-content: space-between; padding: 6px 10px; background: var(--panel-bg); border-radius: 4px; border: 1px solid var(--border);";
+	  item.innerHTML = `
+		<span style="font-weight:600; color:var(--primary-dark); min-width:50px;">ID ${id}</span>
+		<span style="flex:1; color:var(--text); text-align:left; margin-left:10px;">${name}${style}</span>
+	  `;
+	  gridEl.appendChild(item);
+	});
+  }
+  function showBanner(type, html) { bannerEl.className = "banner " + type; bannerEl.innerHTML = html; }
+  function applyEngineData(data) {
+	const db = [];
+	for (const sp of data) {
+	  const styles = sp.styles || [];
+	  for (const st of styles) {
+		// 兼容 VOICEVOX 0.17.0+ 的 streaming_talk 类型
+		if (st.type && st.type !== "talk" && st.type !== "streaming_talk") continue;
+		if (st.id === undefined || st.id === null) continue;
+		db.push([st.id, sp.name, st.name]);
+	  }
+	}
+	if (!db.length) throw new Error("返回数据里没有找到音色");
+	db.sort((a, b) => a[0] - b[0]);
+	SPEAKER_DB = db; 
+	renderGrid(); 
+	return db.length;
+  }
+  async function refreshFromEngine() {
+	showBanner("warn", "正在尝试连接本地 VOICEVOX …");
+	try {
+	  const res = await fetch("http://127.0.0.1:50021/speakers", { mode: "cors" });
+	  if (!res.ok) throw new Error("HTTP " + res.status);
+	  const data = await res.json();
+	  const n = applyEngineData(data);
+	  showBanner("ok", `✅ 已从本地 VOICEVOX 获取实时音色列表（共 ${n} 个音色）。`);
+	  manualEl.classList.remove("show");
+	} catch (e) {
+	  showBanner("warn", `⚠️ 自动获取失败（VOICEVOX 未启动或跨域）。请按下方手动获取。`);
+	  manualEl.classList.add("show");
+	}
+  }
+  document.getElementById("doSearch").addEventListener("click", () => {
+	const raw = document.getElementById("q").value;
+	const queries = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+	renderResults(queries);
+  });
+  document.getElementById("doRefresh").addEventListener("click", refreshFromEngine);
+  document.getElementById("doParse").addEventListener("click", () => {
+	const txt = document.getElementById("jsonIn").value.trim();
+	if (!txt) { showBanner("warn", "请先粘贴 JSON。"); return; }
+	try {
+	  const data = JSON.parse(txt);
+	  if (!Array.isArray(data)) throw new Error("不是数组格式");
+	  const n = applyEngineData(data);
+	  showBanner("ok", `✅ 解析成功，已载入 ${n} 个音色。`);
+	} catch (e) {
+	  showBanner("warn", "❌ 解析失败：" + e.message);
+	}
+  });
+  document.getElementById("q").addEventListener("keydown", e => {
+	if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) document.getElementById("doSearch").click();
+  });
+  renderGrid();
+})();
+</script>
+</body>
+</html>

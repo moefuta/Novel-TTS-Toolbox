@@ -53,6 +53,8 @@ AUTO_DICT_BASENAME = os.path.basename(AUTO_DICT_FILE)
 RULES_CONFIG_FILE = os.path.join(BASE_DIR, "rules_enabled.json")
 BG_DIR = os.path.join(BASE_DIR, "bg")
 PERSON_DICT_FILE = os.path.join(RULES_DIR, "person_dict.txt")
+TRASH_CAN_FILE = os.path.join(RULES_DIR, "trash_can.txt")
+TRASH_CAN_BASENAME = os.path.basename(TRASH_CAN_FILE)
 
 MODELS_CONFIG_DIR = os.path.join(BASE_DIR, "model_configs")
 DEFAULT_MODELS_FILE = os.path.join(MODELS_CONFIG_DIR, "default.json")
@@ -219,7 +221,7 @@ _person_names = set()  # 存放人名列表用于助词修正
 # 结构：{原字: {"type": "ruby"|"kana", "reading": "读音"}}
 # - "ruby" 型：汉字后缀，生成 ｜原字《读音》 注音框（如 君 -> くん、家 -> け）
 # - "kana" 型：假名后缀（助词正字法等），直接替换为读音（如 は -> わ）
-# 内置默认值，可由 person_dict.txt 中的 [suffix] 行扩展/覆盖
+# 内置默认值，可由人名词典文件（person_dict*.txt）中的 [suffix] 行扩展/覆盖
 _DEFAULT_PERSON_SUFFIXES = {
     "家": {"type": "ruby", "reading": "け"},
     "は": {"type": "kana", "reading": "わ"},
@@ -234,6 +236,9 @@ _dict_lock = threading.RLock()
 
 _rules_enabled_files = None
 
+_trash_can_keys = set()  # ★ 废弃词表（trash_can.txt）：命中即不登记进 auto_dict
+_trash_can_lock = threading.Lock()
+
 _http_client: httpx.AsyncClient | None = None
 _voicevox_ready = False
 
@@ -247,7 +252,7 @@ _models_config_lock = threading.RLock()
 _active_models_filename = "default.json"
 
 # ★ 修改：初始化时带上默认的引擎和模型信息
-_global_config = {"output_format": "C", "lang": "ja", "engine": "voicevox", "model": "1", "speed": 1.0}
+_global_config = {"output_format": "C", "lang": "ja", "engine": "voicevox", "model": "1", "speed": 1.0, "theme_color": None}
 _global_config_lock = threading.Lock()
 
 
@@ -590,6 +595,20 @@ def _init_rules_dir():
             f.write("# 答：使用片假名，示例如下\n\n")
             f.write("(桐ヶ谷|直葉|リーファ|すぐは) => (きりがや|スグハ|リーファ|スグハ)\n")
 
+    # 5. 检查并创建 trash_can.txt（废弃词表）
+    if not os.path.exists(TRASH_CAN_FILE):
+        with open(TRASH_CAN_FILE, "w", encoding="utf-8") as f:
+            f.write("# ==========================================\n")
+            f.write("# 废弃词表（trash_can.txt）\n")
+            f.write("# ==========================================\n")
+            f.write("# 记录在这里的「词」，即便原文里带了它的 ruby 注音，\n")
+            f.write("# 也会被视作废弃，不会再登记进 auto_dict.txt。\n#\n")
+            f.write("# 用法：每行写一个词；也兼容「原文 => 读音」格式（只取左侧原文）。\n")
+            f.write("# 以 # 开头的行是注释，保存后下次朗读自动热重载生效。\n\n")
+            f.write("# 示例（删除行首 # 即可生效）：\n")
+            f.write("# 桐ヶ谷\n")
+            f.write("# 結城明日奈 => ゆうきあすな\n")
+
 def _load_rules_config():
     global _rules_enabled_files
     try:
@@ -606,7 +625,44 @@ def _save_rules_config(enabled_files):
 
 def _is_file_enabled(filename: str) -> bool:
     if filename == AUTO_DICT_BASENAME: return True
+    if filename == TRASH_CAN_BASENAME: return True
     return True if _rules_enabled_files is None else filename in _rules_enabled_files
+
+def _is_person_dict_file(filename: str) -> bool:
+    """判断是否为「人名词典」文件：person_dict.txt 或 person_dict_xxx.txt 等带后缀的变体。"""
+    name = os.path.basename(filename)
+    return name == "person_dict.txt" or name.startswith("person_dict_")
+
+def _trash_can_key(word: str) -> str:
+    """生成废弃词的规范化键（与规则键一致，兼容大小写/全半角/空格）。"""
+    return _build_latin_fold_pattern(word) if _is_plain_text(word) else re.escape(word)
+
+def _load_trash_can():
+    """读取 trash_can.txt，重建废弃词集合（热重载）。"""
+    global _trash_can_keys
+    keys = set()
+    try:
+        if os.path.exists(TRASH_CAN_FILE):
+            with open(TRASH_CAN_FILE, "r", encoding="utf-8-sig") as f:
+                for raw in f:
+                    line = raw.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    line = line.replace("＝＞", "=>").replace("=》", "=>").replace("→", "=>")
+                    word = line.split("=>", 1)[0].strip() if "=>" in line else line
+                    if word:
+                        keys.add(_trash_can_key(word))
+    except Exception:
+        pass
+    with _trash_can_lock:
+        _trash_can_keys = keys
+
+def _is_in_trash_can(base: str) -> bool:
+    """判断一个词是否命中废弃词表（trash_can.txt）。"""
+    if not _trash_can_keys:
+        return False
+    with _trash_can_lock:
+        return _trash_can_key(base) in _trash_can_keys
 
 _WEIGHT_RE = re.compile(r'^(.+?)[（(]\s*(\d*\.?\d+)\s*([%％]?)\s*[)）]$')
 
@@ -623,8 +679,8 @@ def _parse_single_file(path):
     rules, errors, person_names, suffixes = [], [], set(), {}
     filename = os.path.basename(path)
     
-    # ★ 判断是否为专用的人名词典文件（严格绑定 person_dict.txt）
-    is_person_file = (filename == "person_dict.txt")
+    # ★ 判断是否为专用的人名词典文件（匹配 person_dict.txt 及其带后缀的变体，如 person_dict_1.txt）
+    is_person_file = _is_person_dict_file(filename)
 
     try:
         with open(path, "r", encoding="utf-8-sig") as f: lines = f.readlines()
@@ -636,7 +692,7 @@ def _parse_single_file(path):
         line = line.replace("＝＞", "=>").replace("=》", "=>").replace("→", "=>").replace("《=", "<=").replace("←", "<=")
         if "=>" not in line: continue
         
-        # ★ 解析 [suffix] 后缀读音规则（仅 person_dict.txt 中生效）
+        # ★ 解析 [suffix] 后缀读音规则（仅人名词典文件中生效）
         if is_person_file:
             m_suffix = re.match(r'^\[suffix\]\s*(.+?)\s*=>\s*(.+)$', line)
             if m_suffix:
@@ -652,7 +708,7 @@ def _parse_single_file(path):
                     }
                 continue
         
-        # ★ 非 person_dict.txt 文件中的 [suffix] 行直接忽略，避免误解析为正则
+        # ★ 非人名词典文件中的 [suffix] 行直接忽略，避免误解析为正则
         if line.startswith("[suffix]"):
             continue
         
@@ -718,6 +774,7 @@ def _parse_single_file(path):
 
 def load_all_rules(force=False):
     global _all_rules, _rules_dir_state, _auto_dict_keys, _person_names, _exact_dict_lookup, _person_suffixes
+    _load_trash_can()  # ★ 每次刷新时同步重建废弃词表（trash_can.txt 热重载）
     txt_files = sorted(glob.glob(os.path.join(RULES_DIR, "*.txt")))
     file_stats = tuple((f, os.stat(f).st_mtime, os.stat(f).st_size) for f in txt_files if os.path.exists(f))
     enabled_names = tuple(sorted(os.path.basename(f) for f in txt_files if _is_file_enabled(os.path.basename(f))))
@@ -739,6 +796,8 @@ def load_all_rules(force=False):
             continue
             
         is_auto = (filename == AUTO_DICT_BASENAME)
+        if filename == TRASH_CAN_BASENAME:
+            continue  # ★ 废弃词表不参与规则解析，仅用于过滤 auto_dict 登记
         rules, _, persons, suffixes = _parse_single_file(filepath)
         if rules is None: 
             continue
@@ -759,7 +818,7 @@ def load_all_rules(force=False):
                 
             if is_auto:
                 priority = (2, -count)
-            elif filename == "person_dict.txt":
+            elif _is_person_dict_file(filename):
                 priority = (0, -count)
             else:
                 priority = (1, -count)
@@ -893,41 +952,66 @@ def apply_replace_rules(text, output_mode='B', clean_punct=True):
 
 
 def fix_person_suffixes(text, output_mode='C'):
+    """
+    自动修正人名后面的称呼/助词后缀读音。
+    后缀映射表由人名词典文件（person_dict*.txt）中的 [suffix] 行定义（内置默认：家→け、は→わ）。
+    """
     with _dict_lock:
         if not _person_names: return text
         names_snapshot = list(_person_names)
         suffix_map = dict(_person_suffixes)
+        exact_dict = dict(_exact_dict_lookup)
         
     if not names_snapshot or not suffix_map: return text
     
+    # 名字按长度降序，优先匹配长名字
     sorted_names = sorted(names_snapshot, key=len, reverse=True)
     name_group = '(' + '|'.join(re.escape(n) for n in sorted_names) + ')'
     
+    # 后缀按长度降序，优先匹配长后缀
     sorted_suffixes = sorted(suffix_map.keys(), key=len, reverse=True)
     suffix_group = '(' + '|'.join(re.escape(s) for s in sorted_suffixes) + ')'
     
-    # 1=人名(含其注音)，2=后缀，3=后缀自带的注音框
-    pattern = re.compile(r'(' + name_group + r'(?:《[^》]*》)?)[｜|]?(' + suffix_group + r')(?:《[^》]*》)?')
+    pattern = re.compile(
+        name_group 
+        + r'(?:《[^》]*》)?'  
+        + r'[\s｜|]*'       
+        + suffix_group 
+        + r'(?:《[^》]*》)?'  
+    )
     
     def replacer(m):
-        start_idx = m.start()
-        prefix = text[:start_idx]
+        full = m.group(0)
         
-        if (prefix.count('｜') + prefix.count('|')) > prefix.count('》'):
-            if not (start_idx > 0 and text[start_idx - 1] in ('｜', '|')):
-                return m.group(0)
+        # ★ 终极防御 1：如果匹配到的字符串尾部带有注音框，且注音的后缀读音与当前后缀一致
+        # 这完美拦截了 '父様《おとうさま》'，坚决不拆
+        m_ruby_end = re.search(r'《([^》]*)》$', full)
+        if m_ruby_end:
+            ruby_content = m_ruby_end.group(1)
+            info = suffix_map.get(m.group(2))
+            if info and ruby_content.endswith(info["reading"]):
+                return full
 
-        # 如果后缀带有注音，说明整个词已被特殊规则接管，原样返回，避免破坏
-        if m.group(3):
-            return m.group(0)
+        # ★ 终极防御 2：如果匹配到的完整字符串本身就是一个已登记的人名或完整词
+        clean_full = re.sub(r'^[｜|]', '', full)
+        clean_full = re.sub(r'《[^》]*》', '', clean_full)
+        if clean_full in names_snapshot or clean_full in exact_dict:
+            return full
 
-        name_part = m.group(1).rstrip('｜|')
+        name_str = m.group(1)
         suffix_str = m.group(2)
-        info = suffix_map.get(suffix_str)
         
-        if info is None:
-            return m.group(0)
-
+        info = suffix_map.get(suffix_str)
+        if info is None: return full
+        
+        suffix_idx = full.rfind(suffix_str)
+        if suffix_idx == -1: return full
+        
+        name_part = full[:suffix_idx].rstrip('｜| \t\n\r')
+        
+        if not name_part.startswith('｜') and not name_part.startswith('|') and '《' in name_part:
+            name_part = '｜' + name_part
+            
         if info["type"] == "ruby":
             if output_mode == 'C':
                 res = f'｜{suffix_str}《{info["reading"]}》'
@@ -1148,10 +1232,13 @@ def _append_to_auto_dict(base, ruby):
     base, ruby = (base or "").strip(), (ruby or "").strip()
     if not base or not ruby: return False
     
+    # ★ 废弃词表：命中 trash_can.txt 即直接丢弃，不再登记进 auto_dict
+    if _is_in_trash_can(base):
+        return False
+    
     # ★ 单字准入判断
     if len(base) == 1:
         # 逻辑：记录所有包含小字（拗音/促音）的读音，以及非首位出现的 やゆよつ 大字
-        # (?<!^) 表示“不在字符串开头”，[やゆよつ] 表示大字，[ゃゅょっ...] 表示小字
         if not re.search(r'[ゃゅょっぁぃぅぇぉャュョッァィゥェォ]|(?<!^)[やゆよつヤユヨツ]', ruby):
             return False
 
@@ -1163,21 +1250,46 @@ def _append_to_auto_dict(base, ruby):
 
     key_check = _build_latin_fold_pattern(base) if _is_plain_text(base) else re.escape(base)
     with _dict_lock:
-        if key_check in _auto_dict_keys: return False
-        
+        # 即使 key 已经存在于内存，如果是单字，我们依然需要检查是否需要追加读音
+        # if key_check in _auto_dict_keys: return False  <- 注释掉这行，让逻辑走下去
+
         lines = []
         # 物理检查文件，防止重复追加，并读取现有内容以便分类插入
         if os.path.exists(AUTO_DICT_FILE):
             try:
                 with open(AUTO_DICT_FILE, "r", encoding="utf-8-sig") as f:
                     lines = f.readlines()
-                for line in lines:
+                for i, line in enumerate(lines):
                     if "=>" in line:
-                        ex_base = line.split("=>")[0].strip()
+                        parts = line.split("=>", 1)
+                        ex_base = parts[0].strip()
+                        ex_ruby = parts[1].strip()
                         ex_key = _build_latin_fold_pattern(ex_base) if _is_plain_text(ex_base) else re.escape(ex_base)
+                        
                         if ex_key == key_check:
                             _auto_dict_keys.add(key_check)
-                            return False
+                            
+                            # ★ 核心新增：如果是单字，且出现了不同的读音，则进行合并更新！
+                            if len(base) == 1 and ex_ruby != ruby:
+                                # 拆分现有的读音（兼容带 | 的情况）
+                                ex_rubies = [r.strip() for r in ex_ruby.split('|')]
+                                if ruby not in ex_rubies:
+                                    # 合并并更新文件
+                                    new_ruby_str = f"{ex_ruby}|{ruby}"
+                                    new_line = f"{ex_base} => {new_ruby_str}\n"
+                                    lines[i] = new_line
+                                    
+                                    with open(AUTO_DICT_FILE, "w", encoding="utf-8") as f:
+                                        f.writelines(lines)
+                                    
+                                    # 实时同步更新内存中的 auto_dict_words，让前端立刻能刷新到
+                                    with _auto_dict_lock:
+                                        _auto_dict_words[ex_base] = new_ruby_str
+                                    
+                                    _rules_dir_state = None # 触发规则重载
+                                    return True
+                            
+                            return False # 已处理或不需要处理，直接结束
             except Exception:
                 pass
                 
@@ -1354,7 +1466,7 @@ async def lifespan(_app: FastAPI):
     
     print("\n" + "="*60)
     print("🎉 TTS 服务已就绪: http://127.0.0.1:8000")
-    print("👉 请手动双击打开同目录下的 'all in one toolbox.html' 以使用控制台。")
+    print("👉 请手动双击打开同目录下的 'launcher.html' 以使用控制台。")
     print("="*60 + "\n")
 
     try: yield
@@ -1376,6 +1488,7 @@ class GlobalConfigModel(BaseModel):
     engine: str | None = None
     model: str | None = None
     speed: float | None = None
+    theme_color: str | None = None
 class RulesFilesUpdate(BaseModel):
     enabled_files: list[str]
 
@@ -1388,9 +1501,15 @@ class AutoDictDeletePayload(BaseModel):
 class RuleSearchPayload(BaseModel):
     keyword: str
     mode: str = "all"  # 可选值：all (全搜索), base (搜A), ruby (搜B)
+# ★ 删除 auto_dict 分组请求体
+class AutoDictDeleteGroupPayload(BaseModel):
+    group: str  # "word" 或 "single"
 # ★ 打开文件的请求体
 class RuleOpenPayload(BaseModel):
     filename: str
+
+class UiOrderUpdate(BaseModel):
+    order: dict[str, list[str]]   # 例如 {"monitorCevioModel": ["karin", ...], ...}
 
 class ComPresetSaveModel(BaseModel):
     model_id: str; cast: str; emotions: dict[str, int]; speed: int = 50; tone_scale: int = 50
@@ -1503,6 +1622,50 @@ async def save_com_preset(payload: ComPresetSaveModel):
 async def get_models_config():
     return {"active_file": _active_models_filename, "voicevox": dict(MODEL_SPEAKERS), "sapi": dict(SPECIAL_MODELS), "cevio_com": dict(CEVIO_COM_PRESETS)}
 
+@app.get("/v1/models/config/order")
+async def get_ui_order():
+    """读取当前激活配置里保存的下拉菜单排序偏好。"""
+    with _models_config_lock:
+        target_path = os.path.join(MODELS_CONFIG_DIR, _active_models_filename)
+        if not os.path.exists(target_path):
+            return {"order": {}}
+        try:
+            with open(target_path, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+            return {"order": data.get("_ui_order", {})}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"读取排序失败: {e}")
+
+
+@app.post("/v1/models/config/order")
+async def save_ui_order(payload: UiOrderUpdate):
+    """把前端拖拽后的顺序持久化到当前激活配置文件里，字段名 `_ui_order`。"""
+    with _models_config_lock:
+        target_path = os.path.join(MODELS_CONFIG_DIR, _active_models_filename)
+        if not os.path.exists(target_path):
+            raise HTTPException(status_code=404,
+                                detail=f"激活的配置文件不存在: {_active_models_filename}")
+        try:
+            with open(target_path, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"读取配置失败: {e}")
+
+        # 合并而不是覆盖：不同下拉分别提交也能累积保存
+        merged = dict(data.get("_ui_order", {}))
+        for key, arr in payload.order.items():
+            if isinstance(arr, list):
+                merged[key] = [str(x) for x in arr]
+        data["_ui_order"] = merged
+
+        try:
+            with open(target_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"保存排序失败: {e}")
+
+        return {"ok": True, "order": merged}
+
 @app.get("/v1/models/config/files")
 async def list_models_config_files():
     files = [{"name": fn, "size": os.stat(os.path.join(MODELS_CONFIG_DIR, fn)).st_size, "active": fn == _active_models_filename}
@@ -1568,6 +1731,66 @@ async def delete_auto_dict_item(payload: AutoDictDeletePayload):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
 
+@app.post("/v1/auto_dict/delete_group")
+async def delete_auto_dict_group(payload: AutoDictDeleteGroupPayload):
+    group = payload.group
+    if group not in ("word", "single"):
+        raise HTTPException(status_code=400, detail="非法分组名")
+
+    with _auto_dict_lock:
+        if not os.path.exists(AUTO_DICT_FILE):
+            raise HTTPException(status_code=404, detail="文件不存在")
+
+        try:
+            with open(AUTO_DICT_FILE, "r", encoding="utf-8-sig") as f:
+                lines = f.readlines()
+
+            new_lines = []
+            current_section = None
+            deleted_count = 0
+
+            for line in lines:
+                stripped = line.strip()
+                # 识别当前处于哪个分区
+                if stripped.startswith("# ===== 组词 ====="):
+                    current_section = "word"
+                    new_lines.append(line)
+                    continue
+                elif stripped.startswith("# ===== 单字 ====="):
+                    current_section = "single"
+                    new_lines.append(line)
+                    continue
+                elif stripped.startswith("#"):
+                    current_section = None
+                    new_lines.append(line)
+                    continue
+
+                # 如果当前行属于要清空的分区，且是有效规则
+                if current_section == group and "=>" in stripped:
+                    deleted_count += 1
+                    continue # 直接跳过，相当于删除
+
+                new_lines.append(line)
+
+            if deleted_count > 0:
+                with open(AUTO_DICT_FILE, "w", encoding="utf-8") as f:
+                    f.writelines(new_lines)
+
+                # 同步清理内存中的字典
+                keys_to_delete = []
+                for k in _auto_dict_words.keys():
+                    if (group == "word" and len(k) > 1) or (group == "single" and len(k) == 1):
+                        keys_to_delete.append(k)
+                for k in keys_to_delete:
+                    del _auto_dict_words[k]
+
+                return {"ok": True, "msg": f"已清空 {deleted_count} 条 {group} 词条"}
+            else:
+                return {"ok": True, "msg": "该分组已经是空的"}
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"清空失败: {str(e)}")
+
 @app.post("/v1/global/config")
 async def set_global_config(cfg: GlobalConfigModel):
     if cfg.output_format:
@@ -1581,6 +1804,8 @@ async def set_global_config(cfg: GlobalConfigModel):
         _global_config["model"] = cfg.model
     if cfg.speed is not None:
         _global_config["speed"] = cfg.speed
+    if cfg.theme_color is not None:
+        _global_config["theme_color"] = cfg.theme_color
         
     _save_global_config()
     return _global_config
@@ -1598,7 +1823,7 @@ async def set_auto_config(cfg: AutoConfigModel):
 @app.get("/v1/rules/files")
 async def list_rules_files():
     txt_files = sorted(glob.glob(os.path.join(RULES_DIR, "*.txt")))
-    return {"files": [{"name": os.path.basename(f), "enabled": _is_file_enabled(os.path.basename(f)), "locked": os.path.basename(f) == AUTO_DICT_BASENAME, "size": os.stat(f).st_size} for f in txt_files]}
+    return {"files": [{"name": os.path.basename(f), "enabled": _is_file_enabled(os.path.basename(f)), "locked": os.path.basename(f) in (AUTO_DICT_BASENAME, TRASH_CAN_BASENAME), "size": os.stat(f).st_size} for f in txt_files]}
 
 @app.post("/v1/rules/files")
 async def update_rules_files(payload: RulesFilesUpdate):

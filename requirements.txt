@@ -1,0 +1,21 @@
+# ============================================================
+# 小说阅读 TTS 服务（Novel TTS Service）依赖
+#
+# 安装：py -m pip install -r requirements.txt
+# 环境：Windows 10/11 + Python 3.10+
+#
+# 说明：pywin32 使用环境标记，仅在 Windows 上安装。
+#      Linux/macOS 会被自动跳过（但项目本身仍只支持 Windows）。
+# ============================================================
+
+# --- Web 框架 ---
+# FastAPI 0.100+ 才原生支持 Pydantic v2，且与代码里的 lifespan / async 中间件兼容
+fastapi>=0.100.0
+uvicorn>=0.20.0
+pydantic>=2.0.0
+
+# --- 异步 HTTP 客户端（调用 VOICEVOX 引擎 50021 端口）---
+httpx>=0.23.0
+
+# --- Windows COM 组件（SAPI / CeVIO AI Talker2V40）---
+pywin32>=306; sys_platform == "win32"

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>更新日志 · Novel TTS 工具箱</title>
+<link rel="stylesheet" href="toolbox.css">
+</head>
+<body>
+<div class="cl-content" style="padding: 20px; font-size: 13.5px; line-height: 1.7; color: var(--text);">
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.1.2</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>功能架构拆分：</b>将前端按功能拆分为 7 个模块，各司其职：<code>launcher.html</code>（启动器）、<code>voicevox_check.html</code>（音色速查）、<code>epub_ruby_extract.html</code>（EPUB Ruby 提取）、<code>TTS_main_process.html</code>（TTS 主进程/监控台）、<code>how_to_use.html</code>（使用说明）、<code>license.html</code>（许可协议）、<code>update_history.html</code>（更新日志）。</li>
+          <li><b>共享资源抽离：</b>全局视觉系统抽离为 <code>toolbox.css</code>，主题/设置/代码复制/自定义下拉框/背景图等共享脚本抽离为 <code>toolbox.common.js</code>。</li>
+          <li><b>内嵌机制：</b>启动器顶部保留原版标签栏，以 <code>&lt;iframe&gt;</code> 内嵌切换各模块。</li>
+          <li><b>功能全保留：</b>动态主题色计算与自定义颜色、<code>person_dict_*.txt</code> 专属语法、<code>trash_can.txt</code> 废弃词表等既有功能全部保留。</li>
+        </ul>
+      </div>
+      <!-- v1.1.1 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.1.1</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>核心底层 BUG 修复：</b>
+            <ul style="margin: 4px 0; padding-left: 20px;">
+              <li><b>彻底修复人名与后缀冲突</b>：解决了配置了 <code>(お父様) => (おとうさま)</code> 却仍被强行拆解为 <code>お父</code> 和 <code>様</code> 的严重问题。</li>
+              <li><b>多字符后缀完美适配</b>：修复了类似 <code>[suffix] の下 => のもと</code> 无法匹配的问题。</li>
+              <li><b>修复预设加载失效</b>：修复了 <code>my_config.json</code> 里的 COM 预设无法正常载入下拉框的致命 BUG。</li>
+              <li><b>修复删除被打断</b>：加入了防打断锁，彻底解决后台历史记录（SSE）推送时导致“自动记忆登记”的删除计数被重置的问题。</li>
+              <li><b>重连机制补全</b>：修复了点击强制重连后，右侧历史记录面板不显示的问题。</li>
+            </ul>
+          </li>
+          <li><b>新增功能：</b>
+            <ul style="margin: 4px 0; padding-left: 20px;">
+              <li><b>单字读音自动合并</b>：<code>auto_dict.txt</code> 中单字若出现新的不同读音，会自动更新为 <code>A => a1|a2</code>。</li>
+              <li><b>分组三连击清空</b>：为“自动记忆登记”的【组词】和【单字】分类标题新增 <code>✕</code> 按钮。连续点击三次（伴随变红与旋转放大动画）即可一键清空该分组。</li>
+              <li><b>一键复制搜索词</b>：在监控台【规则文件启用】搜索出结果后，点击文件名【打开文件】时会自动将【搜索关键词】复制到剪贴板。</li>
+            </ul>
+          </li>
+          <li><b>UI/UX 体验优化：</b>
+            <ul style="margin: 4px 0; padding-left: 20px;">
+              <li><b>折叠与展开</b>：为【TTS引擎选择】、【CeVIO情感参数】、【前端文本测试】添加了折叠功能，右上角按钮收起时突起，展开时内凹。</li>
+              <li><b>导航智能联动</b>：点击左下角快捷导航图标时，若目标区块为收起状态，会自动展开并平滑滚动过去。</li>
+              <li><b>常驻重连按钮</b>：监控台右上角的【重新连接】改为常驻，随时可点击强制刷新连接。</li>
+              <li><b>全局主题色重置</b>：把「写死的多套主题色变体」改成了「单一基准色 → 动态计算全部变体」，并在【全局设置】里加了自定义颜色入口，持久化到 <code>global_config.json</code>。</li>
+              <li><b>「主题色」区块下新增一行</b>：原生取色器 + 十六进制输入框 + 「应用」按钮。取色器拖动实时预览；hex 框输入合法值即实时生效；回车或点「应用」确认。</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- v1.1.0 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.1.0</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>暴力测试与修复：</b>对全系统进行了一系列高强度的压力测试与边界条件测试，发现并修复了若干会导致前端崩溃或后端卡死的细碎 BUG。</li>
+          <li><b>体验优化：</b>针对测试中暴露的异常数据以及特定排版下的解析错乱问题，进行了底层逻辑的缝补与容错处理。</li>
+          <li><b>稳定性提升：</b>整体服务运行更加平滑，减少了极端情况下闪退或报错的概率。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.20 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.20</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>移除自动弹窗：</b>彻底删除后端自作聪明的“检测并唤起浏览器”逻辑。启动服务后不再强行弹窗，需用户手动打开前端网页（配合前端重连限制，彻底解决重启弹窗的顽疾）。</li>
+          <li><b>重连机制优化：</b>前端断线重连加入<b>最大 4 次</b>的限制，失败后停止空转并提示手动点击，避免后台无限发请求。</li>
+          <li><b>修复统计 BUG：</b>修复了在【EPUB Ruby 提取】页面载入大量词条后，顶部的<strong>数据统计卡片（总条目、组词等）不显示</strong>的致命问题。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.19 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.19</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>新增【停止播放】：</b>历史记录顶部新增停止按钮，一键中断所有合成与试听音频。</li>
+          <li><b>屏蔽英文注音：</b>自动拦截纯英文/数字的注音（如 <code>Sharpness</code>），防止引擎逐个字母拼读。</li>
+          <li><b>一键开文件夹：</b>【设置 → 背景图像】新增 📂 按钮，可直接打开 <code>bg/</code> 目录。</li>
+          <li><b>CeVIO 试听优化：</b>试听功能现在优先读取解析后的“输出文本”，不再读带标签的原文。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.18 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.18</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>搜索功能升级：</b>规则搜索支持「全搜索 / 搜base(左侧) / 搜ruby(右侧)」，默认选中搜base，并补充了格式提示；<code>tts.py</code> 同步更新支持。</li>
+          <li><b>结果折叠展示：</b>搜索结果默认仅展示已启用的文件匹配项，未启用的结果收折在底部，点击 <code>▶</code> 箭头即可展开/折叠。</li>
+		  <li><b>单字记忆升级：</b>优化了 <code>auto_dict.txt</code> 的自动登记逻辑。包含高危读音（如读音第二位起出现 <code>やゆよつ</code> 大字，或包含小字）的单字会被专门登记并按 <code># ===== 单字 =====</code> 分类插入。<b>但单字仅作为“占位防抖”，不参与前端计数</b>，前端仅统计需要处理的组词数量。</li>
+		  <li><b>自动记忆预览：</b>为「自动记忆登记」卡片新增「查看详情」面板。现在可以直接在页面内按组词/单字分类预览待确认词条，点击即可复制到剪贴板，同时优化了「人工确认」超链接的视觉提示。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.17 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.17</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>重构多语种切换逻辑（引入「伪切换」机制）</b>：修复了此前点击语种按钮会直接修改后端状态，导致前后端配置不一致的严重 BUG。现在，语种切换在提交前完全停留在前端沙盒内。</li>
+          <li><b>UI 即时响应预览</b>：当您点击汉语、英语或日语按钮时，下方的引擎列表（如自动隐藏 VOICEVOX / CeVIO，过滤 Windows / Edge 对应的语种语音）会立刻刷新。您可以自由组合并查看配置，但不会对当前正在运行的后端产生任何影响。</li>
+          <li><b>严格的提交与生效</b>：只有当你点击 <code>以此配置运行</code> 按钮后，前端才会将选定的语种参数正式发送给 <code>tts.py</code> 并保存到全局配置中，确保“所见即所配，所配即所存”。</li>
+		  <li><b>监控台导航：</b>在监控台左下角新增了专属的「快捷导航」浮窗。采用星形SVG图标，竖向排列 5 个核心模块锚点（自动记忆、TTS引擎、文本测试、CeVIO参数、规则文件）。点击图标可平滑滚动至对应区块，并在滚动时自动高亮当前所在模块。</li>
+		  <li><b>Ruby 页导航：</b>在「EPUB Ruby 提取」页同样加入了左下角快捷导航，将流程精准划分为 5 步（文件导入、参考词典、结果概览、工作台、导出），方便快速跳转。</li>
+          <li><b>Ruby 工作台拆分：</b>原“提取结果”区块被正式拆分为 <b>3 提取结果概览</b>（仅展示数据统计与语法/操作指南）与 <b>4 Ruby 工作台</b>（筛选、编辑与核对），并更正导出为步骤 5。优化了空状态下的显示逻辑：常驻显示新手向导与操作教程。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.16 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.16</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>新增历史记录「重播」功能</b>：每一条历史记录右侧新增 <code>▶ 重播</code> 按钮。在当前会话中已缓存音频直接秒播；旧快照会自动请求后端重新合成。同时加入了防抖处理，防止连点卡死。</li>
+          <li><b>新增自动记忆池超量预警</b>：当 <code>auto_dict.txt</code> 待确认词条超过 20 条时，数字开始闪烁警示。词条数量越多闪烁越快（最高 1 秒/次），并伴随最高 1.5 倍的放大动画。</li>
+          <li><b>使用说明 UI 与目录优化</b>：左侧目录栏新增 <code>▼</code> / <code>▲</code> 切换按钮，支持展开至 H4 级别细则，并将目录头部升级为“吸顶锁定”。
+          </li>
+          <li><b>License 页面 UI 重构与合规增强</b>：采用双栏对比设计，直观展示「基础协议」与「专属豁免条款」的区别。补充了“一句话读懂授权边界”的说明，并加入了官方中日英三语法律原文的直达链接。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.15 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.15</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>修复 BUG：</b>在词典中登记了拆分人名（如 <code>茅場 => かやば</code>、<code>晶彦 => あきひこ</code>），但原文遇到组合词（<code>茅場晶彦</code>）时，仍会被误登记进 <code>auto_dict.txt</code> 的问题。</li>
+          <li><b>根因分析：</b>以前系统只对比「原词整体」是否在词典中，无法识别词典已将组合词拆解覆盖。</li>
+          <li><b>解决方案：</b>新增 <code>_is_fully_covered_by_dict()</code> 检测。在登记自动词典前，先模拟执行一遍替换规则；若该组合词被现有规则完全转为假名（不留残余汉字），视为已被词典完美接管，不再进行冗余登记。</li>
+          <li><b>延伸修复：</b>彻底修复了在词典中已配置的词汇，依然被错误登记进 <code>auto_dict.txt</code> 的遗留问题。</li>
+          <li><b>底层加固：</b>追加写入拦截防线。在 <code>_append_to_auto_dict</code> 执行物理写入前，强制检查该词条是否存在于用户的精确词典中。只要命中词典，无论原流程如何，一律拒绝登记，保证自动记忆池的绝对纯净。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.14 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.14</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>修复 BUG：</b>监控台「Ruby 识别」面板中，同一个词条的注音被<b>重复显示多次</b>的问题。</li>
+          <li><b>根因分析：</b><code>tts.py</code> 的 <code>parse_ruby()</code> 函数在串行处理多种注音格式时（HTML 标签、带竖线格式、隐式格式），前一个正则转换后的结果会再次被后续正则捕获，导致同一个 <code>base → ruby</code> 被多次压入 <code>findings</code> 列表。虽然不影响最终朗读，但会让监控台显得很凌乱。</li>
+          <li><b>解决方案：</b>在 <code>parse_ruby()</code> 中引入 <code>_seen_findings</code> 集合进行去重，确保同一个注音组合只被记录一次。</li>
+          <li><b>新增兜底：</b>纯标点断句静音兜底。修复了 CeVIO COM 引擎在遇到纯标点文本（如单独成行的 <code>──…………</code> 或 <code>？！</code>）时，直接报错 <code>OutputWaveToFile 失败</code> 导致长文本朗读中断的问题。现在，系统会自动检测文本中是否含有可发音字符。若全是标点符号，将直接返回 <b>1 秒的静音 WAV 音频</b>作为平稳过渡，确保不会卡死闪退。</li>
+          <li><b>修复 BUG：</b>向 <code>auto_dict.txt</code> 写入自动记忆词条时，会产生重复数据的问题。</li>
+          <li><b>根因分析：</b><code>load_all_rules()</code> 在启动时加载规则时，由于历史遗留的 <code>continue</code> 拦截，导致 auto_dict 的去重标记未正确载入内存。每次重启服务后，系统会忘记之前的登记记录，从而向文件中重复追加。</li>
+          <li><b>解决方案：</b>修正了内存加载逻辑；同时在 <code>_append_to_auto_dict</code> 写文件前，加入了物理文件级别的二次比对去重，彻底杜绝重复条目污染文件。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.13 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.13</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>修复 BUG：</b><code>&lt;ruby&gt;</code> <b>逐字注音结构</b>（一个 <code>&lt;ruby&gt;</code> 内含多个 <code>&lt;rt&gt;</code>）无法被解析的问题。</li>
+          <li><b>标签兼容：</b>同步增强了 <code>&lt;rp&gt;</code> 标签的剥离能力，并支持 <code>&lt;rb&gt;</code>、<code>&lt;span&gt;</code> 等嵌套标签混入的情况。</li>
+          <li><b>温馨提示：</b>本次修复只解决「标签解析」，但<b>原文标注的读音是否正确，仍需你自己把关</b>。比如 EPUB 常见的错标：<code>矯正</code> 标成 <code>きようせい</code>（<code>よ</code> 应为小字 <code>ょ</code>）——解析器只能忠实还原原文给的读音，无法自动纠错。建议在 <code>user_dict.txt</code> 里加上强制覆盖规则。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.12 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.12</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>修复 BUG：</b>「大小写兼容」算法范围过度扩大化，导致 Windows 讲述人与 Edge TTS 模型调用失败的问题。</li>
+          <li><b>特别强调：</b>Windows 讲述人 与 Edge TTS <b>不支持 C 模式（Ruby 输出）</b>，请使用 <b>A（纯汉字）</b> 或 <b>B（纯注音）</b> 模式。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.11 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.11</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>新增功能：</b>监控台左侧面板新增「TTS 语种选择」功能，支持快速切换日语、漢语、英语三种目标语种（选择状态会自动保存在浏览器本地）。</li>
+          <li><b>底层预留：</b>为后续不同语种的专属规则库或合成策略（如中文纯注音替代、英文纯原文读取）预留了底层 UI 交互层。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.10 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.10</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>文档完善：</b>补充并完善了【📖 使用说明】中关于其他语种（尤其是汉语）的 TTS 配置建议。</li>
+          <li><b>明确规范：</b>明确了汉语 TTS 推荐使用 <b>B（纯注音）</b> 模式，并采用替代注音法（用无多音字的同音字进行替代）。</li>
+          <li><b>示例更新：</b>更新了常见多音字替代示例：<code>弹琴 => 谈琴</code>、<code>大夫 => 代夫</code>、<code>的确 => 迪确</code>、<code>重复 => 虫复</code>、<code>朝气 => 招气</code>、<code>还钱 => 环钱</code>、<code>角色 => 觉色</code>。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.9 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.9</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>新增功能：</b>新增高级数字规则包 <code>00_top_rule.txt</code>（位于 <code>replace_rule.7z.backup</code>，解压后手动放入 <code>replace_rules/</code>，并到监控台勾选启用）。支持「汉字数字 + 小写数字 + 小数点」混合大数的智能注音，如 <code>24</code>、<code>2十5</code>、<code>100本</code>、<code>三百27</code>。</li>
+          <li><b>底层优化：</b>利用前瞻断言 <code>(?=...)</code> 实现「只吃十位 / 百位，个位留给量词规则」的分工策略；利用负向后顾 <code>(?&lt;!...)</code> 防止把更长数字中的片段误识别为独立数字。</li>
+          <li><b>规则补全：</b>内置 <code>本 / 杯 / 匹</code> 三大高频量词的完整音变表（促音、浊化、半浊化），并兼容全角 / 半角数字输入。采用 <code>&lt;= count:99</code> 权重优先级，确保高级数字规则永远压过普通词典中的同词规则。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.8 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.8</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>新增引擎：</b>新增 Edge TTS 引擎支持（需安装 <code>edge-tts</code> 库），以及 Windows 讲述人原生语音支持。</li>
+          <li><b>UI 功能：</b>新增全局背景图配置与界面毛玻璃（亚克力）效果；重构数据统计面板，改为 5+5 居中布局；优化悬浮编辑按钮的弹窗位置，防止遮挡文本。</li>
+          <li><b>修复 BUG：</b>修复了词库检测搜索功能无法检索未启用文件的问题。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.7 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.7</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>文档重构：</b>全面重写「📖 使用说明」页面，加入配色图例。</li>
+          <li><b>功能增强：</b>新增“疑似小字”拆分为“常见小字”和“特殊小字”并更新筛选逻辑。</li>
+          <li><b>语法支持：</b>新增了 <code>(A|B|C) => (a|b|c)</code> 人名映射语法，以及 <code>[suffix] 君 => くん</code> 的 <b>固有名词</b> 专属的 <b>后缀词映射</b> 语法，并新增人名词典自动生成与优先级锁定。</li>
+          <li><b>文件</b><code>person_dict.txt</code>，该文件将在首次运行时自动建立。</li>
+          <li><b>导出优化：</b>新增“导出自动归一化西文大小写与全半角”功能。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.6 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.6</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>算法更新：</b>再次更新并重写映射的算法机制；更新了 Ruby 提取的算法机制。</li>
+          <li><b>语法</b>新增了 <code>&lt;= count:n</code> 的权重加强语法。</li>
+          <li><b>UI 优化：</b>优化了 Ruby 标注的 UI / UX 体验；重新设计了悬浮按钮的功能和 UI。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.5 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.5</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>协议变更：</b>重写 <code>README.md</code>，更新 License，许可协议更换为 <b>CC BY-NC-SA 4.0</b>。</li>
+          <li><b>页面</b>设计了「📖 使用说明」页面。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.4 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.4</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>引擎接入：</b>引入了 CeVIO AI 通过 COM 实现情感参数控制的功能。</li>
+          <li><b>功能调整：</b>放弃了让工具箱自行修复小字的功能，改为在导出时分组的功能。</li>
+          <li><b>文件</b>新增了 <code>skill.md</code> 文件，用于 AI 辅助完成小字修复。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.3 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.3</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>引擎接入：</b>引入了 CeVIO AI 的 SAPI 接入功能。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.2 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.2</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>UI 重构：</b>重新设计了页面 UI。</li>
+          <li><b>功能</b>新增 VOICEVOX 音色速查功能。</li>
+          <li><b>文件</b>新增 <code>README.md</code> 与 <code>MIT License.txt</code> 文件。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.1 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.1</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>语法</b>更新了多种独创的语法结构。</li>
+          <li><b>语法</b>新增了 <code>A => a</code> 标准注音语法、<code>A|AA|AAA => a</code> 多对一标注语法、<code>A => a1(1)|a2(1)|a3(3)</code> 一对多概率抽取的标注语法。</li>
+        </ul>
+      </div>
+
+      <!-- v1.0.0 -->
+      <div class="cl-item" style="margin-bottom: 8px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.0.0</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>项目启动：</b>初步完成了 TTS 引擎的设计与测试，接下来将着重于设计词条映射机制。</li>
+        </ul>
+      </div>
+</div>
+</body>
+</html>

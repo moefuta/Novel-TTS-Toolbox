@@ -1,0 +1,3117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EPUB Ruby 提取 · Novel TTS 工具箱</title>
+<link rel="stylesheet" href="toolbox.css">
+</head>
+<body class="on-ruby">
+<div class="wrap">
+  <header>
+	<h1>Novel TTS 工具箱</h1>
+	<button class="settings-btn" id="btnOpenSettings" title="全局设置">⚙️</button>
+  </header>
+  <!-- 设置抽屉 -->
+  <div class="settings-drawer" id="settingsDrawer">
+	<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+	  <h2 style="margin:0;font-size:18px;">⚙️ 全局设置</h2>
+	  <button id="btnCloseSettings" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✖</button>
+	</div>
+	
+	<h3 style="font-size:14px;color:var(--muted);margin-bottom:10px;">外观模式</h3>
+	<div class="theme-toggle-wrapper">
+	  <div class="theme-toggle-label" id="themeLabelGroup" style="gap: 6px;">
+		<span id="themeLabelLight" style="font-weight: 600; color: var(--muted); transition: all .2s; cursor: pointer;" onclick="document.getElementById('themeToggle').click()">☀️ 浅色</span>
+		<span style="color: var(--border-strong); font-size: 12px;">/</span>
+		<span id="themeLabelDark" style="font-weight: 600; color: var(--muted); transition: all .2s; cursor: pointer;" onclick="document.getElementById('themeToggle').click()">🌙 深色</span>
+	  </div>
+	  <label class="switch">
+		<input type="checkbox" id="themeToggle">
+		<span class="slider"></span>
+	  </label>
+	</div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">主题色</h3>
+	<div id="themeColors" class="theme-grid"></div>
+	<div class="custom-color-row" id="customColorRow">
+	  <input type="color" id="customColorPicker" value="#4f6ef7" title="选择自定义主题色">
+	  <input type="text" id="customColorHex" placeholder="#4f6ef7" maxlength="7" spellcheck="false" autocomplete="off" title="输入十六进制色值，例如 #4f6ef7">
+	  <button class="btn small" id="customColorApplyBtn">应用</button>
+	</div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">界面字体</h3>
+	<div id="fontList"></div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">TTS 输出形式</h3>
+	<div class="output-format-group" id="outputFormatGroup">
+	  <button class="btn ghost" data-fmt="A">A. 纯汉字</button>
+	  <button class="btn ghost" data-fmt="B">B. 纯注音</button>
+	  <button class="btn ghost active" data-fmt="C">C. Ruby输出</button>
+	</div>
+	<div class="hint" style="margin-bottom:6px;font-size:12px;">示例效果：</div>
+	<pre id="outputSampleBox" style="background:var(--panel-bg);border:1px dashed var(--panel-border);border-radius:6px;padding:10px;font-size:12px;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap;margin:0;color:var(--text);">加载中...</pre>
+
+<!-- 背景图像移到最下面 -->
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">背景图像</h3>
+	<div class="bg-image-panel" style="margin-bottom: 20px;">
+	  <div class="bg-input-row">
+		<span class="bg-path-prefix" id="btnOpenBgFolder" title="点击打开 bg 文件夹" style="cursor: pointer; transition: all .2s ease;">
+		  📂 bg/
+		</span>
+		<input type="text" id="bgFilename" class="bg-filename-input" placeholder="例如: bg02" spellcheck="false">
+		<span id="bgExtDisplay" class="bg-ext-display"></span>
+	  </div>
+	  <div style="display:flex;gap:8px;margin-top:8px;">
+		<button class="btn small" id="bgApplyBtn" style="flex:1;">应用</button>
+		<button class="btn ghost small" id="bgTestBtn" style="flex:1;">检测文件</button>
+		<button class="btn ghost small" id="bgClearBtn" style="flex:1;">清除</button>
+	  </div>
+	  <div id="bgStatus" class="hint" style="font-size:12px;margin-top:8px;min-height:16px;line-height:1.5;"></div>
+	  
+	  <div class="bg-slider-row">
+		<label>透明度</label>
+		<input type="range" id="bgOpacity" min="0" max="100" value="75">
+		<span id="bgOpacityVal">75%</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label>模糊度</label>
+		<input type="range" id="bgBlur" min="0" max="20" value="2">
+		<span id="bgBlurVal">2px</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label>背景暗化</label>
+		<input type="range" id="bgDim" min="0" max="100" value="20">
+		<span id="bgDimVal">20%</span>
+	  </div>
+
+	  <!-- 面板透明度与毛玻璃 -->
+	  <div style="border-top: 1px dashed var(--border); margin: 14px 0 10px;"></div>
+	  <div class="bg-slider-row">
+		<label title="调整面板/卡片的背景透明度">面板透明度</label>
+		<input type="range" id="uiOpacity" min="10" max="100" value="75">
+		<span id="uiOpacityVal">75%</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label title="调整面板/卡片的毛玻璃模糊半径">面板模糊</label>
+		<input type="range" id="uiBlur" min="0" max="30" value="6">
+		<span id="uiBlurVal">6px</span>
+	  </div>
+	</div>
+  </div>
+  <section class="pane active" id="pane-ruby">
+
+	<div class="card" id="ruby-sec-step1">
+	  <h2><span class="step">1</span>选择 EPUB 或重写 TXT</h2>
+	  <!-- 步骤 1 原内容保持不变... -->
+	  <div class="drop" id="dropZone">
+		<div class="icon">📖</div>
+		<div>拖拽 <b>EPUB</b> 或 <b>重写 TXT</b> 文件到这里，或</div>
+		<div style="margin-top:10px"><button class="btn" id="btnPick">选择文件</button></div>
+		<div class="tip">
+		  EPUB → 提取 ruby 生成结果<br>
+		  重写 TXT（之前从本工具导出的 <code>user_dict_*.txt</code>）→ 恢复提取结果，继续编辑
+		</div>
+	  </div>
+	  <div class="paste-block">
+		<div class="paste-head">
+		  <span class="paste-title">✍️ 或者，直接粘贴文本</span>
+		  <span class="hint">
+			支持：<code>&lt;ruby&gt;漢字&lt;rt&gt;かんじ&lt;/rt&gt;&lt;/ruby&gt;</code> · <code>漢字《かんじ》</code> · <code>｜漢字《かんじ》</code> · <code>{漢字|かんじ}</code> · <code>漢字[かんじ]</code>
+		  </span>
+		</div>
+		<textarea id="pasteInput" placeholder="把带 ruby 标注的文本粘贴到这里……&#10;也支持粘贴「汉字 => 读音」格式的规则（自动识别）。"></textarea>
+		<div class="row" style="margin-top:10px">
+		  <button class="btn" id="btnPasteParse">📋 从粘贴内容提取</button>
+		  <button class="btn ghost small" id="btnPasteClear">🗑️ 清空</button>
+		  <span class="hint">每次点击都会生成一条独立的「粘贴文本 #N」，可以多次粘贴不同内容</span>
+		</div>
+	  </div>
+	  <input type="file" id="fileInput" accept=".epub,.txt" multiple hidden>
+	  <div class="file-list" id="fileList"></div>
+	  <div class="banner" id="banner1"></div>
+	</div>
+
+	<div class="card" id="ruby-sec-step2">
+	  <h2><span class="step">2</span>（可选）导入参考词典，用于去重与 ★ 优先</h2>
+	  <!-- 步骤 2 原内容保持不变... -->
+	  <div class="row" style="margin-top:0">
+		<button class="btn ghost" id="btnPickDictFiles">📄 上传 .txt 文件</button>
+		<button class="btn ghost" id="btnPickDictDir">📁 选择规则文件夹</button>
+		<span class="hint" id="dictStatus">未导入（导出的词条不会与现有词典比较）</span>
+	  </div>
+	  <input type="file" id="dictFilesInput" accept=".txt,text/plain" multiple hidden>
+	  <input type="file" id="dictDirInput" webkitdirectory directory multiple hidden>
+	  <div class="note" id="dictFileList" style="display:none"></div>
+	  <div class="hint" style="margin-top:8px">
+		<b>📄 上传 .txt</b>：作为<b>去重参考词典</b>（即 <code>replace_rules</code> 里的规则）。<br>
+		<b>📁 选择文件夹</b>：直接选 <code>D:\TTS\replace_rules\</code>，读取其中所有 .txt 并合并作为参考。<br>
+		<b>★ 已收录优先</b>：参考词典中已有的词条会标红 <span style="color:#dc2626;font-weight:600">★ 已收录</span>，冲突时默认使用其读音，可在候选按钮里切换。<br>
+		<span style="color:#7c3aed">💡 步骤 1 的 TXT 是「重写」，步骤 2 的 TXT 是「参考词典」——两处功能不同，请勿混淆。</span>
+	  </div>
+	</div>
+
+	<!-- 步骤 3：提取结果概览 -->
+	<div class="card" id="resultCard" style="display:none">
+	  <h2><span class="step">3</span>提取结果概览 <span class="hint" style="font-weight:400">（基础数据统计与语法提示）</span></h2>
+	  <div class="stats" id="stats"></div>
+	  
+	  <!-- 常驻的进阶操作指南：语法展示 -->
+	  <div class="box-tip" style="margin: 0 0 14px 0;">
+		<b style="color:var(--text); font-size:14px; display:block; margin-bottom:8px;">✨ 独创词库语法结构速览（导出后由 tts.py 原生完美解析）：</b>
+		<ul style="margin:0; padding-left:20px; line-height:1.8; font-size:13px; color:var(--text);">
+		  <li><b>多读音概率分配</b>：<code>お兄ちゃん => おにいちゃん(70%) | おにいさん(30%)</code> 或 <code>汉字 => 读音1(7) | 读音2(3)</code>（等概率）<br><span style="color:var(--muted);font-size:12px;">直接在「读音」输入框里改即可。每次朗读时按比例随机抽取，权重不必总和为 100（按比例分配）。单值规则与多值规则分开去重，互不干扰。</span></li>
+		  <li><b>绝对优先级权重</b>：<code>絶対 => ぜったい <= count:100</code><br><span style="color:var(--muted);font-size:12px;">数值越大，越能无视文件加载顺序，强制覆盖其他词典的同词规则。</span></li>
+		  <li><b>等价原词合并</b>：<code>二〇日|二十日|20日 => はつか</code><br><span style="color:var(--muted);font-size:12px;">用竖线隔开多个原词，会在一行内生成多条等价的独立规则。<b>兼容半角竖线 <code>|</code> 与全角竖线 <code>｜</code></b>，自动识别无需手动转换。</span></li>
+		  <li><b>人名词典专属阻断</b>（仅限 <code>person_dict*.txt</code> 生效）：<br><code>(結城|明日奈|アスナ) => (ゆうき|あすな|アスナ)</code><br><span style="color:var(--muted);font-size:12px;">按顺序严格一一映射，彻底杜绝错配。配合 <code>[suffix] 君 => くん</code> 还能自动纠正称呼读音。</span></li>
+		</ul>
+	  </div>
+
+	  <div class="merge-hint" id="mergeHint" style="display:none"></div>
+	  <div class="susp-hint" id="suspHint" style="display:none">
+		🌀 检测到 <b id="suspCount">0</b> 条读数中包含<b>可能是小字的大字字符</b>。这些字符在标准读音中通常应以小字形式出现，写成大字很可能是错标：
+		<div style="display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap;">
+		  <!-- 左侧：常见小字 + 基础操作说明 -->
+		  <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column;">
+			<div style="font-weight: 800; color: var(--susp); margin-bottom: 6px;">🔸 常见小字</div>
+			<table style="margin-top:0; width:100%;">
+			  <tr><th>大字字符</th><th>本该的小字</th><th>典型错标</th></tr>
+			  <tr>
+				<td><code>や</code> <code>ゆ</code> <code>よ</code><br><code>ヤ</code> <code>ユ</code> <code>ヨ</code></td>
+				<td><code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ゃ</code> <code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ゅ</code> <code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ょ</code><br><code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ャ</code> <code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ュ</code> <code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ョ</code></td>
+				<td><code>きよう</code> → <code>き<span style="color: var(--text) !important; font-weight: 900;">ょ</span>う</code><br><code>キヨウ</code> → <code>キ<span style="color: var(--text) !important; font-weight: 900;">ョ</span>ウ</code></td>
+			  </tr>
+			  <tr>
+				<td><code>つ</code><br><code>ツ</code></td>
+				<td><code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">っ</code><br><code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ッ</code></td>
+				<td><code>がつこう</code> → <code>が<span style="color: var(--text) !important; font-weight: 900;">っ</span>こう</code><br><code>ガツコウ</code> → <code>ガ<span style="color: var(--text) !important; font-weight: 900;">ッ</span>コウ</code></td>
+			  </tr>
+			</table>
+
+			<!-- 基础悬浮说明 (左侧) -->
+			<div style="margin-top: auto; padding-top: 14px;">
+			  <b style="font-size: 13px;">💡 基础操作模式：</b>
+			  <ul style="margin:6px 0 0; padding-left:0; font-size: 12.5px; line-height: 2.1; color: var(--text-secondary); list-style: none;">
+				<li><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); border-radius: 4px; font-weight: 900; font-size: 15px; font-family: Georgia, 'Times New Roman', 'SimSun', serif; vertical-align: middle; margin-right: 8px; padding-bottom: 1px;">I</span><b>操作逻辑</b>：选中文字→作用于选区；光标在字后→作用于左侧单字。</li>
+				<li><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); border-radius: 4px; font-weight: 900; font-size: 15px; vertical-align: middle; margin-right: 8px; padding-bottom: 2px;">⇄</span><b>交换原文</b>：交换左右两侧的原文和读音。</li>
+				<li><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: var(--primary); color: #fff; border-radius: 4px; border: 1px solid var(--primary-dark); vertical-align: middle; margin-right: 8px; box-shadow: var(--raised-btn);"><span style="font-size: 12px; opacity: 0.4; font-weight: 900; line-height: 1;">大</span><span style="font-size: 9px; font-weight: 900; line-height: 1;">小</span></span><b>大小切换</b>：日文大小字双向切换（如 や ⇄ ゃ）。</li>
+				<li><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: var(--split); color: #fff; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--split) 70%, #000); vertical-align: middle; margin-right: 8px; box-shadow: var(--raised-btn); position: relative;"><span style="position: absolute; top: 0px; left: 3px; font-size: 8px; font-weight: 900; line-height: 1;">"</span><span style="position: absolute; top: 0px; right: 3px; font-size: 8px; font-weight: 900; line-height: 1;">°</span><span style="font-size: 11px; font-weight: 900; padding-top: 7px; line-height: 1;">浊</span></span><b>浊音切换</b>：假名循环切换（清音→浊音→半浊音→清音）。</li>
+			  </ul>
+			</div>
+		  </div>
+
+		  <!-- 右侧：特殊小字 + 进阶按钮说明 -->
+		  <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column;">
+			<div style="font-weight: 800; color: var(--susp); margin-bottom: 6px;">🔹 特殊小字</div>
+			<table style="margin-top:0; width:100%;">
+			  <tr><th>大字字符</th><th>本该的小字</th><th>典型错标</th></tr>
+			  <tr>
+				<td><code>ア</code> <code>イ</code> <code>ウ</code><br><code>エ</code> <code>オ</code></td>
+				<td><code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ァ</code> <code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ィ</code> <code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ゥ</code><br><code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ェ</code> <code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ォ</code></td>
+				<td><code>フアイ</code> → <code>フ<span style="color: var(--text) !important; font-weight: 900;">ァ</span>イ</code><br><code>ウエイト</code> → <code>ウ<span style="color: var(--text) !important; font-weight: 900;">ェ</span>イト</code></td>
+			  </tr>
+			  <tr>
+				<td><code>ケ</code><br><code>カ</code></td>
+				<td><code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ヶ</code><br><code style="color: var(--text) !important; font-weight: 900; background: transparent !important;">ヵ</code></td>
+				<td><code>竜ケ峰</code> → <code>竜<span style="color: var(--text) !important; font-weight: 900;">ヶ</span>峰</code><br><code>一カ所</code> → <code>一<span style="color: var(--text) !important; font-weight: 900;">ヵ</span>所</code></td>
+			  </tr>
+			</table>
+
+			<!-- 进阶悬浮说明 (右侧) -->
+			<div style="margin-top: auto; padding-top: 14px;">
+			  <ul style="margin:6px 0 0; padding-left:0; font-size: 12.5px; line-height: 2.1; color: var(--text-secondary); list-style: none;">
+				<li><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#06b6d4;color:#fff;border-radius:4px;border:1px solid #0891b2;font-weight:900;font-size:13px;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);">%</span><b>概率拆分</b>：为当前原文添加更多读音，并分配多读音间的概率。</li>
+				<li><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#84cc16;color:#fff;border-radius:4px;border:1px solid #65a30d;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span><b>快速复制</b>：在当前词条下方插入草稿副本，点击 “✔” 确认加入，或点击 “✖” 废弃删除。</li>
+				<li><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#8b5cf6;color:#fff;border-radius:4px;border:1px solid #7c3aed;font-size:13px;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);">👤</span><b>标记名词</b>：导出时单独分组为# ===== 名词（n 条） =====</li>
+				<li><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#f59e0b;color:#fff;border-radius:4px;border:1px solid #d97706;font-weight:900;font-size:14px;vertical-align:middle;margin-right:8px;box-shadow:var(--raised-btn);">?</span><b>存疑搁置</b>：导出时单独分组为# ===== 存疑（n 条） =====并带上 [?] 标记。</li>
+			  </ul>
+			</div>
+		  </div>
+		</div>
+	  </div>
+	  <div class="type-hint" id="typeHint" style="display:none">
+		💡 <b>单字</b>规则会替换文本中所有该字，容易误伤（如「生」在不同词里读音不同）。单字默认不勾选，请确认后再勾。
+	  </div>
+	</div>
+
+	<!-- 步骤 4 Ruby 工作台 -->
+	<div class="card" id="workbenchCard" style="display:none">
+	  <h2><span class="step">4</span>Ruby 工作台 <span class="hint" style="font-weight:400">（点击汉字或假名可直接修改；光标在文字后或选中文字时，悬浮按钮可作用）</span></h2>
+	  
+	  <div class="toolbar">
+		<input type="search" id="searchBox" placeholder="搜索汉字、读音…">
+		<select id="sortSelect">
+		  <option value="fifty">按五十音序</option>
+		  <option value="order">按正文顺序</option>
+		  <option value="occur">按出现次数</option>
+		</select>
+		<button class="btn ghost small sort-dir-btn" id="sortDirBtn">↑ 升序</button>
+		<button class="btn ghost small" id="btnSelectFiltered">全选当前筛选词条</button>
+		<button class="btn ghost small" id="btnUnselectFiltered">取消全选当前筛选词条</button>
+	  </div>
+
+	  <div class="filter-bar" id="filterBar">
+		<div class="filter-group">
+		  <span class="fg-title">原文中</span>
+		  <button class="chk filter-btn" data-g="g1" data-val="word" data-state="0">组词</button>
+		  <button class="chk filter-btn" data-g="g1" data-val="single" data-state="0">单字</button>
+		  <button class="chk filter-btn" data-g="g1" data-val="latin" data-state="0">西文</button>
+		  <button class="chk filter-btn" data-g="g1" data-val="katakana" data-state="0">片假名</button>
+		</div>
+		<div class="filter-group">
+		  <span class="fg-title">Ruby 中</span>
+		  <button class="chk filter-btn" data-g="g2" data-val="rubyLatin" data-state="0">西文</button>
+		  <button class="chk filter-btn" data-g="g2" data-val="rubyKana" data-state="0">假名</button>
+		  <button class="chk filter-btn" data-g="g2" data-val="suspCommon" data-state="0">常见小字</button>
+		  <button class="chk filter-btn" data-g="g2" data-val="suspSpecial" data-state="0">特殊小字</button>
+		</div>
+		<div class="filter-group">
+		  <span class="fg-title">编辑状态</span>
+		  <button class="chk filter-btn" data-g="g3" data-val="new" data-state="0">新增</button>
+		  <button class="chk filter-btn" data-g="g3" data-val="conflict" data-state="0">冲突</button>
+		  <button class="chk filter-btn" data-g="g3" data-val="checked" data-state="0">勾选</button>
+		  <button class="chk filter-btn" data-g="g3" data-val="userdict" data-state="0">收录</button>
+		  <button class="chk filter-btn" data-g="g3" data-val="edited" data-state="0">编辑</button>
+		</div>
+		<div class="filter-group" style="border-right: none;">
+		  <span class="fg-title">标记</span>
+		  <button class="chk filter-btn" data-g="g3" data-val="person" data-state="0">名词</button>
+		  <button class="chk filter-btn" data-g="g3" data-val="suspect" data-state="0">存疑</button>
+		</div>
+		<button class="btn" id="btnClearFilters">清空筛选</button>
+		<span class="filter-count" id="filterCount"></span>
+	  </div>
+
+	  <div class="entries" id="entries"></div>
+	  <div class="banner" id="banner3"></div>
+	</div>
+
+	<!-- 步骤 5：导出 -->
+	<div class="card" id="ruby-sec-export" style="display:none">
+	  <h2><span class="step">5</span>导出</h2>
+	  <div class="row">
+		<button class="btn" id="btnDownloadNew">下载勾选词条</button>
+		<button class="btn ghost" id="btnDownloadMerged" style="display:none">下载合并版（含原有词典）</button>
+		<button class="btn ghost" id="btnCopy">复制到剪贴板</button>
+		<button class="btn ghost" id="btnDedupe">🧹 去重</button>
+		<button class="btn alert" id="btnClearWork">❌ 清空当前工作区</button>
+	  </div>
+	  <div class="note">
+		下载的文本使用标准规则格式（每行 <code>汉字 =&gt; 读音</code>），并按以下分组顺序输出：<br>
+		<b>名词 → 疑似小字 → 原文仅西文 → 原文仅片假名 → 组词 → 单字 → 存疑</b>；组内按出现次数<b>从高到低</b>排列，出现次数大于 1 的词条会追加 <code>&lt;= count:N</code> 标记。<br>
+		<b>使用方法：</b>把下载的文件直接放进 <code>D:\TTS\replace_rules\</code> 文件夹里即可（文件名会自动带上 EPUB 书名，方便区分）。保存后<b>无需重启 tts.py</b>，下一次朗读自动生效。
+	  </div>
+	</div>
+
+  </section>
+  <!-- ★ 页面最底部的版本号 -->
+  <div style="display: flex; justify-content: center; padding: 30px 0 20px;">
+    <div id="changelogBtn" style="
+      padding: 6px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      box-shadow: var(--raised-panel);
+      text-shadow: none;
+      user-select: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(var(--ui-blur, 0px));
+      -webkit-backdrop-filter: blur(var(--ui-blur, 0px));
+    " onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='none'; this.style.boxShadow='var(--raised-panel)';" title="点击查看更新日志">
+      Novel TTS Toolbox <span id="appVersion" style="font-weight: bold; color: var(--primary-dark); margin-left: 4px;">v1.1.2</span>
+    </div>
+  </div>
+</div>
+<button id="floatConvert" class="float-btn hidden" data-tip="大小字转换"><span class="icon-group icon-large-small"><span class="txt-large">大</span><span class="txt-small">小</span></span></button>
+<button id="floatDakuten" class="float-btn float-btn-dakuten hidden" data-tip="浊音切换"><div class="icon-dakuten"><span class="dot-top-left">"</span><span class="dot-top-right">°</span><span class="txt-main">浊</span></div></button>
+<button id="floatProbability" class="float-btn float-btn-probability hidden" data-tip="概率拆分/合并">%</button>
+<button id="floatAdd" class="float-btn float-btn-add hidden" data-tip="下方插入新词条"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+<button id="floatPerson" class="float-btn float-btn-person hidden" data-tip="标记为名词">👤</button>
+<button id="floatSuspect" class="float-btn float-btn-suspect hidden" data-tip="存疑搁置 [?]">?</button>
+<div class="float-tools">
+  <!-- 前往顶部 -->
+  <button id="backToTop" class="float-tool-btn" type="button" title="前往顶部" aria-label="前往顶部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+  <!-- 设置 -->
+  <button id="floatSettings" class="float-tool-btn" type="button" title="设置" aria-label="设置">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
+  <!-- 前往底部 -->
+  <button id="backToBottom" class="float-tool-btn" type="button" title="前往底部" aria-label="前往底部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+  </button>
+</div>
+<script src="toolbox.common.js"></script>
+<script>
+(function () {
+  const btnTop = document.getElementById('backToTop');
+  const btnBottom = document.getElementById('backToBottom');
+  const btnSet = document.getElementById('floatSettings');
+  if (!btnTop || !btnSet || !btnBottom) return;
+  
+  const SHOW_AFTER = 400; // 滚动多少像素后才显示按钮
+  let ticking = false;
+  
+  function update() {
+    const scrollY = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight;
+    const winHeight = window.innerHeight;
+    
+    // 判断是否到底部（误差 10px 以内算作底部）
+    const isBottom = scrollY + winHeight >= docHeight - 10;
+    
+    // 统一控制是否整体显示
+    if (scrollY > SHOW_AFTER) {
+      btnSet.classList.add('show');
+    } else {
+      btnSet.classList.remove('show');
+    }
+    
+    // 前往顶部：只要离开顶部区域就显示
+    if (scrollY > SHOW_AFTER) {
+      btnTop.classList.add('show');
+    } else {
+      btnTop.classList.remove('show');
+    }
+    
+    // 前往底部：只要离开顶部区域，且还没到最底部，就显示
+    if (scrollY > SHOW_AFTER && !isBottom) {
+      btnBottom.classList.add('show');
+    } else {
+      btnBottom.classList.remove('show');
+    }
+    
+    ticking = false;
+  }
+  
+  window.addEventListener('scroll', () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }, { passive: true });
+  
+  // 前往顶部点击
+  btnTop.addEventListener('click', () => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  });
+  
+  // 前往底部点击
+  btnBottom.addEventListener('click', () => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
+  });
+  
+  // 打开设置抽屉
+  btnSet.addEventListener('click', () => {
+    const origSetBtn = document.getElementById('btnOpenSettings');
+    if (origSetBtn) origSetBtn.click();
+  });
+  
+  update();
+})();
+</script>
+<script>
+(function () {
+  class MiniZip {
+	constructor(buffer) {
+	  this.u8 = new Uint8Array(buffer);
+	  this.dv = new DataView(buffer);
+	  this.entries = this._readCentralDirectory();
+	}
+	_readCentralDirectory() {
+	  const sig = 0x06054b50;
+	  let eocd = -1;
+	  for (let i = this.u8.length - 22; i >= Math.max(0, this.u8.length - 22 - 65535); i--) {
+		if (this.dv.getUint32(i, true) === sig) { eocd = i; break; }
+	  }
+	  if (eocd < 0) throw new Error('不是有效的 ZIP/EPUB 文件');
+	  const count = this.dv.getUint16(eocd + 10, true);
+	  let pos = this.dv.getUint32(eocd + 16, true);
+	  const entries = [];
+	  for (let i = 0; i < count; i++) {
+		if (this.dv.getUint32(pos, true) !== 0x02014b50) break;
+		const compression = this.dv.getUint16(pos + 10, true);
+		const compSize = this.dv.getUint32(pos + 20, true);
+		const nameLen = this.dv.getUint16(pos + 28, true);
+		const extraLen = this.dv.getUint16(pos + 30, true);
+		const commentLen = this.dv.getUint16(pos + 32, true);
+		const localOff = this.dv.getUint32(pos + 42, true);
+		const name = new TextDecoder('utf-8').decode(this.u8.subarray(pos + 46, pos + 46 + nameLen));
+		entries.push({ name, compression, compSize, localOff });
+		pos += 46 + nameLen + extraLen + commentLen;
+	  }
+	  return entries;
+	}
+	async read(name) {
+	  const e = this.entries.find(x => x.name === name);
+	  if (!e) return null;
+	  const nameLen = this.dv.getUint16(e.localOff + 26, true);
+	  const extraLen = this.dv.getUint16(e.localOff + 28, true);
+	  const start = e.localOff + 30 + nameLen + extraLen;
+	  const data = this.u8.subarray(start, start + e.compSize);
+	  if (e.compression === 0) return data;
+	  if (e.compression === 8) {
+		if (typeof DecompressionStream === 'undefined')
+		  throw new Error('浏览器不支持 DecompressionStream，请使用新版 Chrome / Edge');
+		const ds = new DecompressionStream('deflate-raw');
+		const writer = ds.writable.getWriter();
+		writer.write(data); writer.close();
+		const reader = ds.readable.getReader();
+		const chunks = []; let total = 0;
+		while (true) {
+		  const { done, value } = await reader.read();
+		  if (done) break;
+		  chunks.push(value); total += value.length;
+		}
+		const out = new Uint8Array(total);
+		let off = 0;
+		for (const c of chunks) { out.set(c, off); off += c.length; }
+		return out;
+	  }
+	  throw new Error('不支持的压缩方式：' + e.compression);
+	}
+	listHtmlFiles() { return this.entries.map(e => e.name).filter(n => /\.(x?html?)$/i.test(n)); }
+  }
+
+  function decodeBytes(bytes) {
+	for (const enc of ['utf-8', 'shift_jis', 'euc-jp']) {
+	  try { return new TextDecoder(enc, { fatal: true }).decode(bytes); } catch {}
+	}
+	return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  const RUBY_BLOCK = /<ruby\b[^>]*>([\s\S]*?)<\/ruby>/gi;
+  const RT_ONE	 = /<rt\b[^>]*>([\s\S]*?)<\/rt>/i;
+  const RT_ALL	 = /<rt\b[^>]*>[\s\S]*?<\/rt>/gi;
+  const RP_TAG	 = /<rp\b[^>]*>[\s\S]*?<\/rp>/gi;
+  const ANY_TAG	= /<[^>]+>/g;
+
+  // ★ 修改：移除平假名 'け' 和 'か'，只保留常见的及片假名的检测
+  const SUSPICIOUS_LARGE_CHARS = new Set([
+	'や','ゆ','よ','つ',
+	'ヤ','ユ','ヨ','ツ','ケ','カ',
+  ]);
+  const SMALL_CHARS_SET = new Set([
+	'ぁ','ぃ','ぅ','ぇ','ぉ','ゃ','ゅ','ょ','っ',
+	'ァ','ィ','ゥ','ェ','ォ','ャ','ュ','ョ','ッ','ヵ','ヶ',
+  ]);
+  const PRECISE_SUSPICIOUS_LARGE_CHARS = new Set([
+	'や','ゆ','よ','つ',
+	'ヤ','ユ','ヨ','ツ',
+	'ア','イ','ウ','エ','オ',
+  ]);
+
+  function hasSuspiciousLargeChar(ruby) {
+	if (!ruby) return false;
+	for (const ch of ruby) if (SUSPICIOUS_LARGE_CHARS.has(ch)) return true;
+	return false;
+  }
+  function hasSuspiciousLargeCharPrecise(ruby) {
+	if (!ruby) return false;
+	for (const ch of ruby) if (SMALL_CHARS_SET.has(ch)) return false;
+	for (const ch of ruby) if (PRECISE_SUSPICIOUS_LARGE_CHARS.has(ch)) return true;
+	return false;
+  }
+  function hasKatakanaChar(ruby) { return /[\u30A0-\u30FF]/.test(ruby || ''); }
+  function hasHiraganaChar(ruby) { return /[\u3040-\u309F]/.test(ruby || ''); }
+  function hasLatinChar(ruby) {
+	const s = ruby || '';
+	return /[A-Za-z]/.test(s) || /[\uFF21-\uFF3A\uFF41-\uFF5A]/.test(s);
+  }
+  function isLatinOnly(s) {
+	const str = s || '';
+	const hasLetter = /[A-Za-z\uFF21-\uFF3A\uFF41-\uFF5A]/.test(str);
+	const onlyLatin = /^[A-Za-z\uFF21-\uFF3A\uFF41-\uFF5A\s]+$/.test(str);
+	return hasLetter && onlyLatin;
+  }
+  function isKatakanaOnly(s) { return /^[\u30A0-\u30FF\u30FC\u30FB\uFF66-\uFF9F]+$/.test(s || ''); }
+
+  const CONVERT_MAP = {
+	'あ':'ぁ','い':'ぃ','う':'ぅ','え':'ぇ','お':'ぉ',
+	'か':'ゕ','け':'ゖ',
+	'つ':'っ','や':'ゃ','ゆ':'ゅ','よ':'ょ','わ':'ゎ',
+	'ア':'ァ','イ':'ィ','ウ':'ゥ','エ':'ェ','オ':'ォ',
+	'カ':'ヵ','ケ':'ヶ',
+	'ツ':'ッ','ヤ':'ャ','ユ':'ュ','ヨ':'ョ','ワ':'ヮ',
+  };
+  const CONVERT_MAP_REVERSE = Object.fromEntries(Object.entries(CONVERT_MAP).map(([k, v]) => [v, k]));
+
+  const DAKUTEN_MAP = {
+	'か':'が','き':'ぎ','く':'ぐ','け':'げ','こ':'ご',
+	'さ':'ざ','し':'じ','す':'ず','せ':'ぜ','そ':'ぞ',
+	'た':'だ','ち':'ぢ','つ':'づ','て':'で','と':'ど',
+	'は':'ば','ひ':'び','ふ':'ぶ','へ':'べ','ほ':'ぼ',
+	'カ':'ガ','キ':'ギ','ク':'グ','ケ':'ゲ','コ':'ゴ',
+	'サ':'ザ','シ':'ジ','ス':'ズ','セ':'ゼ','ソ':'ゾ',
+	'タ':'ダ','チ':'ヂ','ツ':'ヅ','テ':'デ','ト':'ド',
+	'ハ':'バ','ヒ':'ビ','フ':'ブ','ヘ':'ベ','ホ':'ボ',
+  };
+  const DAKUTEN_MAP_REVERSE = Object.fromEntries(Object.entries(DAKUTEN_MAP).map(([k, v]) => [v, k]));
+
+  function convertToSmall(text) { return [...text].map(ch => CONVERT_MAP[ch] || ch).join(''); }
+  function convertToLarge(text) { return [...text].map(ch => CONVERT_MAP_REVERSE[ch] || ch).join(''); }
+  const HANDAKUTEN_MAP = { 'は':'ぱ','ひ':'ぴ','ふ':'ぷ','へ':'ぺ','ほ':'ぽ', 'ハ':'パ','ヒ':'ピ','フ':'プ','ヘ':'ペ','ホ':'ポ' };
+  const HANDAKUTEN_MAP_REVERSE = Object.fromEntries(Object.entries(HANDAKUTEN_MAP).map(([k, v]) => [v, k]));
+
+  function toggleVoicing(text) {
+	return [...text].map(ch => {
+	  if (DAKUTEN_MAP[ch]) return DAKUTEN_MAP[ch]; // 清音 -> 浊音
+	  if (DAKUTEN_MAP_REVERSE[ch]) {
+		const seion = DAKUTEN_MAP_REVERSE[ch];
+		if (HANDAKUTEN_MAP[seion]) return HANDAKUTEN_MAP[seion]; // 浊音 -> 半浊音
+		return seion; // 普通浊音 -> 清音
+	  }
+	  if (HANDAKUTEN_MAP_REVERSE[ch]) return HANDAKUTEN_MAP_REVERSE[ch]; // 半浊音 -> 清音
+	  return ch;
+	}).join('');
+  }
+
+  function countToSmall(text)   { return [...text].filter(ch => CONVERT_MAP[ch]).length; }
+  function countToLarge(text)   { return [...text].filter(ch => CONVERT_MAP_REVERSE[ch]).length; }
+  function countToDaku(text)	{ return [...text].filter(ch => DAKUTEN_MAP[ch] || DAKUTEN_MAP_REVERSE[ch] || HANDAKUTEN_MAP[ch] || HANDAKUTEN_MAP_REVERSE[ch]).length; }
+  function countToSei(text)	 { return countToDaku(text); }
+
+  const SMALL_TO_LARGE = {
+	'ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お',
+	'ゃ':'や','ゅ':'ゆ','ょ':'よ','っ':'つ','ゎ':'わ',
+	'ァ':'ア','ィ':'イ','ゥ':'ウ','ェ':'エ','ォ':'オ',
+	'ャ':'ヤ','ュ':'ユ','ョ':'ヨ','ッ':'ツ','ヮ':'ワ',
+  };
+  const LATIN_NORMALIZE_MAP = (() => {
+	const m = {};
+	for (let i = 0; i < 26; i++) {
+	  const up   = String.fromCharCode(0x41 + i);
+	  const lo   = String.fromCharCode(0x61 + i);
+	  const fwUp = String.fromCharCode(0xFF21 + i);
+	  const fwLo = String.fromCharCode(0xFF41 + i);
+	  m[up] = lo; m[fwUp] = lo; m[fwLo] = lo;
+	}
+	for (let i = 0; i < 10; i++) {
+	  m[String.fromCharCode(0xFF10 + i)] = String.fromCharCode(0x30 + i);
+	}
+	m['　'] = ' ';
+	return m;
+  })();
+  function normalizeLatinChar(ch) { return LATIN_NORMALIZE_MAP[ch] || ch; }
+  function normalizeForCompare(ruby) {
+	return [...(ruby || '')].map(ch => {
+	  if (SMALL_TO_LARGE[ch]) return SMALL_TO_LARGE[ch];
+	  return normalizeLatinChar(ch);
+	}).join('');
+  }
+  function normalizeCandidates(rawCandidates) {
+	const groups = new Map();
+	const result = [];
+	for (const c of rawCandidates) {
+	  const key = normalizeForCompare(c.ruby);
+	  if (!groups.has(key)) {
+		const nc = { ruby: c.ruby, fromUserDict: c.fromUserDict, sources: [...c.sources], variants: [c.ruby] };
+		groups.set(key, nc); result.push(nc);
+	  } else {
+		const existing = groups.get(key);
+		for (const s of c.sources) if (!existing.sources.includes(s)) existing.sources.push(s);
+		if (!existing.variants.includes(c.ruby)) existing.variants.push(c.ruby);
+		if (c.fromUserDict) existing.fromUserDict = true;
+		if (countToLarge(c.ruby) > countToLarge(existing.ruby)) existing.ruby = c.ruby;
+	  }
+	}
+	return result;
+  }
+
+  /* ============== ★ 概率分布语法解析（新增） ============== */
+
+function normalizeDigits(s) {
+  return String(s).replace(/[０-９]/g, ch =>
+	String.fromCharCode(ch.charCodeAt(0) - 0xFF10 + 0x30)
+  );
+}
+
+  /* 语法：A | B | C   或   A(70%) | B(30%)   （| 全角半角皆可）*/
+  const _WEIGHT_RE = /^(.+?)[（(]\s*([0-9０-９]+(?:\.[0-9０-９]+)?)\s*([%％]?)\s*[)）]$/;
+
+  function parseRubyOptions(text) {
+	const raw = String(text == null ? '' : text);
+	const parts = raw.split(/[|｜]/).map(s => s.trim());
+	if (parts.length <= 1) {
+	  return { options: [{ ruby: (parts[0] || ''), weight: null }], multi: false, malformed: false };
+	}
+	const matched = parts.map(p => p.match(_WEIGHT_RE));
+	const hasWeight = matched.some(m => m);
+	const allWeight = matched.every(m => m);
+	if (hasWeight && !allWeight) {
+	  /* 部分有部分没有 → 视为语法异常，按字面量处理（与 tts.py 一致） */
+	  return { options: [{ ruby: raw.trim(), weight: null }], multi: false, malformed: true };
+	}
+	if (!hasWeight) {
+	  return { options: parts.map(r => ({ ruby: r, weight: null })), multi: true, malformed: false };
+	}
+	return {
+options: matched.map(m => ({
+  ruby: m[1].trim(),
+  weight: parseFloat(normalizeDigits(m[2])),
+})),
+	  multi: true, malformed: false,
+	};
+  }
+function summarizeDist(options) {
+  if (!options || options.length <= 1) return '';
+  if (options.every(o => o.weight === null)) return `${options.length} 项等概率`;
+  const total = options.reduce((s, o) => s + (o.weight || 0), 0);
+  if (total <= 0) return `${options.length} 项等概率`;
+  return options.map(o => {
+	const pct = (o.weight / total) * 100;
+	const r = Math.round(pct * 10) / 10;		  // 保留 1 位小数
+	return (Number.isInteger(r) ? r : r.toFixed(1)) + '%';
+  }).join(':');
+}
+
+  function decodeEntities(s) {
+	const t = document.createElement('textarea');
+	t.innerHTML = s;
+	return t.value;
+  }
+  function cleanText(s) {
+	const t = decodeEntities(s.replace(ANY_TAG, ''));
+	if (/[\u3040-\u30ff\u4e00-\u9fff]/.test(t)) {
+	  return t.replace(/\s+/g, '').trim();
+	}
+	return t.replace(/\s+/g, ' ').trim();
+  }
+
+  function parseOneRuby(inner) {
+	// 1. 先剥离 <rp> 标签（内含标注，不参与读音）
+	let cleanInner = inner.replace(RP_TAG, '');
+	
+	// 2. 提取所有的 <rt> 标签内容，并拼接作为读音
+	const rtAll = cleanInner.match(RT_ALL) || [];
+	if (rtAll.length === 0) return null;
+	const ruby = rtAll.map(rt => cleanText(rt.replace(/<rt\b[^>]*>|<\/rt>/gi, ''))).join('');
+	
+	// 3. 移除所有的 <rt> 和 <rb> 标签，剩下的纯净文本作为基础原文
+	let baseRaw = cleanInner.replace(RT_ALL, '').replace(/<rb\b[^>]*>|<\/rb>/gi, '');
+	const base = cleanText(baseRaw);
+	
+	if (!base || !ruby) return null;
+	return { base, ruby };
+  }
+
+  function mergeAdjacentSingleRuby(html) {
+	const rubyRE = /<ruby\b[^>]*>[\s\S]*?<\/ruby>/gi;
+	const pieces = [];
+	let m;
+	while ((m = rubyRE.exec(html)) !== null) {
+	  const inner = m[0].replace(/^<ruby\b[^>]*>/i, '').replace(/<\/ruby>$/i, '');
+	  const parsed = parseOneRuby(inner);
+	  let base = '', ruby = '', isSingle = false;
+	  if (parsed) { base = parsed.base; ruby = parsed.ruby; isSingle = base.length === 1; }
+	  pieces.push({ start: m.index, end: m.index + m[0].length, base, ruby, isSingle });
+	}
+	const groups = [];
+	let i = 0;
+	while (i < pieces.length) {
+	  if (!pieces[i].isSingle) { i++; continue; }
+	  const groupParts = [pieces[i]];
+	  let j = i;
+	  while (j + 1 < pieces.length && pieces[j + 1].isSingle) {
+		const between = html.slice(pieces[j].end, pieces[j + 1].start);
+		if (/^\s*$/.test(between)) { groupParts.push(pieces[j + 1]); j++; }
+		else break;
+	  }
+	  if (groupParts.length >= 2) {
+		groups.push({ start: groupParts[0].start, end: groupParts[groupParts.length - 1].end, parts: groupParts });
+	  }
+	  i = j + 1;
+	}
+	groups.reverse();
+	for (const g of groups) {
+	  const base = g.parts.map(p => p.base).join('');
+	  const ruby = g.parts.map(p => p.ruby).join('');
+	  html = html.slice(0, g.start) + `<ruby>${base}<rt>${ruby}</rt></ruby>` + html.slice(g.end);
+	}
+	return { html, mergedGroups: groups.length, mergedChars: groups.reduce((s, g) => s + g.parts.length, 0) };
+  }
+
+  function extractRubyFromHtml(html) {
+	const { html: mergedHtml, mergedGroups, mergedChars } = mergeAdjacentSingleRuby(html);
+	const out = [];
+	let m;
+	RUBY_BLOCK.lastIndex = 0;
+	while ((m = RUBY_BLOCK.exec(mergedHtml)) !== null) {
+	  const parsed = parseOneRuby(m[1]);
+	  if (!parsed) continue;
+	  if (parsed.base !== parsed.ruby) out.push([parsed.base, parsed.ruby]);
+	}
+	return { entries: out, mergedGroups, mergedChars };
+  }
+
+  function stripCountSuffix(raw) {
+	const m = String(raw).match(/^(.*?)\s*<=\s*count\s*:\s*(\d+)\s*$/i);
+	if (m) {
+	  const n = parseInt(m[2], 10);
+	  return { text: m[1].trim(), count: (isFinite(n) && n > 1) ? n : 1 };
+	}
+	return { text: String(raw).trim(), count: 1 };
+  }
+
+  const state = {
+	files: [],
+	entries: [],
+	userDict: new Map(),
+	userDictText: null,
+  };
+
+  // ================= ★ 本地自动保存与恢复逻辑 =================
+  const STORAGE_KEY = 'novel_tts_toolbox_state';
+  let saveTimer = null;
+
+  function saveStateDebounced() {
+	clearTimeout(saveTimer);
+	saveTimer = setTimeout(() => {
+	  try {
+		const data = {
+		  files: state.files,
+		  entries: state.entries,
+		  userDictArray: Array.from(state.userDict.entries()),
+		  userDictText: state.userDictText
+		};
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+	  } catch (e) {
+		console.warn('自动保存失败，可能本地存储空间已满', e);
+	  }
+	}, 1000); // 1秒防抖，防止频繁写入卡顿
+  }
+
+  function loadStateFromLocal() {
+	const saved = localStorage.getItem(STORAGE_KEY);
+	
+	// ★ 核心修复：如果没有缓存，也要调用渲染函数，让步骤3的教程显示出来
+	if (!saved) { 
+	  renderResults(); 
+	  return false; 
+	}
+	
+	try {
+	  const data = JSON.parse(saved);
+	  // ★ 核心修复：如果缓存里没数据，也调用渲染函数
+	  if (!data.entries || !data.entries.length) { 
+	    renderResults(); 
+	    return false; 
+	  }
+	  
+	  state.files = data.files || [];
+	  state.entries = data.entries || [];
+	  state.userDict = new Map(data.userDictArray || []);
+	  state.userDictText = data.userDictText || null;
+	  
+	  renderFileList();
+	  renderResults();
+	  
+	  if (state.userDict.size > 0) {
+		const btnMerged = document.getElementById('btnDownloadMerged');
+		if (btnMerged) btnMerged.style.display = '';
+	  }
+	  
+	  // 提示恢复成功
+	  setTimeout(() => {
+		const b = document.getElementById('banner3');
+		if (b) {
+		  b.className = 'banner show ok';
+		  b.innerHTML = `💾 已自动恢复上次未完成的工作进度（共 ${fmt(state.entries.length)} 条）。如果不需要，可点击“清空当前工作区”。`;
+		}
+	  }, 300);
+	  
+	  return true;
+	} catch (e) {
+	  console.error('恢复数据失败', e);
+	  renderResults(); // 即使报错也渲染一下
+	  return false;
+	}
+  }
+
+  function esc(s){return String(s).replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));}
+  function fmt(n){return n.toLocaleString('en-US');}
+
+  async function copyTextToClipboard(text) {
+	if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+	  try { await navigator.clipboard.writeText(text); return { ok: true, method: 'clipboard' }; } catch (e) {}
+	}
+	try {
+	  const ta = document.createElement('textarea');
+	  ta.value = text;
+	  ta.setAttribute('readonly', '');
+	  ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;font-size:16px;';
+	  document.body.appendChild(ta);
+	  ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+	  const ok = document.execCommand('copy');
+	  document.body.removeChild(ta);
+	  if (ok) return { ok: true, method: 'execCommand' };
+	  return { ok: false, error: '浏览器禁用了 execCommand("copy")' };
+	} catch (e) { return { ok: false, error: e.message || String(e) }; }
+  }
+
+  function showManualCopyDialog(text, reason) {
+	const overlay = document.createElement('div');
+	overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+	overlay.innerHTML = `
+	  <div style="background:#fff;border-radius:12px;padding:18px 20px;max-width:680px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25);">
+		<div style="font-size:15px;font-weight:600;margin-bottom:6px;color:#991b1b;">⚠️ 自动复制失败</div>
+		<div style="font-size:13px;color:#7a8194;margin-bottom:10px;">${reason ? esc(reason) + '<br>' : ''}请点一下下面的输入框，按 <b>Ctrl+A</b> 全选，再按 <b>Ctrl+C</b> 复制：</div>
+		<textarea readonly style="width:100%;height:260px;box-sizing:border-box;font-family:ui-monospace,Consolas,monospace;font-size:12px;border:1px solid #e3e6ef;border-radius:8px;padding:10px;background:#fbfcff;resize:vertical;">${esc(text)}</textarea>
+		<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;"><button class="btn ghost small" data-act="close">关闭</button></div>
+	  </div>`;
+	document.body.appendChild(overlay);
+	const ta = overlay.querySelector('textarea');
+	ta.focus(); ta.select();
+	overlay.querySelector('[data-act="close"]').addEventListener('click', () => overlay.remove());
+	overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  }
+  function showBanner(id, type, html){
+	const el = document.getElementById(id);
+	el.className = 'banner show ' + type;
+	el.innerHTML = html;
+  }
+  function hideBanner(id){ document.getElementById(id).className = 'banner'; }
+
+  async function parseEpub(file) {
+	const buffer = await file.arrayBuffer();
+	const zip = new MiniZip(buffer);
+	const htmls = zip.listHtmlFiles();
+	if (htmls.length === 0) throw new Error('EPUB 里没有 HTML/XHTML 文件');
+	const all = [];
+	let mergedGroups = 0, mergedChars = 0;
+	for (const name of htmls) {
+	  const bytes = await zip.read(name);
+	  if (!bytes) continue;
+	  const text = decodeBytes(bytes);
+	  const r = extractRubyFromHtml(text);
+	  mergedGroups += r.mergedGroups;
+	  mergedChars += r.mergedChars;
+	  for (const [b, rb] of r.entries) all.push({ base: b, ruby: rb, source: name });
+	}
+	return { entries: all, mergedGroups, mergedChars };
+  }
+
+  /* 步骤 1 的 TXT：右侧原样保留（概率语法不被剥离），只处理 <= count:N */
+  async function parseTxtAsContinuation(file) {
+	const text = await file.text();
+	const entries = [];
+	let sourceName = file.name.replace(/\.txt$/i, '');
+
+	for (const raw of text.split(/\r?\n/)) {
+	  const line = raw.trim();
+	  if (!line) continue;
+	  if (line.startsWith('#')) {
+		const m = line.match(/来源\s*EPUB[：:]\s*(.+)$/i);
+		if (m) sourceName = m[1].trim();
+		continue;
+	  }
+	  const idx = line.indexOf('=>');
+	  if (idx < 0) continue;
+	  const baseStr = line.slice(0, idx).trim();
+	  const { text: ruby, count } = stripCountSuffix(line.slice(idx + 2));
+	  if (!baseStr || !ruby) continue;
+	  
+	  // ★ 核心修复 1：检测重写文件中的等价原词，将其拆分回独立条目
+	  const bases = baseStr.split(/[|｜]/).map(s => s.trim()).filter(Boolean);
+	  bases.forEach((b, i) => {
+		entries.push({ 
+		  base: b, 
+		  ruby: ruby, 
+		  source: sourceName, 
+		  count: count,
+		  counted: i > 0 // ★ 除第一个外，其余全部打上 counted 防重复加算标记
+		});
+	  });
+	}
+	return { entries, sourceName };
+  }
+
+  /* ============ ★ 粘贴文本解析 ============ */
+  function extractRubyFromAnyText(text) {
+	const raw = [];
+	let m;
+
+	// 显式青空文库：｜base《ruby》 或 |base《ruby》
+	const explicitRe = /[｜|]([^《》｜|]+)《([^《》]+)》/g;
+	while ((m = explicitRe.exec(text)) !== null) {
+	  const b = m[1].trim(), r = m[2].trim();
+	  if (b && r) raw.push({ base: b, ruby: r });
+	}
+
+	// 隐式青空文库：base《ruby》（base 必须是汉字）
+	const implicitRe = /([一-龥々〆ヵヶ]+)《([ぁ-んァ-ヶーヽヾゝゞ]+)》/g;
+	while ((m = implicitRe.exec(text)) !== null) {
+	  raw.push({ base: m[1], ruby: m[2] });
+	}
+
+	// 大括号：{base|ruby}
+	const curlyRe = /[｛{]([^｛｝{}|｜]+)[|｜]([^｛｝{}|｜]+)[｝}]/g;
+	while ((m = curlyRe.exec(text)) !== null) {
+	  const b = m[1].trim(), r = m[2].trim();
+	  if (b && r) raw.push({ base: b, ruby: r });
+	}
+
+	// 全角方括号：base［ruby］
+	const fullBrRe = /([一-龥々〆ヵヶ]+)［([ぁ-んァ-ヶーヽヾゝゞ]+)］/g;
+	while ((m = fullBrRe.exec(text)) !== null) {
+	  raw.push({ base: m[1], ruby: m[2] });
+	}
+
+	// 半角方括号：base[ruby]
+	const halfBrRe = /([一-龥々〆ヵヶ]+)\[([ぁ-んァ-ヶーヽヾゝゞ]+)\]/g;
+	while ((m = halfBrRe.exec(text)) !== null) {
+	  raw.push({ base: m[1], ruby: m[2] });
+	}
+
+	// 去重（显式青空中的 base《ruby》会被隐式重复匹配到，需要合并）
+	const seen = new Set();
+	const result = [];
+	for (const e of raw) {
+	  const key = `${e.base}\u0000${e.ruby}`;
+	  if (seen.has(key)) continue;
+	  seen.add(key);
+	  result.push(e);
+	}
+	return result;
+  }
+
+  async function handlePastedText(text) {
+	hideBanner('banner1');
+
+	const hasHtmlRuby = /<ruby\b[^>]*>/i.test(text);
+	let entries = [];
+	let mode = 'ruby';
+
+	if (hasHtmlRuby) {
+	  // 有 HTML ruby 时优先走原有解析器（能合并逐字注音）
+	  const r = extractRubyFromHtml(text);
+	  entries = r.entries.map(([b, rb]) => ({ base: b, ruby: rb }));
+	} else {
+	  // 纯文本 ruby 语法
+	  entries = extractRubyFromAnyText(text);
+	}
+
+	// 没识别到 ruby → 尝试当「汉字 => 读音」规则解析
+	if (entries.length === 0) {
+	  const arrowEntries = [];
+	  for (const raw of text.split(/\r?\n/)) {
+		const line = raw.trim();
+		if (!line || line.startsWith('#')) continue;
+		const idx = line.indexOf('=>');
+		if (idx < 0) continue;
+		const base = line.slice(0, idx).trim();
+		const { text: ruby, count } = stripCountSuffix(line.slice(idx + 2));
+		if (!base || !ruby) continue;
+		arrowEntries.push({ base, ruby, count });
+	  }
+	  if (arrowEntries.length > 0) {
+		entries = arrowEntries;
+		mode = 'arrow';
+	  } else {
+		showBanner('banner1', 'err',
+		  '未能从粘贴内容中识别出任何 ruby 或规则行。<br>' +
+		  'ruby 示例：<code>漢字《かんじ》</code>、<code>{漢字|かんじ}</code>、' +
+		  '<code>&lt;ruby&gt;漢字&lt;rt&gt;かんじ&lt;/rt&gt;&lt;/ruby&gt;</code>；<br>' +
+		  '规则示例：<code>漢字 => かんじ</code>。'
+		);
+		return;
+	  }
+	}
+
+	const pasteNum = state.files.filter(f => f.fromPaste).length + 1;
+	const sourceName = `粘贴文本 #${pasteNum}`;
+	const item = {
+	  name: sourceName,
+	  status: 'ok',
+	  count: entries.length,
+	  entries: entries.map(e => ({
+		base: e.base,
+		ruby: e.ruby,
+		source: sourceName,
+		...(e.count ? { count: e.count } : {}),
+	  })),
+	  mergedGroups: 0, mergedChars: 0,
+	  fromTxt: mode === 'arrow',
+	  fromPaste: true,
+	};
+	state.files.push(item);
+	renderFileList();
+	rebuildEntries();
+
+	const icon = mode === 'ruby' ? '🎯' : '📝';
+	const modeLabel = mode === 'ruby' ? 'ruby 提取' : '规则重写';
+	showBanner('banner1', 'ok',
+	  `${icon} 已从粘贴内容中${modeLabel} <b>${fmt(entries.length)}</b> 条，` +
+	  `作为「${esc(sourceName)}」加入文件列表。`
+	);
+  }
+
+  async function handleFiles(fileList) {
+	const all = Array.from(fileList);
+	const epubs = all.filter(f => /\.epub$/i.test(f.name));
+	const txts  = all.filter(f =>
+	  /\.txt$/i.test(f.name) && !/^~\$/.test(f.name) && !f.name.startsWith('.'));
+
+	if (epubs.length === 0 && txts.length === 0) {
+	  showBanner('banner1', 'err', '没有可识别的 .epub 或重写 .txt 文件');
+	  return;
+	}
+	hideBanner('banner1');
+
+	// ★ 核心修复：如果是导入 TXT（重写），先清空之前解析的列表，防止旧的未勾选数据叠加污染
+	if (txts.length > 0) {
+	  state.files = [];
+	  state.entries = [];
+	}
+
+	for (const file of epubs) {
+	  const item = { name: file.name, status: 'loading', count: 0, entries: [], mergedGroups: 0, mergedChars: 0, fromTxt: false };
+	  state.files.push(item);
+	  renderFileList();
+	  try {
+		const r = await parseEpub(file);
+		item.entries = r.entries; item.count = r.entries.length;
+		item.mergedGroups = r.mergedGroups; item.mergedChars = r.mergedChars;
+		item.status = 'ok';
+	  } catch (e) {
+		item.status = 'err'; item.error = e.message;
+	  }
+	  renderFileList();
+	}
+
+	for (const file of txts) {
+	  const item = { name: file.name, status: 'loading', count: 0, entries: [], fromTxt: true };
+	  state.files.push(item);
+	  renderFileList();
+	  try {
+		const parsed = await parseTxtAsContinuation(file);
+		if (!parsed.entries.length) {
+		  item.status = 'err';
+		  item.error = '没有可识别的「汉字 => 读音」行';
+		} else {
+		  item.entries = parsed.entries;
+		  item.count = parsed.entries.length;
+		  item.sourceFromTxt = parsed.sourceName;
+		  item.status = 'ok';
+		}
+	  } catch (e) {
+		item.status = 'err'; item.error = e.message;
+	  }
+	  renderFileList();
+	}
+
+	rebuildEntries();
+  }
+
+  function renderFileList() {
+	const box = document.getElementById('fileList');
+	if (state.files.length === 0) { box.innerHTML = ''; return; }
+	box.innerHTML = state.files.map(f => {
+	  const isTxt = !!f.fromTxt;
+	  const isPaste = !!f.fromPaste;
+	  const icon = isTxt ? '📝' : (isPaste ? '📋' : '📖');
+	  const typeTag = isTxt
+		? '<span class="tag-cont">重写</span>'
+		: (isPaste ? '<span class="tag-cont" style="color:#0369a1;background:#e0f2fe">粘贴</span>' : '');
+	  let s, cls;
+	  if (f.status === 'loading') { s = '<span class="spinner"></span>正在解析…'; cls = 'loading'; }
+	  else if (f.status === 'ok') {
+		s = `✓ 载入 ${fmt(f.count)} 条`;
+		if (!isTxt && f.mergedGroups > 0) s += ` <span class="merge-info">🔗 合并 ${fmt(f.mergedGroups)} 组（${fmt(f.mergedChars)} 字）</span>`;
+		cls = 'ok';
+	  } else {
+		s = '✗ ' + esc(f.error || '解析失败'); cls = 'err';
+	  }
+	  return `<div class="file-item">
+		<span class="name">${icon} ${esc(f.name)}${typeTag}</span>
+		<span class="status ${cls}">${s}</span>
+	  </div>`;
+	}).join('');
+  }
+
+  /* ★ 核心：rebuildEntries 支持多值独立分组 */
+  function rebuildEntries() {
+	const merged = new Map();
+	let order = 0;
+	for (const f of state.files) {
+	  if (f.status !== 'ok') continue;
+	  for (const e of f.entries) {
+		order++;
+		const inc = (e.count && e.count > 1) ? e.count : 1;
+		const isMulti = parseRubyOptions(e.ruby).multi;
+		const groupKey = isMulti ? `${e.base}\u0000${e.ruby}` : e.base;
+		if (!merged.has(groupKey)) {
+		  merged.set(groupKey, {
+			base: e.base,
+			occurrences: inc,
+			firstOrder: order,
+			rubies: [{ ruby: e.ruby, source: f.name }],
+			sources: new Set([f.name]),
+			isMulti,
+			counted: e.counted || false // ★ 接收并保留标记
+		  });
+		} else {
+		  const m = merged.get(groupKey);
+		  m.occurrences += inc;
+		  m.sources.add(f.name);
+		  m.rubies.push({ ruby: e.ruby, source: f.name });
+		  if (e.counted) m.counted = true; // 只要有一处被标记，就防重复
+		}
+	  }
+	}
+	const entries = [];
+	for (const m of merged.values()) {
+	  if (m.isMulti) {
+		const ruby = m.rubies[0].ruby;
+		const parsed = parseRubyOptions(ruby);
+		const type = m.base.length === 1 ? 'single' : 'word';
+		const udRuby = state.userDict.get(m.base);
+		let status, note = '';
+		if (udRuby !== undefined) {
+		  if (udRuby === ruby) { status = 'dup'; note = '参考词典中已存在相同规则'; }
+		  else { status = 'conflict'; note = `参考词典中已有不同读音：${udRuby}`; }
+		} else { status = 'new'; note = ''; }
+		if (parsed.malformed) note = (note ? note + '；' : '') + '⚠️ 概率语法不完整（会作为普通文本导出）';
+		entries.push({
+		  base: m.base, ruby, isMulti: true, dist: parsed.options,
+		  source: Array.from(m.sources).join(', '),
+		  status, type,
+		  susp: hasSuspiciousLargeChar(ruby),
+		  suspPrecise: hasSuspiciousLargeCharPrecise(ruby),
+		  note, edited: false, split: false,
+		  checked: status !== 'conflict' && type === 'word',
+		  hasKatakana: hasKatakanaChar(ruby),
+		  hasHiragana: hasHiraganaChar(ruby),
+		  hasLatin: hasLatinChar(ruby),
+		  occurrences: m.occurrences,
+		  firstOrder: m.firstOrder,
+		  fromUserDict: udRuby !== undefined,
+		  candidates: [], isPerson: false, isSuspect: false,
+		  counted: m.counted, // ★ 传递标记
+		});
+		continue;
+	  }
+	  const rawCandidates = [];
+	  const seen = new Map();
+	  const userDictRuby = state.userDict.get(m.base);
+	  if (userDictRuby !== undefined) {
+		rawCandidates.push({ ruby: userDictRuby, fromUserDict: true, sources: ['参考词典'] });
+		seen.set(userDictRuby, 0);
+	  }
+	  for (const r of m.rubies) {
+		if (seen.has(r.ruby)) {
+		  const c = rawCandidates[seen.get(r.ruby)];
+		  if (!c.sources.includes(r.source)) c.sources.push(r.source);
+		} else {
+		  seen.set(r.ruby, rawCandidates.length);
+		  rawCandidates.push({ ruby: r.ruby, fromUserDict: false, sources: [r.source] });
+		}
+	  }
+	  const candidates = normalizeCandidates(rawCandidates);
+	  const udCand = candidates.find(c => c.fromUserDict);
+	  const selectedRuby = udCand ? udCand.ruby : candidates[0].ruby;
+
+	  let status, note = '';
+	  if (candidates.length > 1) {
+		status = 'conflict';
+		note = `有 ${candidates.length} 个候选读音`;
+	  } else if (udCand) {
+		status = 'dup';
+		note = '参考词典中已存在相同读音';
+	  } else {
+		status = 'new';
+	  }
+	  const selCand = candidates.find(c => c.ruby === selectedRuby);
+	  if (selCand && selCand.variants && selCand.variants.length > 1) {
+		const vi = `已合并大小字变体：${selCand.variants.join(' / ')}（已选小字版）`;
+		note = note ? note + '；' + vi : vi;
+	  }
+	  const type = m.base.length === 1 ? 'single' : 'word';
+	  entries.push({
+		base: m.base, ruby: selectedRuby,
+		isMulti: false, dist: null,
+		source: Array.from(m.sources).join(', '),
+		status, type,
+		susp: hasSuspiciousLargeChar(selectedRuby),
+		suspPrecise: hasSuspiciousLargeCharPrecise(selectedRuby),
+		note, edited: false, split: false,
+		checked: status !== 'conflict' && type === 'word',
+		hasKatakana: hasKatakanaChar(selectedRuby),
+		hasHiragana: hasHiraganaChar(selectedRuby),
+		hasLatin: hasLatinChar(selectedRuby),
+		occurrences: m.occurrences,
+		firstOrder: m.firstOrder,
+		fromUserDict: userDictRuby !== undefined,
+		candidates,
+		isPerson: false,
+		isSuspect: false,
+		counted: m.counted, // ★ 传递标记
+	  });
+	}
+	state.entries = entries;
+	renderResults();
+  }
+
+  /* ★ 重算单值 entry 的各种标记 + 多值分支 */
+  function recomputeEntryAfterEdit(e) {
+	const oldType = e.type;
+	e.type = e.base.length === 1 ? 'single' : 'word';
+	const parsed = parseRubyOptions(e.ruby);
+	e.isMulti = parsed.multi && !parsed.malformed;
+	e.dist = parsed.options;
+	e.susp = hasSuspiciousLargeChar(e.ruby);
+	e.suspPrecise = hasSuspiciousLargeCharPrecise(e.ruby);
+	e.hasKatakana = hasKatakanaChar(e.ruby);
+	e.hasHiragana = hasHiraganaChar(e.ruby);
+	e.hasLatin = hasLatinChar(e.ruby);
+	e.split = false;
+
+	if (e.isMulti) {
+	  /* 多值：不走候选，直接 vs userDict 精确比对 */
+	  const existing = state.userDict.get(e.base);
+	  if (existing !== undefined) {
+		if (existing === e.ruby) { e.status = 'dup'; e.note = '参考词典中已存在相同规则'; }
+		else { e.status = 'conflict'; e.note = `参考词典中已有不同读音：${existing}`; }
+	  } else {
+		e.status = 'new'; e.note = '';
+	  }
+	  if (parsed.malformed) e.note = (e.note ? e.note + '；' : '') + '⚠️ 概率语法不完整（会作为普通文本导出）';
+	} else {
+	  /* 单值：原逻辑 */
+	  if (e.candidates && e.candidates.length > 1) {
+		e.status = 'conflict';
+		e.note = `有 ${e.candidates.length} 个候选读音`;
+		const c = e.candidates.find(x => x.ruby === e.ruby);
+		if (c && c.variants && c.variants.length > 1) {
+		  e.note += `；已合并大小字变体：${c.variants.join(' / ')}（已选小字版）`;
+		}
+	  } else {
+		const existing = state.userDict.get(e.base);
+		if (existing !== undefined) {
+		  if (existing === e.ruby) {
+			e.status = 'dup'; e.note = '参考词典中已存在相同读音';
+		  } else if (normalizeForCompare(existing) === normalizeForCompare(e.ruby)) {
+			e.status = 'dup';
+			e.note = `参考词典读音仅大小字不同（已选小字版）：${existing}`;
+		  } else {
+			e.status = 'conflict';
+			e.note = `参考词典中已有不同读音：${existing}`;
+		  }
+		} else {
+		  e.status = 'new'; e.note = '';
+		}
+	  }
+	}
+	if (oldType !== e.type) e.checked = false;
+	e.edited = true;
+  }
+
+  /* ====== 筛选 / 排序 状态 ====== */
+  const filterState = { g1: {}, g2: {}, g3: {} };
+  let currentSearch = '';
+  let sortBy  = 'fifty';
+  let sortDir = 'asc';
+
+  function matchesFilters(e) {
+	// 原文中
+	const g1 = filterState.g1;
+	if (g1.word) {
+	  if (g1.word === 1 && e.type !== 'word') return false;
+	  if (g1.word === 2 && e.type === 'word') return false;
+	}
+	if (g1.single) {
+	  if (g1.single === 1 && e.type !== 'single') return false;
+	  if (g1.single === 2 && e.type === 'single') return false;
+	}
+	if (g1.latin) {
+	  const isLatin = isLatinOnly(e.base);
+	  if (g1.latin === 1 && !isLatin) return false;
+	  if (g1.latin === 2 && isLatin) return false;
+	}
+	if (g1.katakana) {
+	  const isKata = isKatakanaOnly(e.base);
+	  if (g1.katakana === 1 && !isKata) return false;
+	  if (g1.katakana === 2 && isKata) return false;
+	}
+
+	// Ruby 中
+	const g2 = filterState.g2;
+	if (g2.rubyLatin) {
+	  if (g2.rubyLatin === 1 && !e.hasLatin) return false;
+	  if (g2.rubyLatin === 2 && e.hasLatin) return false;
+	}
+	if (g2.rubyKana) {
+	  const hasKana = /[\u3040-\u30ff]/.test(e.ruby);
+	  if (g2.rubyKana === 1 && !hasKana) return false;
+	  if (g2.rubyKana === 2 && hasKana) return false;
+	}
+	if (g2.suspCommon) {
+	  const hasLarge = /[やゆよつヤユヨツ]/.test(e.ruby);
+	  const hasSmall = /[ゃゅょっャュョッ]/.test(e.ruby);
+	  if (g2.suspCommon === 1 && !hasLarge) return false; // 含常见小字：筛出有大字的
+	  if (g2.suspCommon === 2 && !hasSmall) return false; // 常用小字已小字化：筛出已转成小字的
+	}
+	if (g2.suspSpecial) {
+	  const hasLarge = /[ケカアイウエオ]/.test(e.ruby);
+	  const hasSmall = /[ヶヵァィゥェォ]/.test(e.ruby);
+	  if (g2.suspSpecial === 1 && !hasLarge) return false; // 含特殊小字
+	  if (g2.suspSpecial === 2 && !hasSmall) return false; // 特殊小字已小字化
+	}
+
+	// 编辑状态
+	const g3 = filterState.g3;
+	if (g3.person) {
+	  if (g3.person === 1 && !e.isPerson) return false;
+	  if (g3.person === 2 && e.isPerson) return false;
+	}
+	if (g3.suspect) {
+	  if (g3.suspect === 1 && !e.isSuspect) return false;
+	  if (g3.suspect === 2 && e.isSuspect) return false;
+	}
+	if (g3.new) {
+	  if (g3.new === 1 && e.status !== 'new') return false;
+	  if (g3.new === 2 && e.status === 'new') return false;
+	}
+	if (g3.conflict) {
+	  if (g3.conflict === 1 && e.status !== 'conflict') return false;
+	  if (g3.conflict === 2 && e.status === 'conflict') return false;
+	}
+	if (g3.checked) {
+	  if (g3.checked === 1 && !e.checked) return false;   // 已勾选
+	  if (g3.checked === 2 && e.checked) return false;    // 未勾选
+	}
+	if (g3.userdict) {
+	  if (g3.userdict === 1 && !e.fromUserDict) return false; // 已收录
+	  if (g3.userdict === 2 && e.fromUserDict) return false;  // 未收录
+	}
+	if (g3.edited) {
+	  const isEdited = e.edited || e.split;
+	  if (g3.edited === 1 && !isEdited) return false; // 已编辑
+	  if (g3.edited === 2 && isEdited) return false;  // 未编辑
+	}
+
+	if (currentSearch) {
+	  const q = normalizeForCompare(currentSearch).toLowerCase();
+	  const baseN = normalizeForCompare(e.base).toLowerCase();
+	  const rubyN = normalizeForCompare(e.ruby).toLowerCase();
+	  if (!baseN.includes(q) && !rubyN.includes(q)) return false;
+	}
+	return true;
+  }
+
+  function compareEntries(a, b) {
+	const dir = sortDir === 'desc' ? -1 : 1;
+	if (sortBy === 'occur') {
+	  return (a.occurrences - b.occurrences) * dir || a.base.localeCompare(b.base, 'ja');
+	}
+	if (sortBy === 'order') {
+	  return (a.firstOrder - b.firstOrder) * dir;
+	}
+	if (a.type !== b.type) return a.type === 'word' ? -1 : 1;
+	return a.base.localeCompare(b.base, 'ja') * dir;
+  }
+
+  function getFilteredList() {
+	// 只要满足筛选条件，或者是临时草稿，就加进列表
+	const list = state.entries.filter(e => matchesFilters(e) || e.isTemp);
+	list.sort(compareEntries);
+	return list;
+  }
+
+  function renderResults() {
+	const card = document.getElementById('resultCard');
+	const workbenchCard = document.getElementById('workbenchCard');
+	const exportCard = document.getElementById('ruby-sec-export');
+
+	// 无论有无词条，步骤 3 概览卡片始终显示
+	card.style.display = ''; 
+
+	if (state.entries.length === 0) {
+	  // 空状态下，隐藏工作台、导出和统计面板
+	  if (workbenchCard) workbenchCard.style.display = 'none';
+	  if (exportCard) exportCard.style.display = 'none';
+	  document.getElementById('stats').style.display = 'none'; // 没有数据时隐藏统计面板
+	  
+	  document.querySelectorAll('.float-btn').forEach(b => b.classList.remove('show'));
+	  updateFloatButton();
+
+	  // 隐藏多余的提示（教程部分会自动保留）
+	  document.getElementById('mergeHint').style.display = 'none';
+	  
+	  // 初始状态下显示操作指南与参考
+	  const suspHint = document.getElementById('suspHint');
+	  suspHint.style.display = '';
+	  
+	  // 修改首行红色的提示文字，让它更像是一个教程
+	  const textNodes = Array.from(suspHint.childNodes);
+	  const firstText = textNodes.find(n => n.nodeType === 3 && n.textContent.includes('检测到'));
+	  if (firstText) {
+		  firstText.textContent = '💡 新手向导与错标参考：';
+		  const countEl = document.getElementById('suspCount');
+		  if (countEl) countEl.style.display = 'none';
+	  }
+	  
+	  document.getElementById('typeHint').style.display = 'none';
+	  
+	  // 清空工作台列表防止残留
+	  document.getElementById('entries').innerHTML = '';
+	  
+	  return;
+	}
+
+	// ===== 以下是“有数据”的情况 =====
+	
+	// 有数据时，恢复显示统计面板和工作台
+	document.getElementById('stats').style.display = 'flex'; // 有数据时恢复统计面板显示
+	if (workbenchCard) workbenchCard.style.display = '';
+	if (exportCard) exportCard.style.display = '';
+	document.querySelectorAll('.float-btn').forEach(b => b.classList.add('show'));
+
+	const stats = {
+	  total: state.entries.length,
+	  word: state.entries.filter(e => e.type === 'word').length,
+	  wordNew: state.entries.filter(e => e.type === 'word' && e.status === 'new').length,
+	  single: state.entries.filter(e => e.type === 'single').length,
+	  singleNew: state.entries.filter(e => e.type === 'single' && e.status === 'new').length,
+	  suspCommon: state.entries.filter(e => /[やゆよつヤユヨツ]/.test(e.ruby) && e.status === 'new').length,
+	  suspSpecial: state.entries.filter(e => /[ケカアイウエオ]/.test(e.ruby) && e.status === 'new').length,
+	  conflict: state.entries.filter(e => e.status === 'conflict').length,
+	  checked: state.entries.filter(e => e.checked).length,
+	  katakana: state.entries.filter(e => e.hasKatakana).length,
+	  latin: state.entries.filter(e => e.hasLatin).length,
+	  userdict: state.entries.filter(e => e.fromUserDict).length,
+	  multi: state.entries.filter(e => e.isMulti).length,
+	};
+
+	// ★ 核心修复：补回丢失的统计卡片 HTML 渲染代码
+	document.getElementById('stats').innerHTML = `
+	  <div class="stat" onclick="clearAndFilter('all')" title="显示全部">
+		<div class="num">${fmt(stats.total)}</div>
+		<div class="lbl">总条目</div>
+	  </div>
+	  <div class="stat word" onclick="clearAndFilter('g1', 'word')" title="筛选组词">
+		<div class="num">${fmt(stats.word)}</div>
+		<div class="lbl">组词</div>
+		<div class="sub">新增 ${fmt(stats.wordNew)}</div>
+	  </div>
+	  <div class="stat single" onclick="clearAndFilter('g1', 'single')" title="筛选单字">
+		<div class="num">${fmt(stats.single)}</div>
+		<div class="lbl">单字</div>
+		<div class="sub">新增 ${fmt(stats.singleNew)}</div>
+	  </div>
+	  <div class="stat susp" onclick="clearAndFilter('g2', 'suspCommon')" title="筛选常见小字错标">
+		<div class="num">${fmt(stats.suspCommon)}</div>
+		<div class="lbl">常见小字</div>
+	  </div>
+	  <div class="stat susp" onclick="clearAndFilter('g2', 'suspSpecial')" title="筛选特殊小字错标">
+		<div class="num">${fmt(stats.suspSpecial)}</div>
+		<div class="lbl">特殊小字</div>
+	  </div>
+	  <div class="stat katakana" onclick="clearAndFilter('g2', 'rubyKana')" title="筛选包含假名的词条">
+		<div class="num">${fmt(stats.katakana)}</div>
+		<div class="lbl">カ 含片假名</div>
+	  </div>
+	  <div class="stat latin" onclick="clearAndFilter('g2', 'rubyLatin')" title="筛选包含西文的词条">
+		<div class="num">${fmt(stats.latin)}</div>
+		<div class="lbl">A 含西文</div>
+	  </div>
+	  <div class="stat userdict" onclick="clearAndFilter('g3', 'userdict')" title="筛选已收录在参考词典中的词条">
+		<div class="num">${fmt(stats.userdict)}</div>
+		<div class="lbl">★ 已收录</div>
+	  </div>
+	  <div class="stat conflict" onclick="clearAndFilter('g3', 'conflict')" title="筛选有冲突的读音">
+		<div class="num">${fmt(stats.conflict)}</div>
+		<div class="lbl">冲突</div>
+	  </div>
+	  <div class="stat dup" onclick="clearAndFilter('g3', 'checked')" title="筛选已勾选的词条">
+		<div class="num">${fmt(stats.checked)}</div>
+		<div class="lbl">已勾选</div>
+	  </div>
+	`;
+
+	const mergeHint = document.getElementById('mergeHint');
+	const totalMergedGroups = state.files.filter(f => f.status === 'ok' && !f.fromTxt).reduce((s, f) => s + (f.mergedGroups || 0), 0);
+	const totalMergedChars = state.files.filter(f => f.status === 'ok' && !f.fromTxt).reduce((s, f) => s + (f.mergedChars || 0), 0);
+	if (totalMergedGroups > 0) {
+	  mergeHint.style.display = '';
+	  mergeHint.innerHTML = `🔗 <b>已自动合并 ${fmt(totalMergedGroups)} 组逐字注音</b>（涉及 ${fmt(totalMergedChars)} 字），比如 <code>挨|あい</code> + <code>拶|さつ</code> 已还原为 <code>挨拶|あいさつ</code>。`;
+	} else mergeHint.style.display = 'none';
+
+	/* ★ 修改：兼容拆分的两个小字提示计数 */
+	const totalSuspNew = stats.suspCommon + stats.suspSpecial;
+	const suspHint = document.getElementById('suspHint');
+	
+	// ★ 核心修改：无论如何都显示这个框（因为里面包含操作说明）
+	suspHint.style.display = '';
+	document.getElementById('suspCount').textContent = fmt(totalSuspNew);
+	
+	// 还原正常的头部文字
+	const textNodes = Array.from(suspHint.childNodes);
+	const firstText = textNodes.find(n => n.nodeType === 3 && n.textContent.includes('新手向导'));
+	if (firstText) {
+		firstText.textContent = '🌀 检测到 ';
+		const countEl = document.getElementById('suspCount');
+		if (countEl) countEl.style.display = '';
+	}
+
+	document.getElementById('typeHint').style.display = stats.single > 0 ? '' : 'none';
+
+	renderEntryList();
+	saveStateDebounced(); // ★ 触发保存
+  }
+
+  window.togglePerson = function(idx) {
+	const e = state.entries[idx];
+	if (!e) return;
+	e.isPerson = !e.isPerson;
+	if (e.isPerson && !e.checked) e.checked = true; // 标为人名时自动勾选
+	e.edited = true;
+	
+	// ★ 修复：使用新的对象格式判断（=== 1 代表当前处于“仅人名”筛选）
+	// 若当前处于“仅人名”筛选状态且取消了标记，则重绘列表让它消失
+	if (!e.isPerson && filterState.g3['person'] === 1) {
+	  renderEntryList();
+	} else {
+	  // 局部更新 UI 即可，避免整个列表重绘导致跳动
+	  const entryEl = document.querySelector(`.entry[data-idx="${idx}"]`);
+	  if (entryEl) {
+		const badge = entryEl.querySelector('.badge-person');
+		if (badge) {
+		  badge.className = `badge badge-person ${e.isPerson ? 'active' : ''}`;
+		  badge.innerHTML = `👤 ${e.isPerson ? '人名' : '标为人名'}`;
+		}
+	  }
+	}
+  };
+
+  /* ★ renderEntryItem 支持多值显示 */
+  function renderEntryItem(e, idx) {
+	const statusMap = {
+	  'new': { cls: 'new', label: '新增' },
+	  'dup': { cls: 'dup', label: '已存在' },
+	  'conflict': { cls: 'conflict', label: '冲突' },
+	};
+	const s = statusMap[e.status];
+	const dim = e.checked ? '' : 'dim';
+	const singleCls = e.type === 'single' ? 'is-single' : '';
+	const suspCls = e.susp ? 'is-susp' : '';
+	const splitCls = e.split ? 'is-split' : '';
+	const multiCls = e.isMulti ? 'is-multi' : '';
+	const editedCls = e.edited ? 'edited' : '';
+	const tempCls = e.isTemp ? 'is-temp' : '';
+
+	const typeBadge = e.type === 'word' ? '<span class="badge type-word">组词</span>' : '<span class="badge type-single">单字</span>';
+	const starBadge  = e.fromUserDict ? '<span class="badge userdict-star" title="已收录于参考词典">★ 已收录</span>' : '';
+	const suspBadge  = e.susp ? '<span class="badge type-susp">🌀 疑似小字错标</span>' : '';
+	const kataBadge  = e.hasKatakana ? '<span class="badge kata-badge">カ 含片假名</span>' : '';
+	const latinBadge = e.hasLatin	? '<span class="badge latin-badge">A 含西文</span>' : '';
+	const splitBadge = e.split ? '<span class="badge type-split">✂️ 已拆分</span>' : '';
+	const editedBadge = (e.edited && !e.split) ? '<span class="badge edited">✏️ 已编辑</span>' : '';
+	const personBadge = `<span class="badge badge-person ${e.isPerson ? 'active' : ''}" onclick="event.stopPropagation(); togglePerson(${idx})" title="标记为名词（独立导出至 person_dict）">👤 ${e.isPerson ? '名词' : '标为名词'}</span>`;
+	const suspectBadge = e.isSuspect ? '<span class="badge" style="color:#b45309; background:#fef3c7; border-color:#fcd34d; font-weight:bold;" title="存疑搁置，导出时将带上 [?]">❓ 存疑</span>' : '';
+	const isOccMulti = e.occurrences > 1;
+	const occBadge = `<span class="badge occ-badge" 
+	  title="${isOccMulti ? `出现次数（将导出为 <= count:${e.occurrences}）` : '当前为 1，不会导出 count 标记。修改为大于 1 的数字即可导出。'}" 
+	  style="opacity:${isOccMulti ? 1 : 0.3}; transition:opacity 0.2s;"
+	  onmouseenter="this.style.opacity=1" 
+	  onmouseleave="if(this.querySelector('input').value <= 1) this.style.opacity=0.3">
+	  ×<input type="number" min="1" value="${e.occurrences}" 
+			   onchange="updateOccurrences(${idx}, this)" 
+			   onwheel="adjustOccurrences(event, ${idx})" 
+			   title="滚轮或输入数字修改">
+	</span>`;
+
+	/* ★ distBadge（多读音时显示） */
+	let distBadge = '';
+	if (e.isMulti) {
+	  const parsed = parseRubyOptions(e.ruby);
+	  if (parsed.malformed) {
+		distBadge = '<span class="badge dist-badge malformed" title="概率语法不完整：每项都必须带 (N%)，否则整串会被当作普通文本导出">🔀 语法异常</span>';
+	  } else {
+		const summary = summarizeDist(parsed.options);
+		const tooltip = parsed.options.map(o => o.ruby + (o.weight !== null ? `(${o.weight}%)` : '')).join(' | ');
+		distBadge = `<span class="badge dist-badge" title="多读音概率分布：${esc(tooltip)}">🔀 ${esc(summary)}</span>`;
+	  }
+	}
+
+	/* 候选按钮：仅单值 entry 显示 */
+	const candidatesHtml = (!e.isMulti && e.candidates && e.candidates.length > 1)
+	  ? `<div class="candidates">${e.candidates.map(c => `
+		  <button type="button" class="cand-btn ${c.ruby === e.ruby ? 'selected' : ''}"
+				  data-ruby="${esc(c.ruby)}"
+				  title="来源：${esc(c.sources.join(' / '))}${c.variants && c.variants.length > 1 ? ' | 变体：' + esc(c.variants.join(' / ')) : ''}">
+			${esc(c.ruby)}${c.fromUserDict ? ' <span class="cand-star">★</span>' : ''}
+		  </button>`).join('')}</div>` : '';
+
+	return `<div class="entry ${dim} ${singleCls} ${suspCls} ${splitCls} ${multiCls} ${tempCls}" data-idx="${idx}">
+	  <input type="checkbox" ${e.checked ? 'checked' : ''} ${e.isTemp ? 'disabled' : ''}>
+	  <div class="pair">
+		<div class="pair-main">
+		  <input type="text" class="base ${editedCls}" value="${esc(e.base)}" data-field="base" spellcheck="false">
+		  <span class="arrow-btn" onclick="swapBaseRuby(${idx})" title="交换原文和读音">⇄</span>
+		  ${e.ruby.includes('|') || e.ruby.includes('｜') ? `
+		  <div class="ruby-group" data-idx="${idx}">
+			${e.ruby.split(/[|｜]/).map((p, i, arr) => {
+			  const m = p.match(/^(.*?)\(([\d.]+)\)$/);
+			  const rText = m ? m[1] : p;
+			  const rWeight = m ? m[2] : "1";
+			  const delBtn = arr.length > 1 ? `<span class="ruby-del" onclick="removeRubyPart(${idx}, ${i})" title="删除此项">×</span>` : '';
+			  return `<div class="ruby-part">
+				<input type="text" value="${esc(rText)}" data-field="ruby-part" 
+					   onchange="updateMultiRuby(${idx}, ${i}, 'text', this.value)" spellcheck="false">
+				<input type="number" class="ruby-weight" value="${rWeight}" onchange="updateMultiRuby(${idx}, ${i}, 'weight', this.value)" onwheel="adjustWeight(event, ${idx}, ${i})" title="滚轮或输入回车调整权重">
+				${delBtn}
+			  </div>`;
+			}).join('')}
+		  </div>
+		  ` : `
+		  <input type="text" class="ruby ${editedCls}" value="${esc(e.ruby)}" data-field="ruby" spellcheck="false">
+		  `}
+		  ${occBadge}${typeBadge}${personBadge}${suspectBadge}${starBadge}${distBadge}${suspBadge}${kataBadge}${latinBadge}${splitBadge}
+		  <span class="badge ${s.cls}">${s.label}</span>${editedBadge}
+		${e.isTemp ? `
+		  <div style="display:flex; gap:4px; margin-left:auto; align-items:center;">
+			<button type="button" onclick="confirmTemp(${idx})" style="background:var(--ok); color:#fff; border:none; border-radius:4px; padding:2px 8px; font-size:12px; font-weight:bold; cursor:pointer; font-family: system-ui, sans-serif;" title="确认添加到列表">✔ 确认</button>
+			<button type="button" onclick="discardTemp(${idx})" style="background:var(--danger); color:#fff; border:none; border-radius:4px; padding:2px 8px; font-size:12px; font-weight:bold; cursor:pointer; font-family: system-ui, sans-serif;" title="废弃并删除">✖ 废弃</button>
+		  </div>
+		` : (e.note ? `<span class="source">${esc(e.note)}</span>` : '')}
+	  </div>
+		${candidatesHtml}
+	  </div>
+	</div>`;
+  }
+
+  function bindEntryEvents(entryEl, idx, e) {
+	const cb = entryEl.querySelector('input[type="checkbox"]');
+	cb.addEventListener('change', (ev) => {
+	  e.checked = ev.target.checked;
+	  entryEl.classList.toggle('dim', !ev.target.checked);
+	  const el = document.getElementById('statChecked');
+	  if (el) el.textContent = fmt(state.entries.filter(x => x.checked).length);
+	  saveStateDebounced(); // ★ 触发保存
+	});
+	entryEl.querySelectorAll('input[type="text"]').forEach(inp => {
+	  const field = inp.dataset.field;
+	  if (field === 'ruby-part') return; // 忽略多读音小框，防止原生事件覆盖数据
+	  inp.addEventListener('change', () => {
+		const oldVal = e[field];
+		const newVal = inp.value;
+		if (newVal === oldVal) return;
+		if (!newVal || newVal.includes('=>') || newVal.includes('\n')) {
+		  showBanner('banner3', 'err', '输入不能为空，也不能包含 "=>" 或换行符。已撤销修改。');
+		  inp.value = oldVal; return;
+		}
+		e[field] = newVal;
+		if (field === 'base') {
+		  e.candidates = [];
+		}
+		recomputeEntryAfterEdit(e);
+		/* 多/单切换需要重建整行 DOM */
+		const newHtml = renderEntryItem(e, idx);
+		const tmp = document.createElement('div');
+		tmp.innerHTML = newHtml;
+		const newEl = tmp.firstElementChild;
+		entryEl.replaceWith(newEl);
+		bindEntryEvents(newEl, idx, e);
+		updateFloatButton();
+		/* 更新多读音计数 */
+		const mh = document.getElementById('multiHint');
+		const mc = document.getElementById('multiCount');
+		if (mh && mc) {
+		  const n = state.entries.filter(x => x.isMulti).length;
+		  mc.textContent = fmt(n);
+		  mh.style.display = n > 0 ? '' : 'none';
+		}
+	  });
+	  ['select', 'mouseup', 'keyup', 'focus', 'input'].forEach(evt =>
+		inp.addEventListener(evt, () => setTimeout(updateFloatButton, 0)));
+	  inp.addEventListener('blur', () => setTimeout(updateFloatButton, 0));
+	});
+
+	entryEl.querySelectorAll('.cand-btn').forEach(btn => {
+	  btn.addEventListener('click', (ev) => {
+		ev.preventDefault();
+		const ruby = btn.dataset.ruby;
+		if (ruby === e.ruby) return;
+		e.ruby = ruby;
+		e.edited = true;
+		e.susp = hasSuspiciousLargeChar(e.ruby);
+		e.suspPrecise = hasSuspiciousLargeCharPrecise(e.ruby);
+		e.hasKatakana = hasKatakanaChar(e.ruby);
+		e.hasHiragana = hasHiraganaChar(e.ruby);
+		e.hasLatin = hasLatinChar(e.ruby);
+		if (e.candidates.length > 1) {
+		  e.status = 'conflict';
+		  e.note = `有 ${e.candidates.length} 个候选读音`;
+		  const c = e.candidates.find(x => x.ruby === e.ruby);
+		  if (c && c.variants && c.variants.length > 1) {
+			e.note += `；已合并大小字变体：${c.variants.join(' / ')}（已选小字版）`;
+		  }
+		} else {
+		  const ud = e.candidates.find(c => c.fromUserDict);
+		  if (ud) {
+			if (ud.ruby === e.ruby || normalizeForCompare(ud.ruby) === normalizeForCompare(e.ruby)) {
+			  e.status = 'dup';
+			  e.note = ud.ruby === e.ruby
+				? '参考词典中已存在相同读音'
+				: `参考词典读音仅大小字不同（已选小字版）：${ud.ruby}`;
+			} else {
+			  e.status = 'dup'; e.note = '参考词典中已存在相同读音';
+			}
+		  } else {
+			e.status = 'new'; e.note = '';
+		  }
+		}
+		const newHtml = renderEntryItem(e, idx);
+		const tmp = document.createElement('div');
+		tmp.innerHTML = newHtml;
+		const newEl = tmp.firstElementChild;
+		entryEl.replaceWith(newEl);
+		bindEntryEvents(newEl, idx, e);
+		updateFloatButton();
+	  });
+	});
+  }
+
+  function renderEntryList() {
+	const box = document.getElementById('entries');
+	const list = getFilteredList();
+
+	const fc = document.getElementById('filterCount');
+	if (fc) {
+	  if (list.length === state.entries.length) fc.innerHTML = `共 <b>${fmt(list.length)}</b> 条`;
+	  else fc.innerHTML = `筛选出 <b>${fmt(list.length)}</b> / ${fmt(state.entries.length)} 条`;
+	}
+
+	if (list.length === 0) { box.innerHTML = '<div class="empty">没有符合条件的条目</div>'; updateFloatButton(); return; }
+
+	const showGroupHeader = (sortBy === 'fifty');
+	const idxMap = new Map();
+	state.entries.forEach((e, i) => idxMap.set(e, i));
+	const wordCount = list.filter(e => e.type === 'word').length;
+	const singleCount = list.filter(e => e.type === 'single').length;
+	const shown = list.slice(0, 5000);
+	
+	let html = '';
+	let lastType = null;
+	let renderIdx = 0;
+
+	for (const e of shown) {
+	  if (showGroupHeader && e.type !== lastType) {
+		const label = e.type === 'word' ? '词库' : '单字';
+		const cnt = e.type === 'word' ? wordCount : singleCount;
+		
+		// ★ 修改：文字改为“跳至”，占位符改为“条目”，宽度略增
+		html += `<div class="group-header ${e.type === 'single' ? 'single' : ''}">
+		  <span>${label}</span>
+		  <span class="count" style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+			跳至 <input type="number" class="jump-input" data-start="${renderIdx}" min="1" max="${cnt}" placeholder="条目" style="width: 52px; padding: 0 4px; font-size: 12px; height: 20px; border: 1px solid var(--border); border-radius: 2px; background: var(--input-bg); color: var(--text); text-align: center; outline:none;">
+			/ ${fmt(cnt)} 条
+		  </span>
+		</div>`;
+		lastType = e.type;
+	  }
+	  html += renderEntryItem(e, idxMap.get(e)).replace('class="entry', `data-render-idx="${renderIdx++}" class="entry`);
+	}
+	if (list.length > 5000) {
+	  html += `<div class="empty" style="padding:14px">还有 ${fmt(list.length - 5000)} 条未显示（仅影响预览，不影响导出）</div>`;
+	}
+	box.innerHTML = html;
+	box.querySelectorAll('.entry').forEach(entryEl => {
+	  const idx = Number(entryEl.dataset.idx);
+	  bindEntryEvents(entryEl, idx, state.entries[idx]);
+	});
+
+	// ★ 绑定 jump 输入框的事件
+	box.querySelectorAll('.jump-input').forEach(inp => {
+	  
+	  // ★ 支持鼠标滚轮微调数值
+	  inp.addEventListener('wheel', (e) => {
+		e.preventDefault(); // 阻止页面滚动
+		let val = parseInt(inp.value, 10);
+		if (isNaN(val)) val = 1;
+		
+		// 滚轮向上（-deltaY）加，向下（deltaY）减
+		val += (e.deltaY < 0 ? 1 : -1);
+		
+		const max = parseInt(inp.getAttribute('max'), 10) || 99999;
+		val = Math.max(1, Math.min(val, max));
+		inp.value = val;
+	  }, { passive: false });
+
+	  inp.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter') {
+		  let val = parseInt(inp.value, 10);
+		  if (isNaN(val) || val < 1) val = 1;
+		  
+		  const start = parseInt(inp.dataset.start, 10);
+		  const targetIdx = start + val - 1; // 计算目标元素在页面上的实际索引
+		  
+		  const entryEl = box.querySelector(`.entry[data-render-idx="${targetIdx}"]`);
+		  if (entryEl) {
+			entryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			
+			// ★ 闪烁高亮效果
+			const oldBg = entryEl.style.backgroundColor;
+			const oldBoxShadow = entryEl.style.boxShadow;
+			entryEl.style.transition = 'background-color 0.3s, box-shadow 0.3s';
+			entryEl.style.backgroundColor = 'var(--primary-light)';
+			entryEl.style.boxShadow = 'inset 0 0 0 2px var(--primary)';
+			
+			setTimeout(() => {
+			  entryEl.style.backgroundColor = oldBg;
+			  entryEl.style.boxShadow = oldBoxShadow;
+			}, 1500);
+		  } else {
+			alert('输入的序号超出了当前分组的显示范围。');
+		  }
+		  
+		  inp.value = ''; // 跳转后清空输入框
+		  inp.blur();     // 失去焦点
+		}
+	  });
+	});
+
+	updateFloatButton();
+  }
+
+  // 确认临时草稿
+  window.confirmTemp = function(idx) {
+	const e = state.entries[idx];
+	if (!e) return;
+	e.isTemp = false;      // 取消临时标记
+	e.checked = true;      // 确认时默认勾选
+	e.note = '手动新增';    // 更新备注
+	e.edited = true;
+	renderEntryList();     // 重新渲染，如果它不满足筛选条件会自动消失
+  };
+
+  // 废弃临时草稿
+  window.discardTemp = function(idx) {
+	if (!confirm('确定要废弃并删除这个新条目吗？')) return;
+	state.entries.splice(idx, 1); // 直接从数组中删除
+	renderEntryList();
+  };
+
+  /* ================= 悬浮按钮 ================= */
+  function getActiveRange(activeInput) {
+	const start = activeInput.selectionStart;
+	const end = activeInput.selectionEnd;
+	if (start === null || start === undefined) return null;
+	if (start !== end) return { start, end, text: activeInput.value.slice(start, end) };
+	if (start === 0) return null;
+	return { start: start - 1, end: start, text: activeInput.value.slice(start - 1, start) };
+  }
+  function getActiveInput() {
+	const el = document.activeElement;
+	if (el && el.matches && el.matches('.entry input[type="text"]')) return el;
+	return null;
+  }
+  function positionFloatButtons(activeInput) {
+	const b1 = document.getElementById('floatConvert');
+	const b2 = document.getElementById('floatDakuten');
+	const b3 = document.getElementById('floatProbability');
+	const b4 = document.getElementById('floatAdd');
+	const b5 = document.getElementById('floatPerson');
+	const b6 = document.getElementById('floatSuspect');
+	
+	if (!b1 || !b2 || !b3 || !b4 || !b5 || !b6) return;
+	if (!b1.classList.contains('show') || b1.classList.contains('hidden')) return;
+	
+	const r = activeInput.getBoundingClientRect();
+	if (r.width === 0 && r.height === 0) return;
+	
+	const bw = b1.offsetWidth || 46;
+	const bh = b1.offsetHeight || 46;
+	const gap = 8, innerGap = 6; // 按钮之间的间距
+	
+	// 2 列 3 行的总宽和高
+	const totalW = (bw * 2) + innerGap;
+	const totalH = (bh * 3) + (innerGap * 2);
+	
+	// ★ 核心修改：优先放在输入框正下方，靠右对齐（避免遮挡左侧）
+	let left = r.right - totalW;
+	let top  = r.bottom + gap;
+	
+	// 智能避让：如果下方放不下，翻转到上方
+	if (top + totalH > window.innerHeight - 4) {
+	  top = r.top - totalH - gap;
+	  
+	  // 如果上方也放不下（极端情况），退回到右侧
+	  if (top < 4) {
+	    left = r.right + gap;
+	    top = r.top + (r.height - totalH) / 2;
+	    
+	    // 如果右侧也放不下，放到左侧
+	    if (left + totalW > window.innerWidth - 4) {
+	      left = r.left - totalW - gap;
+	    }
+	  }
+	}
+	
+	// 最终边界安全修正
+	if (left < 4) left = 4;
+	if (left + totalW > window.innerWidth - 4) left = window.innerWidth - totalW - 4;
+	if (top < 4) top = 4;
+	if (top + totalH > window.innerHeight - 4) top = window.innerHeight - totalH - 4;
+	
+	// 统一重置所有按钮的定位方式
+	[b1, b2, b3, b4, b5, b6].forEach(b => {
+	  b.style.right = 'auto';
+	  b.style.bottom = 'auto';
+	});
+	
+	// 应用 2列3行 坐标
+	// 第一行
+	b1.style.left = left + 'px';
+	b1.style.top = top + 'px';
+	
+	b2.style.left = (left + bw + innerGap) + 'px';
+	b2.style.top = top + 'px';
+	
+	// 第二行
+	b3.style.left = left + 'px';
+	b3.style.top = (top + bh + innerGap) + 'px';
+	
+	b4.style.left = (left + bw + innerGap) + 'px';
+	b4.style.top = (top + bh + innerGap) + 'px';
+	
+	// 第三行
+	b5.style.left = left + 'px';
+	b5.style.top = (top + (bh + innerGap) * 2) + 'px';
+	
+	b6.style.left = (left + bw + innerGap) + 'px';
+	b6.style.top = (top + (bh + innerGap) * 2) + 'px';
+  }
+
+  function updateFloatButton() {
+	const btnC = document.getElementById('floatConvert');
+	const btnD = document.getElementById('floatDakuten');
+	const btnP = document.getElementById('floatProbability');
+	const btnA = document.getElementById('floatAdd');
+	const btnPerson = document.getElementById('floatPerson');
+	const btnSuspect = document.getElementById('floatSuspect');
+	
+	if (!btnC || !btnD || !btnP || !btnA || !btnPerson || !btnSuspect) return;
+	const active = getActiveInput();
+
+	// 如果没选中输入框，或者按钮未显示，则隐藏所有按钮并重置透明度
+	if (!active || !btnC.classList.contains('show')) {
+	  btnC.classList.add('hidden'); btnD.classList.add('hidden');
+	  btnP.classList.add('hidden'); btnA.classList.add('hidden');
+	  btnPerson.classList.add('hidden'); btnSuspect.classList.add('hidden');
+	  btnC.classList.remove('active', 'split-mode'); btnD.classList.remove('active');
+	  btnP.classList.remove('active'); btnA.classList.remove('active');
+	  
+	  // ★ 恢复默认透明度，防止下次出现时依然泛白
+	  btnC.style.opacity = '1';
+	  btnD.style.opacity = '1';
+
+	  // 复原为默认状态的图标
+	  btnC.innerHTML = `<span class="icon-group icon-large-small"><span class="txt-large">大</span><span class="txt-small">小</span></span>`;
+	  btnD.innerHTML = `<div class="icon-dakuten"><span class="dot-top-left">"</span><span class="dot-top-right">°</span><span class="txt-main">浊</span></div>`;
+	  return;
+	}
+
+	btnC.classList.remove('hidden'); btnD.classList.remove('hidden');
+	btnP.classList.remove('hidden'); btnA.classList.remove('hidden');
+	btnPerson.classList.remove('hidden');
+	
+	positionFloatButtons(active);
+
+	// 1. 大小字按钮
+	btnC.classList.remove('split-mode');
+	const range = getActiveRange(active);
+	if (range && range.text) {
+	  const nS = countToSmall(range.text), nL = countToLarge(range.text);
+	  if (nS > 0 || nL > 0) {
+		btnC.classList.add('active');
+		btnC.style.opacity = '1'; // ★ 支持切换，完全不透明
+		if (nL > nS) {
+		  btnC.innerHTML = `<span class="icon-group icon-small-large"><span class="txt-small">小</span><span class="txt-large">大</span></span>`;
+		  btnC.dataset.tip = `变大：${convertToLarge(range.text)}`;
+		} else {
+		  btnC.innerHTML = `<span class="icon-group icon-large-small"><span class="txt-large">大</span><span class="txt-small">小</span></span>`;
+		  btnC.dataset.tip = `变小：${convertToSmall(range.text)}`;
+		}
+	  } else { 
+		btnC.classList.remove('active'); 
+		btnC.style.opacity = '0.5'; // ★ 不支持切换，半透明
+		btnC.innerHTML = `<span class="icon-group icon-large-small"><span class="txt-large">大</span><span class="txt-small">小</span></span>`;
+		btnC.dataset.tip = '没有可转换的假名';
+	  }
+	} else { 
+	  btnC.classList.remove('active'); 
+	  btnC.style.opacity = '0.5'; // ★ 未选中文字，半透明
+	  btnC.innerHTML = `<span class="icon-group icon-large-small"><span class="txt-large">大</span><span class="txt-small">小</span></span>`;
+	  btnC.dataset.tip = '选中文字';
+	}
+
+	// 2. 浊音按钮
+	const range2 = getActiveRange(active);
+	const dakutenHtml = `<div class="icon-dakuten"><span class="dot-top-left">"</span><span class="dot-top-right">°</span><span class="txt-main">浊</span></div>`;
+	if (range2 && range2.text) {
+	  // ★ 精确匹配 か行、さ行、た行、は行 的清音、浊音、半浊音
+	  const hasVoicing = /[か-ごさ-ぞた-どは-ぽカ-ゴサ-ゾタ-ドハ-ポ]/.test(range2.text);
+	  if (hasVoicing) { 
+		btnD.classList.add('active'); 
+		btnD.style.opacity = '1'; // ★ 支持切换，完全不透明
+		btnD.innerHTML = dakutenHtml; 
+	  }
+	  else { 
+		btnD.classList.remove('active'); 
+		btnD.style.opacity = '0.5'; // ★ 不支持切换，半透明
+		btnD.innerHTML = dakutenHtml; 
+	  }
+	} else { 
+	  btnD.classList.remove('active'); 
+	  btnD.style.opacity = '0.5'; // ★ 未选中文字，半透明
+	  btnD.innerHTML = dakutenHtml; 
+	}
+
+	// 3. 概率拆分按钮 (仅在 ruby 输入框可用)
+	if (active.dataset.field === 'ruby' || active.dataset.field === 'ruby-part') {
+	  btnP.classList.add('active');
+	  btnP.innerHTML = '%';
+	} else { 
+	  btnP.classList.remove('active'); 
+	}
+
+	// 4. 新增按钮
+	btnA.classList.add('active');
+	btnA.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+	
+	// 5. 人名标记按钮
+	const entryEl = active.closest('.entry');
+	if (entryEl) {
+	  const idx = Number(entryEl.dataset.idx);
+	  const e = state.entries[idx];
+	  if (e) {
+		btnPerson.dataset.idx = idx;
+		if (e.isPerson) {
+		  btnPerson.classList.add('active');
+		  btnPerson.innerHTML = '👤✓';
+		  btnPerson.dataset.tip = '取消名词标记';
+		} else {
+		  btnPerson.classList.remove('active');
+		  btnPerson.innerHTML = '👤';
+		  btnPerson.dataset.tip = '标记为名词';
+		}
+	  }
+	}
+	
+	// 6. 存疑标记按钮
+	if (btnSuspect) {
+	  btnSuspect.classList.remove('hidden');
+	  const entryEl2 = active.closest('.entry');
+	  if (entryEl2) {
+		const idx2 = Number(entryEl2.dataset.idx);
+		const e2 = state.entries[idx2];
+		if (e2) {
+		  if (e2.isSuspect) {
+			btnSuspect.classList.add('active');
+			btnSuspect.dataset.tip = '取消存疑标记';
+		  } else {
+			btnSuspect.classList.remove('active');
+			btnSuspect.dataset.tip = '存疑搁置 [?]';
+		  }
+		}
+	  }
+	}
+  }
+
+  /* 大小字转换 */
+  function handleFloatConvert() {
+	const active = getActiveInput();
+	if (!active) return;
+	const entryEl = active.closest('.entry');
+	if (!entryEl) return;
+	const idx = Number(entryEl.dataset.idx);
+	const e = state.entries[idx];
+	if (!e) return;
+
+	const range = getActiveRange(active);
+	if (!range || !range.text) return;
+	const selected = range.text;
+	const nS = countToSmall(selected), nL = countToLarge(selected);
+	if (nS === 0 && nL === 0) return;
+	const converted = nL > nS ? convertToLarge(selected) : convertToSmall(selected);
+	if (converted === selected) return;
+	applyTextEdit(active, range, converted);
+  }
+
+  function handleFloatDakuten() {
+	const active = getActiveInput();
+	if (!active) return;
+	const range = getActiveRange(active);
+	if (!range || !range.text) return;
+	const selected = range.text;
+	const converted = toggleVoicing(selected);
+	if (converted === selected) return;
+	applyTextEdit(active, range, converted);
+  }
+
+  function applyTextEdit(activeInput, range, converted) {
+	const entryEl = activeInput.closest('.entry');
+	const idx = Number(entryEl.dataset.idx);
+	const field = activeInput.dataset.field;
+	const e = state.entries[idx];
+	if (!e) return;
+	const original = activeInput.value;
+	const newValue = original.slice(0, range.start) + converted + original.slice(range.end);
+	e[field] = newValue;
+	recomputeEntryAfterEdit(e);
+	const newHtml = renderEntryItem(e, idx);
+	const tmp = document.createElement('div');
+	tmp.innerHTML = newHtml;
+	const newEl = tmp.firstElementChild;
+	entryEl.replaceWith(newEl);
+	bindEntryEvents(newEl, idx, e);
+	setTimeout(() => {
+	  const newEntryEl = document.querySelector(`.entry[data-idx="${idx}"]`);
+	  if (newEntryEl) {
+		const inp = newEntryEl.querySelector(`input[data-field="${field}"]`);
+		if (inp) {
+		  inp.focus();
+		  inp.setSelectionRange(range.start, range.start + converted.length);
+		}
+	  }
+	  updateFloatButton();
+	}, 0);
+	saveStateDebounced(); // ★ 触发保存
+  }
+
+  const floatBtn = document.getElementById('floatConvert');
+  floatBtn.addEventListener('mousedown', (e) => e.preventDefault());
+  floatBtn.addEventListener('click', handleFloatConvert);
+  
+  // 绑定 / 按钮（无限拆分）
+  const floatP = document.getElementById('floatProbability');
+  floatP.addEventListener('mousedown', e => e.preventDefault());
+  floatP.addEventListener('click', () => {
+	const active = getActiveInput();
+	if (!active || (active.dataset.field !== 'ruby' && active.dataset.field !== 'ruby-part')) return;
+	const entryEl = active.closest('.entry');
+	const e = state.entries[Number(entryEl.dataset.idx)];
+	
+	if (e.ruby.includes('|') || e.ruby.includes('｜')) {
+	  // 已经拆分，无限追加一项占位（默认权重改为 1）
+	  e.ruby += `|__(1)`;
+	} else {
+	  // 首次拆分（默认权重改为 1）
+	  e.ruby = `${e.ruby}(1)|__(1)`;
+	}
+	recomputeEntryAfterEdit(e);
+	renderEntryList();
+  });
+
+  // 绑定 👤 按钮（切换人名状态）
+  const floatPerson = document.getElementById('floatPerson');
+  floatPerson.addEventListener('mousedown', e => e.preventDefault());
+  floatPerson.addEventListener('click', () => {
+    const active = getActiveInput();
+    if (!active) return;
+    const entryEl = active.closest('.entry');
+    if (!entryEl) return;
+    const idx = Number(entryEl.dataset.idx);
+    
+    window.togglePerson(idx);
+    updateFloatButton(); 
+  });
+
+  // 绑定 ? 按钮（切换存疑状态）
+  const floatSuspect = document.getElementById('floatSuspect');
+  floatSuspect.addEventListener('mousedown', e => e.preventDefault());
+  floatSuspect.addEventListener('click', () => {
+    const active = getActiveInput();
+    if (!active) return;
+    const entryEl = active.closest('.entry');
+    if (!entryEl) return;
+    const idx = Number(entryEl.dataset.idx);
+    const e = state.entries[idx];
+    if (!e) return;
+    
+    e.isSuspect = !e.isSuspect;
+    e.edited = true; 
+    
+    // 局部刷新这行 DOM 以显示/隐藏徽章
+    const newHtml = renderEntryItem(e, idx);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = newHtml;
+    const newEl = tmp.firstElementChild;
+    entryEl.replaceWith(newEl);
+    bindEntryEvents(newEl, idx, e);
+    
+    updateFloatButton(); 
+  });
+
+  // 交换原文和读音
+  window.swapBaseRuby = function(idx) {
+	const e = state.entries[idx];
+	if (!e) return;
+
+	// 如果是多读音（有 |），不允许直接交换，防止语法错乱
+	if (e.ruby.includes('|') || e.ruby.includes('｜')) {
+	  showBanner('banner3', 'warn', '该词条是多读音（概率语法），无法直接交换。请先手动删除多读音的拆分。');
+	  return;
+	}
+	
+	// 执行交换
+	const temp = e.base;
+	e.base = e.ruby;
+	e.ruby = temp;
+	
+	// 重新计算并刷新界面
+	recomputeEntryAfterEdit(e);
+	renderEntryList();
+  };
+
+  // 添加删除多读音切片的全局函数
+  window.removeRubyPart = function(idx, partIdx) {
+	const e = state.entries[idx];
+	let parts = e.ruby.split(/[|｜]/).map(p => {
+	  const m = p.match(/^(.*?)\(([\d.]+)\)$/);
+	  if (m) return { text: m[1], weight: m[2] };
+	  return { text: p, weight: "1" };
+	});
+	parts.splice(partIdx, 1);
+	
+	if (parts.length === 1) {
+	  e.ruby = parts[0].text; // 如果只剩一项，回退为单读音
+	} else {
+	  e.ruby = parts.map(p => `${p.text}(${p.weight})`).join('|');
+	}
+	recomputeEntryAfterEdit(e);
+	renderEntryList();
+  };
+  const floatDak = document.getElementById('floatDakuten');
+  floatDak.addEventListener('mousedown', (e) => e.preventDefault());
+  floatDak.addEventListener('click', handleFloatDakuten);
+
+  // ★ 补全缺失的 + 按钮（新增词条）的绑定逻辑
+  const floatAdd = document.getElementById('floatAdd');
+  floatAdd.addEventListener('mousedown', (e) => e.preventDefault());
+  floatAdd.addEventListener('click', () => {
+	const active = getActiveInput();
+	if (!active) return;
+	const entryEl = active.closest('.entry');
+	if (!entryEl) return;
+	const idx = Number(entryEl.dataset.idx);
+	const e = state.entries[idx];
+	if (!e) return;
+
+	// ★ 修改：复制当前词条的内容作为“副本草稿”
+	const newEntry = {
+	  ...e,
+	  source: '手动新增',
+	  status: 'new',
+	  edited: false,
+	  split: false,
+	  checked: false, // 草稿默认不勾选，等点 √ 确认
+	  firstOrder: (e.firstOrder || 0) + 0.01, // 保证按 order 排序时排在当前条目后
+	  candidates: [], // 副本不需要候选读音
+	  note: '手动新增',
+	  isTemp: true // ★ 标记为临时草稿，从而触发专属的浅黄色虚线框和 √ ✕ 按钮
+	};
+	
+	// 插入到当前索引的下一条
+	state.entries.splice(idx + 1, 0, newEntry);
+	renderEntryList();
+
+	// 自动滚动并聚焦到新插入的副本词条
+	setTimeout(() => {
+	  // 找当前列表中最后一个草稿元素（即刚刚新增的）
+	  const tempEls = document.querySelectorAll('.entry.is-temp');
+	  if (tempEls.length > 0) {
+		const targetEl = tempEls[tempEls.length - 1];
+		// 使用 nearest 让它只滚动到刚好能看见的位置，避免页面大跳
+		targetEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+		const inp = targetEl.querySelector('input.base');
+		if (inp) {
+		  inp.focus();
+		  inp.select(); // 全选文字，方便你直接打字覆盖修改
+		}
+	  }
+	}, 50);
+  });
+
+  document.addEventListener('selectionchange', () => setTimeout(updateFloatButton, 0));
+  document.addEventListener('focusin',  () => setTimeout(updateFloatButton, 0));
+  document.addEventListener('focusout', () => setTimeout(updateFloatButton, 0));
+  window.addEventListener('scroll', () => updateFloatButton(), true);
+  window.addEventListener('resize', updateFloatButton);
+
+  /* ================= 步骤 2：参考词典导入 ================= */
+  function parseDictText(text, intoMap) {
+	const map = intoMap || new Map();
+	for (const raw of text.split(/\r?\n/)) {
+	  const line = raw.trim();
+	  if (!line || line.startsWith('#')) continue;
+	  const idx = line.indexOf('=>');
+	  if (idx < 0) continue;
+	  const k = line.slice(0, idx).trim();
+	  const { text: v } = stripCountSuffix(line.slice(idx + 2));
+	  if (k && v) map.set(k, v);
+	}
+	return map;
+  }
+
+  async function importDict(fileList) {
+	const statusEl = document.getElementById('dictStatus');
+	const listEl   = document.getElementById('dictFileList');
+	const files = Array.from(fileList).filter(f =>
+	  /\.txt$/i.test(f.name) && !/^~\$/.test(f.name) && !f.name.startsWith('.')
+	);
+	if (files.length === 0) {
+	  statusEl.textContent = '没有找到任何 .txt 文件';
+	  listEl.style.display = 'none';
+	  return;
+	}
+	files.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans', { numeric: true }));
+	statusEl.innerHTML = `<span class="spinner"></span>正在读取 ${fmt(files.length)} 个 .txt 文件…`;
+
+	const merged = new Map();
+	const conflicts = [];
+	const perFile = [];
+	const textParts = [];
+
+	for (const file of files) {
+	  let text = '';
+	  try { text = await file.text(); }
+	  catch (e) { perFile.push({ name: file.name, count: 0, added: 0, overwritten: 0, error: e.message }); continue; }
+	  const local = parseDictText(text);
+	  let added = 0, overwritten = 0;
+	  for (const [k, v] of local) {
+		if (merged.has(k)) {
+		  if (merged.get(k) !== v) {
+			conflicts.push({ key: k, prev: merged.get(k), next: v, file: file.name });
+			overwritten++;
+		  }
+		} else { merged.set(k, v); added++; }
+	  }
+	  perFile.push({ name: file.name, count: local.size, added, overwritten });
+	  textParts.push(`# ===== 来源：${file.name} =====\n${text.replace(/\s+$/, '')}\n`);
+	}
+
+	state.userDict = merged;
+	state.userDictText = textParts.join('\n');
+	document.getElementById('btnDownloadMerged').style.display = '';
+
+	const totalOverw = perFile.reduce((s, p) => s + p.overwritten, 0);
+	statusEl.textContent =
+	  `已导入 ${fmt(files.length)} 个文件（合并后 ${fmt(merged.size)} 条` +
+	  (totalOverw ? `，${fmt(totalOverw)} 条冲突` : '') + '）';
+
+	listEl.style.display = '';
+	listEl.innerHTML = perFile.map(p => {
+	  if (p.error) return `<div>⚠️ <b>${esc(p.name)}</b>：读取失败（${esc(p.error)}）</div>`;
+	  const conflictTxt = p.overwritten ? ` <span style="color:#c9821a">（${fmt(p.overwritten)} 条冲突未覆盖）</span>` : '';
+	  const emptyTxt = p.count === 0 ? ' <span style="color:#7a8194">（空文件）</span>' : '';
+	  return `<div>📄 <b>${esc(p.name)}</b>：${fmt(p.count)} 条${conflictTxt}${emptyTxt}</div>`;
+	}).join('');
+
+	if (conflicts.length) console.warn(`[参考词典] ${conflicts.length} 条冲突（保留先加载的）：`, conflicts.slice(0, 50));
+	rebuildEntries();
+  }
+
+  /* ================= 导出 ================= */
+  function getSourceEpubs() {
+	return state.files.filter(f => f.status === 'ok').map(f => f.name).join(', ');
+  }
+  function getEpubBaseName() {
+	const okFiles = state.files.filter(f => f.status === 'ok');
+	if (okFiles.length === 0) return "未命名";
+	let name = okFiles[0].name.replace(/\.(epub|txt)$/i, '');
+	if (okFiles.length > 1) name += `等${okFiles.length}项`;
+	return name.replace(/[\\/:*?"<>|]/g, '_');
+  }
+
+/* ===== ★ 导出归一化 ===== */
+
+// 全角字母数字 → 半角、全角空格 → 半角
+const _FW_ALNUM_RE = /[Ａ-Ｚａ-ｚ０-９]/g;
+function _toHalfAlnumAndSpace(s) {
+  return String(s)
+	.replace(_FW_ALNUM_RE, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+	.replace(/\u3000/g, ' ');
+}
+
+// ASCII 大写 → 小写（仅 ASCII，不影响其他语言）
+const _ASCII_UPPER_RE = /[A-Z]/g;
+function _toLowerAscii(s) {
+  return String(s).replace(_ASCII_UPPER_RE, ch => ch.toLowerCase());
+}
+
+// base 归一化（规则左侧）：只做字母数字 + 空格 + 大小写
+// ⚠️ 绝不能动 base 的标点（・、（）等）
+//	否则规则匹配不到原文，整条规则失效
+function normalizeBaseForExport(s) {
+  return _toLowerAscii(_toHalfAlnumAndSpace(s || ''));
+}
+
+// ruby 归一化（规则右侧）：全套归一
+const _RUBY_PUNCT_MAP = {
+  '・': '·',	   // 间隔中点 → 中间点（tts.py 不会再把它转成顿号）
+  '（': '(', '）': ')',
+  '［': '[', '］': ']',
+  '｛': '{', '｝': '}',
+  '｜': '|',       // 概率语法竖线
+  '％': '%',       // 概率语法百分号
+  '！': '!', '？': '?',
+  '，': ',', '．': '.', '：': ':', '；': ';',
+};
+function normalizeRubyForExport(s) {
+  const half = _toLowerAscii(_toHalfAlnumAndSpace(s || ''));
+  return [...half].map(ch => _RUBY_PUNCT_MAP[ch] || ch).join('');
+}
+
+  /* ★ 导出时把全角 ｜ 归一化为半角 |，保证 tts.py 能识别概率语法 */
+  function exportLine(e) {
+	const suffix = (e.occurrences > 1) ? ` <= count:${e.occurrences}` : '';
+	const suspectStr = e.isSuspect ? ' [?]' : ''; 
+	return `${normalizeBaseForExport(e.base)} => ${normalizeRubyForExport(e.ruby)}${suspectStr}${suffix}`;
+  }
+
+  function buildNewText() {
+	const selected = state.entries.filter(e => e.checked);
+	const mergedSelected = mergeSameRubies(selected); // ★ 执行合并
+	const lines = [];
+	lines.push(`# 由 EPUB Ruby 提取工具生成 · ${new Date().toLocaleString('zh-CN')}`);
+	const sources = getSourceEpubs();
+	if (sources) lines.push(`# 来源 EPUB：${sources}`);
+	const buckets = buildExportBuckets(mergedSelected); // ★ 使用合并后的结果
+	for (const b of buckets) {
+	  if (!b.items.length) continue;
+	  lines.push(`# ===== ${b.title}（${b.items.length} 条） =====`);
+	  for (const e of b.items) lines.push(exportLine(e));
+	}
+	return lines.join('\n') + '\n';
+  }
+
+  // ★ 合并相同注音的规则（汉字1|汉字2 => 注音）
+  function mergeSameRubies(entries) {
+    const merged = [];
+    const rubyGroups = new Map();
+    
+    for (const e of entries) {
+      const ruby = e.ruby || ''; // ★ 核心防御：防止旧缓存数据缺失 ruby 导致报错
+      // 如果包含多读音（右侧有 |），不参与合并，直接保留
+      if (e.isMulti || ruby.includes('|') || ruby.includes('｜')) {
+        merged.push(e);
+      } else {
+        if (!rubyGroups.has(ruby)) rubyGroups.set(ruby, []);
+        rubyGroups.get(ruby).push(e);
+      }
+    }
+
+    for (const [ruby, group] of rubyGroups.entries()) {
+      if (group.length === 1) {
+        merged.push(group[0]);
+      } else {
+        // 多个汉字对应同一读音，合并 base 并累加 count
+        const uniqueBases = [...new Set(group.map(x => x.base || ''))];
+        const combinedBase = uniqueBases.join('|');
+        const combinedOcc = group.reduce((sum, x) => sum + (x.counted ? 0 : (x.occurrences || 1)), 0);
+        
+        const first = group[0];
+        const newEntry = {
+          ...first,
+          base: combinedBase,
+          occurrences: combinedOcc,
+          type: combinedBase.length === 1 ? 'single' : 'word',
+          susp: hasSuspiciousLargeChar(ruby),
+          suspPrecise: hasSuspiciousLargeCharPrecise(ruby),
+          hasKatakana: hasKatakanaChar(ruby),
+          hasHiragana: hasHiraganaChar(ruby),
+          hasLatin: hasLatinChar(ruby),
+          isSuspect: group.some(x => x.isSuspect) // 只要组内有一个存疑，合并后也存疑
+        };
+        merged.push(newEntry);
+      }
+    }
+    return merged;
+  }
+
+  function buildExportBuckets(entries) {
+	const buckets = [
+	  { title: '名词',         items: [] },
+	  { title: '疑似小字',     items: [] },
+	  { title: '原文仅西文',   items: [] },
+	  { title: '原文仅片假名', items: [] },
+	  { title: '组词',         items: [] },
+	  { title: '单字',         items: [] },
+	  { title: '存疑',         items: [] }, // ★ 存疑放在最后，方便集中处理
+	];
+	for (const e of entries) {
+	  // ★ 最高优先级：只要标记了存疑，无论是什么类型，统统放进最后一个桶
+	  if (e.isSuspect)					buckets[6].items.push(e);
+	  else if (e.isPerson)				buckets[0].items.push(e);
+	  else if (e.susp)					buckets[1].items.push(e);
+	  else if (isLatinOnly(e.base))		buckets[2].items.push(e);
+	  else if (isKatakanaOnly(e.base))	buckets[3].items.push(e);
+	  else if (e.type === 'word')		buckets[4].items.push(e);
+	  else								buckets[5].items.push(e);
+	}
+	const cmp = (a, b) => (b.occurrences - a.occurrences) || a.base.localeCompare(b.base, 'ja');
+	for (const b of buckets) b.items.sort(cmp);
+	return buckets;
+  }
+
+  function buildMergedText() {
+	const base = state.userDictText || '';
+	const added = state.entries.filter(e => e.checked && e.status === 'new');
+	if (added.length === 0) return state.userDictText || '';
+	const mergedAdded = mergeSameRubies(added); // ★ 执行合并
+	const sep = (base.endsWith('\n') || base === '') ? '' : '\n';
+	const lines = [`\n# ===== 由 EPUB Ruby 提取工具追加 · ${new Date().toLocaleString('zh-CN')} =====`];
+	const sources = getSourceEpubs();
+	if (sources) lines.push(`# 来源 EPUB：${sources}`);
+	const buckets = buildExportBuckets(mergedAdded); // ★ 使用合并后的结果
+	for (const b of buckets) {
+	  if (!b.items.length) continue;
+	  lines.push(`# ----- ${b.title}（${b.items.length} 条） -----`);
+	  for (const e of b.items) lines.push(exportLine(e));
+	}
+	return base + sep + lines.join('\n') + '\n';
+  }
+
+  function downloadText(filename, text) {
+	const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url; a.download = filename;
+	document.body.appendChild(a); a.click(); document.body.removeChild(a);
+	URL.revokeObjectURL(url);
+  }
+
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const dictFilesInput = document.getElementById('dictFilesInput');
+  const dictDirInput   = document.getElementById('dictDirInput');
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  document.getElementById('btnPick').addEventListener('click', (e) => {
+	e.stopPropagation(); fileInput.click();
+  });
+  fileInput.addEventListener('change', (e) => {
+	if (e.target.files.length) handleFiles(e.target.files);
+	e.target.value = '';
+  });
+  ['dragenter','dragover'].forEach(ev =>
+	dropZone.addEventListener(ev, (e) => {
+	  e.preventDefault(); e.stopPropagation();
+	  dropZone.classList.add('over');
+	})
+  );
+  ['dragleave','drop'].forEach(ev =>
+	dropZone.addEventListener(ev, (e) => {
+	  e.preventDefault(); e.stopPropagation();
+	  dropZone.classList.remove('over');
+	})
+  );
+
+  dropZone.addEventListener('drop', (e) => {
+	const files = Array.from(e.dataTransfer.files);
+	const valid = files.filter(f =>
+	  /\.epub$/i.test(f.name) ||
+	  (/\.txt$/i.test(f.name) && !/^~\$/.test(f.name) && !f.name.startsWith('.'))
+	);
+	if (valid.length) {
+	  handleFiles(valid);
+	} else {
+	  showBanner('banner1', 'err',
+		'步骤 1 只接受 .epub 或重写 .txt；若想导入参考词典，请用步骤 2。');
+	}
+  });
+
+  document.getElementById('btnPickDictFiles').addEventListener('click', () => dictFilesInput.click());
+  dictFilesInput.addEventListener('change', (e) => {
+	if (e.target.files.length) importDict(e.target.files);
+	e.target.value = '';
+  });
+  document.getElementById('btnPickDictDir').addEventListener('click', () => dictDirInput.click());
+  dictDirInput.addEventListener('change', (e) => {
+	if (e.target.files.length) importDict(e.target.files);
+	e.target.value = '';
+  });
+
+  /* ============ ★ 粘贴文本按钮 ============ */
+  document.getElementById('btnPasteParse').addEventListener('click', () => {
+	const text = document.getElementById('pasteInput').value;
+	if (!text.trim()) {
+	  showBanner('banner1', 'warn', '请先粘贴文本。');
+	  return;
+	}
+	handlePastedText(text);
+  });
+
+  document.getElementById('btnPasteClear').addEventListener('click', () => {
+	document.getElementById('pasteInput').value = '';
+	hideBanner('banner1');
+  });
+
+  document.getElementById('searchBox').addEventListener('input', (e) => {
+	currentSearch = e.target.value.trim(); renderEntryList();
+  });
+
+  document.getElementById('sortSelect').addEventListener('change', (e) => {
+	sortBy = e.target.value; renderEntryList();
+  });
+
+  function updateSortDirBtn() {
+	const btn = document.getElementById('sortDirBtn');
+	btn.textContent = sortDir === 'asc' ? '↑ 升序' : '↓ 降序';
+  }
+  document.getElementById('sortDirBtn').addEventListener('click', () => {
+	sortDir = (sortDir === 'asc') ? 'desc' : 'asc';
+	updateSortDirBtn();
+	renderEntryList();
+  });
+
+  // 筛选按钮 UI 状态刷新函数
+  function updateFilterBtnUI(btn, state) {
+	btn.classList.remove('active-pos', 'active-neg');
+	const origText = btn.dataset.orig || btn.textContent;
+	if (!btn.dataset.orig) btn.dataset.orig = origText;
+	
+	const val = btn.dataset.val;
+	
+	if (state === 0) {
+	  btn.textContent = origText;
+	} else if (state === 1) {
+	  // 状态 1：特殊文字处理
+	  if (val === 'checked' || val === 'userdict' || val === 'edited') {
+		btn.textContent = '已' + origText;
+	  } else if (val === 'suspCommon' || val === 'suspSpecial') {
+		btn.textContent = '含' + origText;
+	  } else {
+		btn.textContent = '仅' + origText;
+	  }
+	} else if (state === 2) {
+	  // 状态 2：特殊文字处理
+	  if (val === 'checked' || val === 'userdict' || val === 'edited') {
+		btn.textContent = '未' + origText;
+	  } else if (val === 'suspCommon') {
+		btn.textContent = '常用小字已小字化';
+	  } else if (val === 'suspSpecial') {
+		btn.textContent = '特殊小字已小字化';
+	  } else {
+		btn.textContent = '不含' + origText;
+	  }
+	}
+	btn.dataset.state = state;
+  }
+
+  // 绑定循环点击事件
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+	btn.addEventListener('click', function() {
+	  const g = this.dataset.g;
+	  const val = this.dataset.val;
+	  let state = parseInt(this.dataset.state || '0');
+	  
+	  state = (state + 1) % 3; // 0 -> 1 -> 2 -> 0
+	  
+	  if (!filterState[g]) filterState[g] = {};
+	  if (state === 0) {
+		delete filterState[g][val];
+	  } else {
+		filterState[g][val] = state;
+	  }
+	  
+	  updateFilterBtnUI(this, state);
+	  renderEntryList();
+	});
+  });
+
+  // 清空筛选
+  document.getElementById('btnClearFilters').addEventListener('click', () => {
+	document.querySelectorAll('.filter-btn').forEach(btn => {
+	  updateFilterBtnUI(btn, 0);
+	});
+	filterState.g1 = {}; 
+	filterState.g2 = {}; 
+	filterState.g3 = {};
+	renderEntryList();
+  });
+
+  document.getElementById('btnSelectFiltered').addEventListener('click', () => {
+	const list = getFilteredList();
+	if (list.length === 0) { showBanner('banner3', 'warn', '当前筛选条件下没有词条。'); return; }
+	list.forEach(e => e.checked = true);
+	renderResults();
+	showBanner('banner3', 'ok', `已勾选当前筛选范围内的 ${fmt(list.length)} 条词条。`);
+  });
+  document.getElementById('btnUnselectFiltered').addEventListener('click', () => {
+	const list = getFilteredList();
+	if (list.length === 0) { showBanner('banner3', 'warn', '当前筛选条件下没有词条。'); return; }
+	list.forEach(e => e.checked = false);
+	renderResults();
+	showBanner('banner3', 'ok', `已取消勾选当前筛选范围内的 ${fmt(list.length)} 条词条。`);
+  });
+
+  document.getElementById('btnDownloadNew').addEventListener('click', () => {
+	try {
+	  const selected = state.entries.filter(e => e.checked);
+	  if (selected.length === 0) { showBanner('banner3', 'warn', '没有勾选任何条目'); return; }
+	  hideBanner('banner3');
+	  const nWord = selected.filter(e => e.type === 'word').length;
+	  const nSingle = selected.filter(e => e.type === 'single').length;
+	  const nMulti = selected.filter(e => e.isMulti).length;
+	  const epubName = getEpubBaseName();
+	  const exportFileName = `user_dict_${epubName}.txt`;
+	  downloadText(exportFileName, buildNewText());
+	  let msg = `已下载 ${fmt(selected.length)} 条（组词 ${nWord} + 单字 ${nSingle}` +
+				(nMulti ? `，其中多读音 ${nMulti} 条` : '') + `）。<br>文件名为 <b>${exportFileName}</b>，请直接放进 <code>D:\\TTS\\replace_rules\\</code> 文件夹里即可生效。<br>导出顺序：<b>名词 → 疑似小字 → 原文仅西文 → 原文仅片假名 → 组词 → 单字 → 存疑</b>，组内按出现次数倒序；出现次数大于 1 的词条带 <code>&lt;= count:N</code> 标记。`;
+	  if (nSingle > 0) msg += `<br>⚠️ 其中包含 <b>${nSingle}</b> 条单字规则，请确认全书中读音一致。`;
+	  showBanner('banner3', 'ok', msg);
+	} catch (err) {
+	  console.error(err);
+	  alert("导出异常，请点击【清空当前工作区】重试。错误信息：" + err.message);
+	}
+  });
+
+  document.getElementById('btnDownloadMerged').addEventListener('click', () => {
+	const added = state.entries.filter(e => e.checked && e.status === 'new');
+	if (added.length === 0) { showBanner('banner3', 'warn', '没有勾选任何新增条目'); return; }
+	hideBanner('banner3');
+	downloadText('合并规则.txt', buildMergedText());
+	showBanner('banner3', 'ok', `已下载合并版，新增 ${fmt(added.length)} 条。直接放进 replace_rules 文件夹替换原文件即可。`);
+  });
+
+  document.getElementById('btnCopy').addEventListener('click', async () => {
+	try {
+	  const selected = state.entries.filter(e => e.checked);
+	  if (selected.length === 0) { showBanner('banner3', 'warn', '没有勾选任何条目'); return; }
+	  const text = buildNewText();
+	  const result = await copyTextToClipboard(text);
+	  if (result.ok) {
+		showBanner('banner3', 'ok',
+		  `已复制 ${fmt(selected.length)} 条到剪贴板` +
+		  (result.method === 'execCommand' ? '（兼容模式）' : '') + '。');
+		return;
+	  }
+	  showBanner('banner3', 'err', '自动复制失败，已弹出文本框供手动复制。');
+	  showManualCopyDialog(text, result.error);
+	} catch (err) {
+	  console.error(err);
+	  alert("复制异常，请点击【清空当前工作区】重试。错误信息：" + err.message);
+	}
+  });
+  /* ★ 去重：按复合 key（多值/单值分组隔离） */
+  document.getElementById('btnDedupe').addEventListener('click', () => {
+	if (state.entries.length === 0) { showBanner('banner3', 'warn', '当前没有可去重的条目。'); return; }
+	const dedupeKey = e => e.isMulti ? `${e.base}\u0000${e.ruby}` : e.base;
+	const keySet = new Set();
+	let potential = 0;
+	for (const e of state.entries) {
+	  const k = dedupeKey(e);
+	  if (keySet.has(k)) potential++;
+	  else keySet.add(k);
+	}
+	if (potential === 0) {
+	  showBanner('banner3', 'ok', '✅ 检查完毕：没有发现重复条目。');
+	  return;
+	}
+	if (!confirm(
+	  `将按「汉字 + 读音分布」合并 ${potential} 条重复条目（单值与多值分开去重）。\n已收录（★）的词条只做标签高亮，不会被自动剔除或取消勾选。\n\n继续？`
+	)) return;
+	const groups = new Map();
+	for (const e of state.entries) {
+	  const k = dedupeKey(e);
+	  if (!groups.has(k)) groups.set(k, []);
+	  groups.get(k).push(e);
+	}
+	const score = x =>
+	  (x.edited || x.split ? 8 : 0) +
+	  (x.status === 'new'   ? 4 : 0) +
+	  (x.checked			? 2 : 0) +
+	  (x.susp			   ? 0 : 1);
+	let merged = 0;
+	const result = [];
+	for (const arr of groups.values()) {
+	  if (arr.length === 1) { result.push(arr[0]); continue; }
+	  arr.sort((a, b) => score(b) - score(a));
+	  const keep = arr[0];
+	  keep.checked = arr.some(x => x.checked);
+	  keep.fromUserDict = arr.some(x => x.fromUserDict);
+	  const rubies = new Set(arr.map(x => x.ruby));
+	  if (rubies.size > 1) {
+		keep.status = 'conflict';
+		keep.note = `去重合并：原有多读音 ${Array.from(rubies).join(' / ')}`;
+	  }
+	  merged += arr.length - 1;
+	  result.push(keep);
+	}
+	result.sort((a, b) => {
+	  if (a.type !== b.type) return a.type === 'word' ? -1 : 1;
+	  return a.base.localeCompare(b.base, 'ja');
+	});
+	state.entries = result;
+	renderResults();
+	showBanner('banner3', 'ok', `🧹 去重完成：合并重复条目 ${fmt(merged)} 条（已收录词条均已保留，未被剔除）。`);
+  });
+
+  updateSortDirBtn();
+
+  // 初始化默认开启“仅组词”
+  const _initWordBtn = document.querySelector('.filter-btn[data-g="g1"][data-val="word"]');
+  if (_initWordBtn) {
+	filterState.g1['word'] = 1;
+	updateFilterBtnUI(_initWordBtn, 1);
+  }
+
+  // ★ 页面加载时尝试恢复本地缓存
+  setTimeout(() => {
+	if (typeof loadStateFromLocal === 'function') {
+	  loadStateFromLocal();
+	}
+  }, 100);
+
+  // ★ 绑定清空工作区按钮
+  const btnClearWork = document.getElementById('btnClearWork');
+  if (btnClearWork) {
+	btnClearWork.addEventListener('click', () => {
+	  if (!confirm('⚠️ 确定要彻底清空当前所有的提取结果、勾选状态和编辑记录吗？\n（此操作不可恢复，建议先导出保存）')) return;
+	  
+	  localStorage.removeItem('novel_tts_toolbox_state');
+	  state.files = [];
+	  state.entries = [];
+	  state.userDict = new Map();
+	  state.userDictText = null;
+	  
+	  renderFileList();
+	  renderResults();
+	  
+	  const b = document.getElementById('banner3');
+	  if (b) b.className = 'banner';
+	});
+  }
+
+  // ================= 全局交互函数与设置初始化 =================
+  window.clearAndFilter = function(group, value) {
+	document.querySelectorAll('.filter-btn').forEach(btn => updateFilterBtnUI(btn, 0));
+	filterState.g1 = {}; filterState.g2 = {}; filterState.g3 = {};
+	document.querySelectorAll('.stat').forEach(el => el.classList.remove('active-filter'));
+	
+	if (group !== 'all') {
+	  let targetVal = value;
+	  let targetState = 1;
+	  
+	  // 兼容统计卡片取值
+	  if (value === 'rubyKatakana') targetVal = 'rubyKana';
+	  if (value === 'unchecked') { targetVal = 'checked'; targetState = 2; }
+	  
+	  const btn = document.querySelector(`.filter-btn[data-g="${group}"][data-val="${targetVal}"]`);
+	  if (btn) {
+		filterState[group][targetVal] = targetState;
+		updateFilterBtnUI(btn, targetState);
+	  }
+	}
+	renderEntryList();
+
+	// ★ 点击统计卡片后，平滑滚动到下方的筛选栏/编辑区
+	const targetEl = document.getElementById('filterBar') || document.getElementById('resultCard');
+	if (targetEl) {
+	  // 减去 20px 的偏移量，避免贴顶太死
+	  const y = targetEl.getBoundingClientRect().top + window.scrollY - 20;
+	  window.scrollTo({ top: y, behavior: 'smooth' });
+	}
+  };
+
+  // 修改出现次数
+  window.updateOccurrences = function(idx, el) {
+	const e = state.entries[idx];
+	if (!e) return;
+	let n = parseInt(el.value, 10);
+	if (isNaN(n) || n < 1) n = 1;
+	e.occurrences = n;
+	e.counted = false; // ★ 用户手动修改，取消防重复累加标记
+	
+	// 根据数字长度自动调整宽度（16px 起步，每多一位加 6px）
+	el.style.width = Math.max(16, 16 + (String(n).length - 2) * 6) + 'px';
+
+	// 动态更新颜色与透明度，避免全局重绘导致输入框失焦
+	const parent = el.closest('.occ-badge');
+	if (parent) {
+	  parent.style.opacity = n > 1 ? '1' : '0.3';
+	  parent.title = n > 1 ? `出现次数（将导出为 <= count:${n}）` : '当前为 1，不会导出 count 标记。';
+	  el.style.color = n > 1 ? 'var(--primary-dark)' : 'var(--muted)';
+	}
+  };
+
+  // 滚轮调整出现次数
+  window.adjustOccurrences = function(ev, idx) {
+	ev.preventDefault(); // 防止页面滚动
+	const e = state.entries[idx];
+	if (!e) return;
+	
+	let n = e.occurrences + (ev.deltaY < 0 ? 1 : -1);
+	n = Math.max(1, n);
+	e.occurrences = n;
+	e.counted = false; // ★ 用户手动修改，取消防重复累加标记
+	
+	// 直接更新 UI
+	const entryEl = document.querySelector(`.entry[data-idx="${idx}"]`);
+	if (entryEl) {
+	  const inp = entryEl.querySelector('.occ-badge input');
+	  if (inp) {
+		inp.value = n;
+		updateOccurrences(idx, inp);
+	  }
+	}
+  };
+
+  window.updateMultiRuby = function(idx, partIdx, field, val) {
+	const e = state.entries[idx];
+	let parts = e.ruby.split(/[|｜]/).map(p => {
+	  const m = p.match(/^(.*?)\(([\d.]+)\)$/);
+	  if (m) return { text: m[1], weight: m[2] };
+	  return { text: p, weight: "1" };
+	});
+	
+	// 防错：如果是权重，且输入的不是有效数字，则重置为 1
+	if (field === 'weight') {
+	  let w = parseFloat(val);
+	  if (isNaN(w) || w < 0) w = 1;
+	  parts[partIdx][field] = w.toString();
+	} else {
+	  parts[partIdx][field] = val;
+	}
+	
+	e.ruby = parts.map(p => `${p.text}(${p.weight})`).join('|');
+	recomputeEntryAfterEdit(e);
+	
+	// 实时同步更新右侧的概率 Badge，防止数据不一致
+	const entryEl = document.querySelector(`.entry[data-idx="${idx}"]`);
+	if (entryEl && e.isMulti) {
+	  const badge = entryEl.querySelector('.dist-badge');
+	  if (badge) {
+		const parsed = parseRubyOptions(e.ruby);
+		if (!parsed.malformed) {
+		  const summary = summarizeDist(parsed.options);
+		  badge.innerHTML = `🔀 ${esc(summary)}`;
+		}
+	  }
+	}
+  };
+
+  window.adjustWeight = function(ev, idx, partIdx) {
+	ev.preventDefault(); // 阻止页面滚动
+	const e = state.entries[idx];
+	let parts = e.ruby.split(/[|｜]/).map(p => {
+	  const m = p.match(/^(.*?)\(([\d.]+)\)$/);
+	  if (m) return { text: m[1], weight: parseFloat(m[2]) };
+	  return { text: p, weight: 1 };
+	});
+	
+	let w = parts[partIdx].weight + (ev.deltaY < 0 ? 1 : -1);
+	w = Math.max(1, Math.min(99, w));
+	parts[partIdx].weight = w;
+	e.ruby = parts.map(p => `${p.text}(${p.weight})`).join('|');
+	
+	// 更新 input 里的数字显示
+	ev.target.value = w;
+	
+	recomputeEntryAfterEdit(e);
+	
+	// 实时同步更新右侧的概率 Badge
+	const entryEl = document.querySelector(`.entry[data-idx="${idx}"]`);
+	if (entryEl) {
+	  const badge = entryEl.querySelector('.dist-badge');
+	  if (badge) {
+		const parsed = parseRubyOptions(e.ruby);
+		if (!parsed.malformed) {
+		  const summary = summarizeDist(parsed.options);
+		  badge.innerHTML = `🔀 ${esc(summary)}`;
+		}
+	  }
+	}
+  };
+
+
+})();
+</script>
+<script>
+(function initRubyNav() {
+  const navBar = document.getElementById('rubyNavSidebar');
+  if (!navBar) return;
+
+  const buttons = navBar.querySelectorAll('.monitor-nav-item');
+  const sections = Array.from(buttons).map(btn => document.getElementById(btn.dataset.target)).filter(Boolean);
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetEl = document.getElementById(btn.dataset.target);
+      if (targetEl) {
+        const y = targetEl.getBoundingClientRect().top + window.scrollY - 80;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    });
+  });
+
+  let ticking = false;
+  function updateActiveNav() {
+    const pane = document.getElementById('pane-ruby');
+    if (!pane || !pane.classList.contains('active')) {
+      ticking = false;
+      return;
+    }
+
+    let currentId = sections[0].id;
+    for (const sec of sections) {
+      const rect = sec.getBoundingClientRect();
+      if (sec.style.display === 'none') continue; 
+      if (rect.top <= 150) {
+        currentId = sec.id;
+      }
+    }
+
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 50) {
+      for (let i = sections.length - 1; i >= 0; i--) {
+        if (sections[i].style.display !== 'none') {
+           currentId = sections[i].id;
+           break;
+        }
+      }
+    }
+
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.target === currentId);
+    });
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateActiveNav);
+      ticking = true;
+    }
+  }, { passive: true });
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach(mutation => {
+      if (mutation.attributeName === 'class') {
+        const isActive = document.getElementById('pane-ruby').classList.contains('active');
+        if (isActive) {
+          navBar.classList.add('show-nav');
+          setTimeout(updateActiveNav, 100);
+        } else {
+          navBar.classList.remove('show-nav');
+        }
+      }
+    });
+  });
+
+  const targetPane = document.getElementById('pane-ruby');
+  if (targetPane) {
+    observer.observe(targetPane, { attributes: true });
+    if (targetPane.classList.contains('active')) navBar.classList.add('show-nav');
+  }
+})();
+</script>
+</body>
+</html>

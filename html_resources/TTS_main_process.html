@@ -1,0 +1,2452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TTS 主进程 · Novel TTS 工具箱</title>
+<link rel="stylesheet" href="toolbox.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+	<h1>Novel TTS 工具箱</h1>
+	<button class="settings-btn" id="btnOpenSettings" title="全局设置">⚙️</button>
+  </header>
+  <!-- 设置抽屉 -->
+  <div class="settings-drawer" id="settingsDrawer">
+	<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+	  <h2 style="margin:0;font-size:18px;">⚙️ 全局设置</h2>
+	  <button id="btnCloseSettings" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✖</button>
+	</div>
+	
+	<h3 style="font-size:14px;color:var(--muted);margin-bottom:10px;">外观模式</h3>
+	<div class="theme-toggle-wrapper">
+	  <div class="theme-toggle-label" id="themeLabelGroup" style="gap: 6px;">
+		<span id="themeLabelLight" style="font-weight: 600; color: var(--muted); transition: all .2s; cursor: pointer;" onclick="document.getElementById('themeToggle').click()">☀️ 浅色</span>
+		<span style="color: var(--border-strong); font-size: 12px;">/</span>
+		<span id="themeLabelDark" style="font-weight: 600; color: var(--muted); transition: all .2s; cursor: pointer;" onclick="document.getElementById('themeToggle').click()">🌙 深色</span>
+	  </div>
+	  <label class="switch">
+		<input type="checkbox" id="themeToggle">
+		<span class="slider"></span>
+	  </label>
+	</div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">主题色</h3>
+	<div id="themeColors" class="theme-grid"></div>
+	<div class="custom-color-row" id="customColorRow">
+	  <input type="color" id="customColorPicker" value="#4f6ef7" title="选择自定义主题色">
+	  <input type="text" id="customColorHex" placeholder="#4f6ef7" maxlength="7" spellcheck="false" autocomplete="off" title="输入十六进制色值，例如 #4f6ef7">
+	  <button class="btn small" id="customColorApplyBtn">应用</button>
+	</div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">界面字体</h3>
+	<div id="fontList"></div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">TTS 输出形式</h3>
+	<div class="output-format-group" id="outputFormatGroup">
+	  <button class="btn ghost" data-fmt="A">A. 纯汉字</button>
+	  <button class="btn ghost" data-fmt="B">B. 纯注音</button>
+	  <button class="btn ghost active" data-fmt="C">C. Ruby输出</button>
+	</div>
+	<div class="hint" style="margin-bottom:6px;font-size:12px;">示例效果：</div>
+	<pre id="outputSampleBox" style="background:var(--panel-bg);border:1px dashed var(--panel-border);border-radius:6px;padding:10px;font-size:12px;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap;margin:0;color:var(--text);">加载中...</pre>
+
+<!-- 背景图像移到最下面 -->
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">背景图像</h3>
+	<div class="bg-image-panel" style="margin-bottom: 20px;">
+	  <div class="bg-input-row">
+		<span class="bg-path-prefix" id="btnOpenBgFolder" title="点击打开 bg 文件夹" style="cursor: pointer; transition: all .2s ease;">
+		  📂 bg/
+		</span>
+		<input type="text" id="bgFilename" class="bg-filename-input" placeholder="例如: bg02" spellcheck="false">
+		<span id="bgExtDisplay" class="bg-ext-display"></span>
+	  </div>
+	  <div style="display:flex;gap:8px;margin-top:8px;">
+		<button class="btn small" id="bgApplyBtn" style="flex:1;">应用</button>
+		<button class="btn ghost small" id="bgTestBtn" style="flex:1;">检测文件</button>
+		<button class="btn ghost small" id="bgClearBtn" style="flex:1;">清除</button>
+	  </div>
+	  <div id="bgStatus" class="hint" style="font-size:12px;margin-top:8px;min-height:16px;line-height:1.5;"></div>
+	  
+	  <div class="bg-slider-row">
+		<label>透明度</label>
+		<input type="range" id="bgOpacity" min="0" max="100" value="75">
+		<span id="bgOpacityVal">75%</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label>模糊度</label>
+		<input type="range" id="bgBlur" min="0" max="20" value="2">
+		<span id="bgBlurVal">2px</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label>背景暗化</label>
+		<input type="range" id="bgDim" min="0" max="100" value="20">
+		<span id="bgDimVal">20%</span>
+	  </div>
+
+	  <!-- 面板透明度与毛玻璃 -->
+	  <div style="border-top: 1px dashed var(--border); margin: 14px 0 10px;"></div>
+	  <div class="bg-slider-row">
+		<label title="调整面板/卡片的背景透明度">面板透明度</label>
+		<input type="range" id="uiOpacity" min="10" max="100" value="75">
+		<span id="uiOpacityVal">75%</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label title="调整面板/卡片的毛玻璃模糊半径">面板模糊</label>
+		<input type="range" id="uiBlur" min="0" max="30" value="6">
+		<span id="uiBlurVal">6px</span>
+	  </div>
+	</div>
+  </div>
+<section class="pane active" id="pane-monitor">
+  <div class="card">
+	<h2 style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+	  🎛 TTS 监控台
+	  <span class="hint" id="monitorConn" style="font-weight:400">连接中…</span>
+	  <button class="btn ghost small" id="monitorReconnect" style="display: inline-flex;">重新连接</button>
+	  <button class="btn alert small" id="monitorDisconnect" style="display:none">断开连接</button>
+	</h2>
+
+	<div id="monitorWrap" style="display:none">
+	  <!-- 关键点：不使用 flex-wrap: wrap，强制在一行显示。align-items: stretch 让左右高度自动对齐 -->
+	  <div style="display:flex; gap:18px; align-items:stretch;">
+
+		<!-- 左侧控制面板 -->
+		<div style="flex:1 1 360px; max-width:400px; background:var(--panel-bg); border:1px dashed var(--panel-border); border-radius:10px; padding:14px;">
+
+		<!-- 1. 自动记忆登记状态（顶部） -->
+		<div id="monitor-sec-autodict" style="padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
+			<!-- 头部：标题 + 数字（保持原样） -->
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+				<span style="font-size:14px; font-weight:600; color:var(--text);">🔤 自动记忆登记</span>
+				<span id="autoDictCount" title="此数字仅统计需要处理的『组词』，单字仅作占位防抖，不参与计数" style="font-size:18px;font-weight:700;color:var(--primary-dark);font-variant-numeric:tabular-nums;cursor:help;">0</span>
+			</div>
+			
+			<!-- 提示信息 -->
+			<div class="hint" style="margin-top:4px;font-size:12px; display:flex; align-items:center; flex-wrap:wrap;">
+				等待
+				<span style="
+					cursor: pointer; 
+					color: var(--primary); 
+					font-weight: 700; 
+					text-decoration: underline dashed; 
+					text-underline-offset: 4px; 
+					transition: all 0.2s ease;
+					margin: 0 2px;
+				" 
+					  onclick="window.openRuleFile('auto_dict.txt')"
+					  onmouseover="this.style.color='var(--primary-dark)'; this.style.textDecorationStyle='solid'; this.style.transform='scale(1.05)';"
+					  onmouseout="this.style.color='var(--primary)'; this.style.textDecorationStyle='dashed'; this.style.transform='scale(1)';"
+					  title="点击打开 auto_dict.txt 进行确认">
+					人工确认
+				</span>
+				并移入其他规则文件
+			</div>
+			
+			<!-- ★ 按钮固定在这个位置 -->
+			<div style="display: flex; justify-content: flex-end; gap: 4px; margin-top: 10px;">
+				<button class="btn ghost small" id="btnOpenRulesFromAutoDict" title="打开 replace_rules 文件夹" style="padding: 4px 8px;">📂</button>
+				<button class="btn ghost small" id="btnRefreshAutoDict" title="立刻从服务器拉取最新的待处理词条">刷新</button>
+				<button class="btn small" id="btnToggleAutoDict">详情</button>
+			</div>
+
+			<!-- ★ 详情面板在按钮下方展开（默认隐藏） -->
+			<div id="autoDictDetails" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border);">
+				<div id="autoDictListContent" style="max-height: 220px; overflow-y: auto; font-size: 12px; line-height: 1.6;">
+					<!-- 动态渲染 -->
+				</div>
+			</div>
+		</div>
+
+		<!-- 2. 核心配置区（语种 + 引擎 + 预览 合并） -->
+		<div id="monitor-sec-engine" style="padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
+			
+			<!-- 头部 -->
+			<div style="display:flex; justify-content:space-between; align-items:center;"> 
+				<span style="font-size:14px; font-weight:600; color:var(--text);">🌐 TTS引擎选择</span>
+				<button class="btn ghost small" id="toggleEngineBtn" style="padding: 0 10px; height: 26px; line-height: 24px; box-sizing: border-box;">▼</button>
+			</div>
+
+			<!-- 折叠内容区 -->
+			<div id="engine-details-content" style="margin-top: 12px;">
+				<!-- TTS 语种选择 -->
+				<div style="margin-bottom:16px;">
+					<div style="margin-bottom:10px;">
+						<span style="font-size:13px; font-weight:600; color:var(--muted);">选择语种</span>
+					</div>
+					<div style="display:flex; gap:10px;">
+						<!-- 英语 -->
+						<button class="btn ghost lang-btn" data-lang="en" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.7));">
+								<defs><linearGradient id="gloss-en" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.4)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
+								<rect width="24" height="24" rx="4" fill="#3b82f6"/><rect width="24" height="24" rx="4" fill="url(#gloss-en)"/>
+								<path d="M12 5c-3.3 0-6 2.7-6 6 0 2.2 1.2 4.1 3 5.2v2.8h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.3-2.7-6-6-6z" fill="#fff"/>
+								<circle cx="9.5" cy="11" r="1.5" fill="#3b82f6"/><circle cx="14.5" cy="11" r="1.5" fill="#3b82f6"/>
+								<path d="M11 13.5h2l-1 1.5-1-1.5z" fill="#3b82f6"/><path d="M9 16.5h6v1H9z M12 16.5v1" stroke="#3b82f6" stroke-width="1"/>
+							</svg>英语
+						</button>
+						<!-- 漢语 -->
+						<button class="btn ghost lang-btn" data-lang="zh" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(255, 51, 51, 0.7));">
+								<defs><linearGradient id="gloss-zh" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.15)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
+								<rect width="24" height="24" rx="4" fill="#111111"/><rect width="24" height="24" rx="4" fill="url(#gloss-zh)"/>
+								<text x="12" y="18" font-size="16" font-weight="300" fill="#ff3333" text-anchor="middle" font-family="'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif">漢</text>
+							</svg>漢语
+						</button>
+						<!-- 日语 -->
+						<button class="btn ghost lang-btn" data-lang="ja" style="flex:1; justify-content:center; gap:8px; padding:10px 8px; font-size:14px;">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.7));">
+								<defs><linearGradient id="gloss-ja" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.15)"/><stop offset="40%" stop-color="rgba(255,255,255,0)"/></linearGradient></defs>
+								<rect width="24" height="24" rx="4" fill="#111111"/><rect width="24" height="24" rx="4" fill="url(#gloss-ja)"/>
+								<path d="M12 3C8.5 3 6.5 5 6.5 7.5C6.5 9 7.2 10.3 8.5 11H15.5C16.8 10.3 17.5 9 17.5 7.5C17.5 5 15.5 3 12 3Z" fill="#ff8c00"/>
+								<path d="M9.5 11H14.5L15.5 16.5H8.5L9.5 11Z" fill="#ff8c00"/><ellipse cx="12" cy="18" rx="7.5" ry="2.5" fill="#ff8c00"/>
+								<path d="M4.5 18L2 17.5L4 16.5" fill="#ff8c00"/><path d="M19.5 18L22 17.5L20 16.5" fill="#ff8c00"/>
+							</svg>日语
+						</button>
+					</div>
+				</div>
+
+				<div style="border-top: 1px dashed var(--border); margin-bottom: 12px;"></div>
+
+				<!-- 引擎设置 -->
+				<label class="monitor-lbl">引擎</label>
+				<select id="monitorEngine" class="monitor-input">
+					<option value="auto" disabled>auto（系统自动，见下方配置）</option>
+					<option value="cevio">CeVIO AI</option>
+					<option value="voicevox">VOICEVOX</option>
+					<option value="windows">Windows 讲述人</option>
+					<option value="edge">Edge TTS</option>
+				</select>
+
+				<div id="ttsNumWrap" style="display:none;margin-top:8px;">
+				  <label class="monitor-lbl" id="ttsNumLabel">Model ID（1–27）</label>
+				  <input id="monitorTtsNum" type="number" min="1" max="27" value="1" class="monitor-input">
+				</div>
+				<div id="cevioModelWrap" style="display:none;margin-top:8px;">
+				  <label class="monitor-lbl">Model ID</label>
+				  <select id="monitorCevioModel" class="monitor-input"></select>
+				</div>
+				<div id="windowsModelWrap" style="display:none;margin-top:8px;">
+				  <label class="monitor-lbl">Windows 语音</label>
+				  <select id="monitorWindowsModel" class="monitor-input"><option value="">加载中...</option></select>
+				</div>
+				<div id="edgeModelWrap" style="display:none;margin-top:8px;">
+				  <label class="monitor-lbl">Edge 语音</label>
+				  <select id="monitorEdgeModel" class="monitor-input"><option value="">加载中...</option></select>
+				</div>
+				<div style="margin-top:8px;">
+				  <label class="monitor-lbl">Speed</label>
+				  <input id="monitorSpeed" type="number" step="0.05" min="0.5" max="2" value="0.9" class="monitor-input">
+				</div>
+
+				<!-- 配置预览区 -->
+				<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);">
+					<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+					  <span class="monitor-lbl" style="margin:0;flex:1;line-height:1.4;">配置预览</span>
+					  <button class="btn small" id="monitorAutoSave">以此配置运行</button>
+					</div>
+					<div id="monitorAutoInfo" style="margin-top:8px;font-size:12px;color:var(--text);font-family:ui-monospace,Consolas,monospace;background:var(--input-bg);padding:8px 10px;border-radius:6px;border:1px dashed var(--panel-border);">加载中…</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- 3. CeVIO COM 情绪预设生成器 -->
+		<div id="monitor-sec-cevio" style="position: relative; margin-top:12px;padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);margin-bottom:12px;">
+			
+			<!-- 头部：只保留标题和收起按钮 -->
+			<div style="display:flex;justify-content:space-between;align-items:center;">
+			  <span style="font-size:14px; font-weight:600; color:var(--text);">🎭 CeVIO 情感参数</span>
+			  <button class="btn ghost small" id="toggleCevioBtn" style="padding: 0 10px; height: 26px; line-height: 24px; box-sizing: border-box;">▼</button>
+			</div>
+			
+			<!-- 折叠内容区 -->
+			<div id="cevio-details-content" style="margin-top: 12px;">
+				<div>
+				  <label class="monitor-lbl" style="margin-top:6px;">基于角色 / 已存预设</label>
+				  <select id="comCastSelect" class="monitor-input" style="margin-bottom:8px;">
+					<option value="">加载角色中...</option>
+				  </select>
+				  <div id="comEmotionSliders" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+					<!-- 滑块动态生成 -->
+				  </div>
+				  
+				  <!-- ★ 核心修改：底部控制栏，统一高度，把保存按钮移进来 -->
+				  <div style="display:flex; gap:10px; margin-top:8px; align-items:center; justify-content:space-between;">
+					<div style="display:flex; align-items:center; gap:6px;">
+					  <label class="monitor-lbl" style="margin:0; white-space:nowrap;">语速</label>
+					  <input type="number" id="comSpeed" value="50" min="0" max="100" class="com-wheel-input" style="width:46px; height:30px; box-sizing:border-box;" onwheel="adjustComWheel(event, this)" title="滚轮或输入数字调整">
+					</div>
+					<div style="display:flex; align-items:center; gap:6px;">
+					  <label class="monitor-lbl" style="margin:0; white-space:nowrap;">音调</label>
+					  <input type="number" id="comTone" value="50" min="0" max="100" class="com-wheel-input" style="width:46px; height:30px; box-sizing:border-box;" onwheel="adjustComWheel(event, this)" title="滚轮或输入数字调整">
+					</div>
+					
+					<div style="display:flex; gap:6px; flex:1; justify-content:flex-end;">
+					  <button class="btn small" id="comPreviewBtn" style="height:30px; padding:0 16px; justify-content:center; box-sizing:border-box;">试听</button>
+					  <button class="btn ghost small" id="comSaveBtn" style="height:30px; padding:0 12px; justify-content:center; box-sizing:border-box;">保存为模型</button>
+					</div>
+				  </div>
+				  
+				  <div id="comSaveWrap" style="display:none; margin-top:8px;">
+					<input type="text" id="comNewModelId" class="monitor-input" placeholder="输入模型ID (如: com-sasara-happy)" style="margin-bottom:6px;">
+					
+					<div style="display:flex; align-items:center; gap:6px;">
+					  <input type="text" id="comTargetFilename" class="monitor-input" placeholder="留空则存入 my_config" style="flex:1;">
+					  <span style="color:var(--muted); font-size:14px; font-weight:600; user-select:none;">.json</span>
+					</div>
+					
+					<button class="btn small" id="comDoSaveBtn" style="width:100%;margin-top:6px;">写入配置文件</button>
+				  </div>
+				</div>
+			</div>
+		</div>
+
+		<!-- 4. 前端文本测试 -->
+		<div id="monitor-sec-test" style="margin-top:12px; padding:12px; border:1px dashed var(--panel-border); border-radius:8px; background:var(--card); margin-bottom:12px;">
+			
+			<!-- 头部 -->
+			<div style="display:flex; justify-content:space-between; align-items:center;">
+				<span style="font-size:14px; font-weight:600; color:var(--text);">📝 前端文本测试</span>
+				<button class="btn ghost small" id="toggleTestBtn" style="padding: 0 10px; height: 26px; line-height: 24px; box-sizing: border-box;">▼</button>
+			</div>
+
+			<!-- 折叠内容区 -->
+			<div id="test-details-content" style="margin-top: 12px;">
+				<label class="monitor-lbl">输入文本（支持 ruby 语法）</label>
+				<textarea id="monitorInput" placeholder="例：&#10;|漢字《かんじ》&#10;{漢字|かんじ}&#10;<ruby>漢字<rt>かんじ</rt></ruby>"></textarea>
+
+				<label class="monitor-lbl" style="margin-top:12px">输出文本</label>
+				<textarea id="monitorPreviewBox" class="monitor-box" placeholder="—"></textarea>
+
+				<div style="display:flex;gap:8px;margin-top:12px;">
+				  <button class="btn" id="monitorPreviewBtn" style="flex:1; justify-content: center;">预览</button>
+				  <button class="btn" id="monitorSynthBtn" style="flex:1; justify-content: center;">合成</button>
+				  <button class="btn ghost" id="monitorClearTestBtn" style="justify-content: center; padding: 0 16px;" title="清空输入与输出文本">🗑️ 清空</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- 5. Ruby 识别结果（跟随前端测试） -->
+		<div id="monitorRubyWrap" style="display:none;margin-top:12px;margin-bottom:12px;">
+			<label class="monitor-lbl">Ruby 识别</label>
+			<div id="monitorRubyList" class="monitor-box" style="max-height:180px;overflow-y:auto"></div>
+		</div>
+
+		<!-- 6. 规则文件启用 -->
+		<div id="monitor-sec-rules" style="margin-top:10px;padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--card);">
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+			  <span style="font-size:14px; font-weight:600; color:var(--text);">规则文件启用</span>
+			  <div style="display:flex;gap:4px;">
+				<button class="btn ghost small" id="monitorRulesOpenDir" title="打开 replace_rules 文件夹" style="padding:4px 8px;">📂</button>
+				<button class="btn ghost small" id="monitorRulesAll">全选</button>
+				<button class="btn small" id="monitorRulesSave">保存</button>
+			  </div>
+			</div>
+
+			<!-- 规则词条搜索框 -->
+			<div style="display:flex;gap:6px;margin-top:10px; align-items:stretch;">
+			  <select id="ruleSearchMode" class="monitor-input" style="width: 54px; padding: 4px; font-size: 12px; flex-shrink: 0; text-align: center; text-align-last: center;">
+				<option value="all">全搜索</option>
+				<option value="base" selected>搜base</option>
+				<option value="ruby">搜ruby</option>
+			  </select>
+			  <input id="ruleSearchInput" class="monitor-input" style="flex:1;padding:4px 8px;font-size:12px;" placeholder="输入词条检测...">
+			  <button class="btn ghost small" id="ruleSearchClearBtn" title="清除搜索" style="padding:4px 8px; color:var(--muted);">✕</button>
+			  <button class="btn small" id="ruleSearchBtn" style="padding: 4px 0; width: 52px; flex-shrink: 0; justify-content: center;">检测</button>
+			</div>
+			
+			<!-- ★ 格式提示 -->
+			<div style="font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4;">
+			  💡 <b>搜 base</b> = 查找左侧原文，<b>搜 ruby</b> = 查找右侧读音。<br>
+			  （例如在 <code>原文 => 读音</code> 或 <code>｜原文《读音》</code> 中匹配）
+			</div>
+
+			<div id="ruleSearchResult" style="margin-top:6px;font-size:12px;color:var(--text);word-break:break-all;line-height:1.5;"></div>
+
+			<div id="monitorRulesList" style="margin-top:10px;font-size:12px;min-height:242px;overflow-y:auto;border:1px dashed var(--panel-border);border-radius:6px;">加载中…</div>
+			<!-- 翻页控制 -->
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+			  <button class="btn ghost small" id="rulesPrevPage" disabled>上一页</button>
+			  <span id="rulesPageInfo" style="font-size:12px;color:var(--muted);">1 / 1</span>
+			  <button class="btn ghost small" id="rulesNextPage" disabled>下一页</button>
+			</div>
+		</div>
+	</div>
+
+
+		<!-- 右侧记录：配合父元素的 stretch，自动与左侧等高 -->
+		<div style="flex:2 1 500px; min-width:0; background:var(--panel-bg); border:1px dashed var(--panel-border); border-radius:10px; padding:14px; display:flex; flex-direction:column;">
+		  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+			<span style="font-size:14px;font-weight:600;">历史记录</span>
+			<div style="display:flex; gap:8px;">
+			  <button class="btn ghost small" id="monitorStopAudio" style="color: var(--danger); border-color: var(--danger);" title="立刻停止所有正在播放的音频">⏹ 停止播放</button>
+			  <button class="btn ghost small" id="monitorClear">🗑️ 清空</button>
+			</div>
+		  </div>
+		  <!-- 内部列表：flex:1 撑满，min-height:0 防止溢出撑大父容器，overflow-y:auto 内部滚动 -->
+		  <div id="monitorRecords" style="flex:1; min-height:0; overflow-y:auto; background:var(--input-bg); border:1px dashed var(--panel-border); border-radius:8px; padding:10px;">
+			<div id="monitorEmpty" style="color:var(--muted);text-align:center;padding:40px 0">暂无记录</div>
+		  </div>
+		</div>
+
+	  </div>
+	</div>
+  </div>
+</section>
+  <!-- ★ 页面最底部的版本号 -->
+  <div style="display: flex; justify-content: center; padding: 30px 0 20px;">
+    <div id="changelogBtn" style="
+      padding: 6px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      box-shadow: var(--raised-panel);
+      text-shadow: none;
+      user-select: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(var(--ui-blur, 0px));
+      -webkit-backdrop-filter: blur(var(--ui-blur, 0px));
+    " onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='none'; this.style.boxShadow='var(--raised-panel)';" title="点击查看更新日志">
+      Novel TTS Toolbox <span id="appVersion" style="font-weight: bold; color: var(--primary-dark); margin-left: 4px;">v1.1.2</span>
+    </div>
+  </div>
+</div>
+<!-- 监控台左下角快捷导航 -->
+<div class="monitor-nav-sidebar" id="monitorNavSidebar">
+  <button class="monitor-nav-item" data-target="monitor-sec-autodict" title="自动记忆登记">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="monitor-sec-engine" title="TTS引擎选择">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="monitor-sec-cevio" title="CeVIO情感参数">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="monitor-sec-test" title="前端文本测试">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+  <button class="monitor-nav-item" data-target="monitor-sec-rules" title="规则文件启用">
+    <svg viewBox="0 0 64 64"><path d="M57.46,6.54l-24.46,8.46-23.63-5.63,5.63,23.63-8.46,24.46,24.46-8.46,23.63,5.63-5.63-23.63,8.46-24.46ZM43.83,43.83l-13.25-3.15-11.1,3.84,3.84-11.1-3.15-13.25,13.25,3.15,11.1-3.84-3.84,11.1,3.15,13.24Z"/></svg>
+  </button>
+</div>
+<div class="float-tools">
+  <!-- 前往顶部 -->
+  <button id="backToTop" class="float-tool-btn" type="button" title="前往顶部" aria-label="前往顶部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+  <!-- 设置 -->
+  <button id="floatSettings" class="float-tool-btn" type="button" title="设置" aria-label="设置">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
+  <!-- 前往底部 -->
+  <button id="backToBottom" class="float-tool-btn" type="button" title="前往底部" aria-label="前往底部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+  </button>
+</div>
+<script src="toolbox.common.js"></script>
+<script>
+(function () {
+  const API_BASE = 'http://localhost:8000';
+
+  let MODELS = [];
+  let MODEL_CONFIGS = { voicevox: {}, sapi: {}, cevio_com: {} };
+  let allRulesFiles = [];
+  let rulesPage = 1;
+  const rulesPageSize = 16;
+  let inited = false;
+  let currentAudio = null;
+  let _rafId = null;
+  let retryCount = 0;
+  const MAX_RETRY = 4;
+
+  // ★ 用于缓存语音列表和记录当前语种
+  let _allWindowsVoices = [];
+  let _allEdgeVoices = [];
+  let _currentLang = 'ja';  // 实际生效的语种
+  let _pendingLang = 'ja';  // 用户在 UI 上暂存选中的语种
+
+  const $ = id => document.getElementById(id);
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function splitSentences(text) {
+    if (!text) return [];
+    const MAX = 30, out = [];
+    for (const p of text.split(/(?<=[。！？!?；;])/)) {
+      if (!p) continue;
+      if (p.length <= MAX) { out.push(p); continue; }
+      let cur = '';
+      for (const s of p.split(/(?<=[，,、\n])/)) {
+        if (!s) continue;
+        if (cur && (cur + s).length > MAX) { out.push(cur); cur = s; }
+        else cur += s;
+      }
+      if (cur) out.push(cur);
+    }
+    return out;
+  }
+  
+  let _ttsMax = 0;
+
+  function currentRequest() {
+    return {
+      input: $('monitorInput').value,
+      model: getResolvedModel(),
+      speed: parseFloat($('monitorSpeed').value) || 1.0,
+    };
+  }
+  
+  function setConn(text, color) {
+    const el = $('monitorConn'); 
+    if (el) {
+      el.textContent = text; 
+      el.style.color = color || 'var(--muted)';
+    }
+    
+    const btnRe = $('monitorReconnect');
+    const btnDis = $('monitorDisconnect');
+    if (!btnRe || !btnDis) return;
+    
+    // ★ 永远强制显示
+    btnRe.style.display = 'inline-flex';
+    
+    if (text.includes('已连接')) {
+      btnDis.style.display = 'inline-flex';
+    } else {
+      btnDis.style.display = 'none';
+    }
+  }
+
+  async function connect() {
+    setConn('连接中…', 'var(--muted)');
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const r = await fetch(API_BASE + '/v1/models', { cache: 'no-store', signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      MODELS = data.data.map(x => x.id);
+      
+      const r2 = await fetch(API_BASE + '/v1/models/config');
+      if (r2.ok) {
+        MODEL_CONFIGS = await r2.json();
+      }
+
+      // ★ 拉取持久化的下拉排序
+      try {
+        const rOrder = await fetch(API_BASE + '/v1/models/config/order');
+        if (rOrder.ok) {
+          const orderData = await rOrder.json();
+          window.__uiOrder = orderData.order || {};
+        } else {
+          window.__uiOrder = {};
+        }
+      } catch (e) { window.__uiOrder = {}; }
+
+      try {
+        const rGlobal = await fetch(API_BASE + '/v1/global/config');
+        if (rGlobal.ok) {
+        const globalCfg = await rGlobal.json();
+        window.__savedGlobalConfig = globalCfg; // ★ 核心修复：将全局配置暂存起来，供 UI 恢复使用
+        if (globalCfg.output_format) {
+            localStorage.setItem('outputFormat', globalCfg.output_format);
+            const formatSelect = document.getElementById('globalOutputFormat');
+            if (formatSelect) {
+              formatSelect.value = globalCfg.output_format;
+              const sampleBox = document.getElementById('outputSampleBox');
+              if (sampleBox) {
+                const fmt = formatSelect.value;
+                let outText = '';
+                if (fmt === 'A') outText = 'A > 漢字';
+                else if (fmt === 'B') outText = 'B > かんじ';
+                else if (fmt === 'C') outText = 'C > ｜漢字《かんじ》';
+                sampleBox.textContent = `user_dict.txt\n漢字 => かんじ\n---\ninput: 漢字\n---\noutput:\n${outText}`;
+              }
+            }
+          }
+          if (globalCfg.lang) {
+            localStorage.setItem('ttsLang', globalCfg.lang);
+            _currentLang = globalCfg.lang;
+            _pendingLang = globalCfg.lang; // 同步暂存
+            // 如果 initLangSelector 已经加载，手动同步一下UI
+            const langBtns = document.querySelectorAll('.lang-btn');
+            if (langBtns.length > 0) {
+              langBtns.forEach(btn => {
+                const isTarget = btn.dataset.lang === globalCfg.lang;
+                btn.classList.toggle('ghost', !isTarget);
+                btn.classList.toggle('active', isTarget);
+                btn.style.background = isTarget ? 'var(--primary)' : '';
+                btn.style.color = isTarget ? '#fff' : '';
+                btn.style.borderColor = isTarget ? 'var(--primary-dark)' : '';
+              });
+            }
+          }
+          if (globalCfg.theme_color) {
+            if (typeof window.__applyThemeColor === 'function') {
+              window.__applyThemeColor(globalCfg.theme_color);
+            } else {
+              localStorage.setItem('themeColor', globalCfg.theme_color);
+            }
+          }
+        }
+      } catch (e) {}
+      
+      // ★ 核心修复：拿到全局配置后，立刻让下拉框和预览区刷新，强行显示保存的模型
+      if (window.__savedGlobalConfig) {
+        fillModelSelect();
+        updateEngineVisibility();
+        updateAutoConfigPreview();
+        if (typeof syncComPanelFromTop === 'function') syncComPanelFromTop();
+      }
+      
+      setConn('✓ 已连接 · ' + API_BASE, '#1a9e5c');
+      refreshAutoDictCount();
+      $('monitorWrap').style.display = '';
+      retryCount = 0;
+      if (!inited) { 
+        inited = true; 
+        bootstrap(); 
+      } else {
+        // ★ 核心修复：如果已经初始化过，说明是重连，强制重建历史记录（SSE）通道
+        connectSSE();
+      }
+    } catch (e) {
+      setConn('✗ 未连接（请先启动 tts.py）', '#dc2626');
+      $('monitorWrap').style.display = 'none';
+      
+      // ★ 核心修改：限制重试次数，并向用户展示当前进度
+      if (retryCount < MAX_RETRY) {
+        retryCount++;
+        setConn(`✗ 连接失败，正在重试 (${retryCount}/${MAX_RETRY})...`, '#dc2626');
+        setTimeout(() => { connect(); }, 1500);
+      } else {
+        setConn('✗ 自动重连已停止，请手动点击重连', '#dc2626');
+      }
+    }
+  }
+
+  // ★ 语种选择逻辑（仅暂存，不立即生效）
+  function initLangSelector() {
+    const langBtns = document.querySelectorAll('.lang-btn');
+    _currentLang = localStorage.getItem('ttsLang') || 'ja';
+    _pendingLang = _currentLang; // 初始化暂存状态
+
+    function updateLangUI(lang) {
+      langBtns.forEach(btn => {
+        if (btn.dataset.lang === lang) {
+          btn.classList.remove('ghost');
+          btn.classList.add('active');
+          btn.style.background = 'var(--primary)';
+          btn.style.color = '#fff';
+          btn.style.borderColor = 'var(--primary-dark)';
+        } else {
+          btn.classList.add('ghost');
+          btn.classList.remove('active');
+          btn.style.background = '';
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }
+      });
+    }
+
+    updateLangUI(_pendingLang);
+
+    langBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // 仅改变 UI 暂存状态
+        _pendingLang = btn.dataset.lang;
+        updateLangUI(_pendingLang);
+        
+        // ★ 立刻刷新下拉菜单和预览，不发送任何请求给 tts.py
+        fillModelSelect(); 
+        renderWindowsVoices();
+        renderEdgeVoices();
+        updateAutoConfigPreview();
+      });
+    });
+  }
+
+  // ★ 收起/展开 功能
+  document.addEventListener('DOMContentLoaded', () => {
+    const setupToggle = (btnId, contentId) => {
+      const btn = $(btnId);
+      const content = $(contentId);
+      if (!btn || !content) return;
+      
+      // ★ 核心修复：初始化时，强行同步一次按钮状态
+      // 如果 HTML 默认是展开的（display 不是 none），立刻给它上内凹样式
+      if (content.style.display !== 'none') {
+        btn.textContent = '▼';
+        btn.classList.remove('ghost');
+        btn.classList.add('active');
+      } else {
+        btn.textContent = '▶';
+        btn.classList.add('ghost');
+        btn.classList.remove('active');
+      }
+
+      btn.addEventListener('click', () => {
+        if (content.style.display === 'none') {
+          content.style.display = 'block';
+          btn.textContent = '▼';
+          btn.classList.remove('ghost'); // 去掉空心，变成实心主色
+          btn.classList.add('active');   // 加上激活，产生内凹阴影
+        } else {
+          content.style.display = 'none';
+          btn.textContent = '▶';
+          btn.classList.add('ghost');    // 恢复空心
+          btn.classList.remove('active');// 去掉激活，恢复突起
+        }
+      });
+    };
+    
+    setupToggle('toggleEngineBtn', 'engine-details-content');
+    setupToggle('toggleCevioBtn', 'cevio-details-content');
+    setupToggle('toggleTestBtn', 'test-details-content');
+  });
+
+  function bootstrap() {
+    $('monitorEngine').addEventListener('change', () => {
+      updateEngineVisibility();
+      updateAutoConfigPreview();
+      syncComPanelFromTop(); // ★ 引擎切换时，同步更新下方 CeVIO 面板
+    });
+    
+    ['input', 'change'].forEach(evt => {
+      $('monitorTtsNum').addEventListener(evt, updateAutoConfigPreview);
+      $('monitorCevioModel').addEventListener(evt, updateAutoConfigPreview);
+      $('monitorWindowsModel').addEventListener(evt, updateAutoConfigPreview);
+      $('monitorEdgeModel').addEventListener(evt, updateAutoConfigPreview);
+      $('monitorSpeed').addEventListener(evt, updateAutoConfigPreview);
+    });
+    
+    fillModelSelect();
+    initLangSelector(); // ★ 初始化语种选择 UI
+
+    // 监听最终朗读文本的编辑
+    $('monitorPreviewBox').addEventListener('input', () => {
+      $('monitorPreviewBox').dataset.edited = 'true';
+    });
+
+    loadRulesFiles(); loadAutoConfig(); connectSSE();
+  }
+
+  let _autoDictWordsCache = {};
+
+  async function refreshAutoDictCount() {
+    try {
+      const r = await fetch(API_BASE + '/v1/auto_dict');
+      if (r.ok) {
+        const data = await r.json();
+        _autoDictWordsCache = data.words || {}; // 缓存数据
+        const count = data.count;
+        const el = $('autoDictCount');
+        el.innerText = count;
+
+        // 当数量超过 20 时，触发闪烁动画
+        if (count > 20) {
+          el.classList.add('flashing-alert');
+          let duration = 2.0 - (count - 20) * 0.1;
+          if (duration < 1.0) duration = 1.0;
+          el.style.animationDuration = duration + 's';
+        } else {
+          el.classList.remove('flashing-alert');
+          el.style.animationDuration = '';
+        }
+
+        // ★ 如果详情面板是打开的，实时刷新内容
+        const detailBox = $('autoDictDetails');
+        if (detailBox && detailBox.style.display !== 'none') {
+          // ★ 核心修复：检查当前是否有按钮处于“待确认删除”状态，如果有，则暂停本次重绘，防止打断用户操作
+          const hasPendingConfirm = detailBox.querySelector('.btn-delete-tag[data-confirm="true"]');
+          if (!hasPendingConfirm) {
+            renderAutoDictDetails();
+          }
+        }
+      }
+    } catch(e) {}
+  }
+
+  // ★ 渲染详情列表（带删除按钮）
+  function renderAutoDictDetails() {
+    const contentBox = $('autoDictListContent');
+    if (!contentBox) return;
+
+    const words = _autoDictWordsCache;
+    const multiWords = [];
+    const singleWords = [];
+
+    for (const [k, v] of Object.entries(words)) {
+      if (k.length > 1) multiWords.push({ k, v });
+      else singleWords.push({ k, v });
+    }
+
+    if (multiWords.length === 0 && singleWords.length === 0) {
+      contentBox.innerHTML = '<div style="color:var(--muted);text-align:center;padding:10px;">暂无登记词条</div>';
+      return;
+    }
+
+    let html = '';
+
+    // 通用词条渲染函数（带 [x] 按钮）
+    const renderTag = (item, isSingle) => {
+      const k = escapeHtml(item.k);
+      const v = escapeHtml(item.v);
+      const bg = isSingle 
+        ? 'background:var(--input-bg); border:1px solid var(--border); color:var(--text-secondary);' 
+        : 'background:var(--input-bg); border:1px solid var(--border-strong); color:var(--text);';
+      
+      // ★ 核心修复：外层既然用了 Grid，内层统一使用 flex 撑满宽度并两端对齐
+      const flexStyle = 'display: flex; justify-content: space-between; width: 100%; box-sizing: border-box;';
+      
+      return `
+        <div style="${flexStyle} align-items:center; ${bg} padding:3px 8px; border-radius:4px; gap:4px; transition:0.15s; box-shadow:var(--sunken-panel);">
+          <span style="cursor:pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" onclick="navigator.clipboard.writeText('${k} => ${v}'); this.style.color='var(--primary)'; setTimeout(()=>this.style.color='', 300);" title="点击复制：${k} => ${v}">
+            ${k} <span style="font-size:11px; opacity:0.6;">=&gt;</span> ${v}
+          </span>
+          <span class="btn-delete-tag" 
+                style="cursor:pointer; color:var(--muted); font-weight:bold; font-size:11px; padding:0 4px; border-radius:2px; transition:0.15s; flex-shrink: 0;" 
+                onclick="window.__deleteAutoDictItem('${k}', '${v}', this)" 
+                title="点击两次确认删除">
+            ✕
+          </span>
+        </div>`;
+    };
+
+    // 渲染组词
+    if (multiWords.length > 0) {
+      html += `<div style="margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800; color:var(--primary-dark); margin-bottom:8px; font-size:12px; border-bottom:1px dashed var(--border-strong); padding: 4px 0 6px 0;">
+          <span>🔤 组词 (需人工确认)</span>
+          <span class="btn-delete-group" data-group="word" style="position: relative; z-index: 1; cursor:pointer; color:var(--muted); font-size:14px; padding:2px 8px; border-radius:4px; border:1px solid transparent; transition:0.15s;" title="连续点击三次清空该分组">✕</span>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">`;
+      multiWords.forEach(item => { html += renderTag(item, false); });
+      html += `</div></div>`;
+    }
+
+    // 渲染单字
+    if (singleWords.length > 0) {
+      html += `<div style="margin-bottom:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800; color:var(--muted); margin-bottom:8px; font-size:12px; border-bottom:1px dashed var(--border-strong); padding: 4px 0 6px 0;">
+          <span>🔣 单字 (占位防抖，通常无需处理)</span>
+          <span class="btn-delete-group" data-group="single" style="position: relative; z-index: 1; cursor:pointer; color:var(--muted); font-size:14px; padding:2px 8px; border-radius:4px; border:1px solid transparent; transition:0.15s;" title="连续点击三次清空该分组">✕</span>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">`;
+      singleWords.forEach(item => { html += renderTag(item, true); });
+      html += `</div></div>`;
+    }
+
+    contentBox.innerHTML = html;
+
+    // ★ 核心：绑定组词的“三连击毁灭”逻辑
+    contentBox.querySelectorAll('.btn-delete-group').forEach(btn => {
+      let clickCount = 0;
+      let resetTimer = null;
+
+      btn.addEventListener('click', async function() {
+        clickCount++;
+        clearTimeout(resetTimer);
+
+        if (clickCount === 1) {
+          // 第一次：变红
+          this.style.color = '#fff';
+          this.style.background = 'var(--danger)';
+          this.style.borderColor = 'color-mix(in srgb, var(--danger) 70%, #000)';
+          this.title = '警告！再次点击触发最终确认';
+          resetTimer = setTimeout(() => resetState(this), 3000);
+        } else if (clickCount === 2) {
+          // 第二次：物理暴击动画
+          this.classList.add('btn-delete-group-warning');
+          this.title = '危险！再点一次将彻底清空所有组词！';
+          setTimeout(() => this.classList.remove('btn-delete-group-warning'), 600);
+          resetTimer = setTimeout(() => resetState(this), 3000);
+        } else if (clickCount === 3) {
+          // 第三次：执行毁灭
+          resetState(this); // 立刻重置样式
+          const group = this.dataset.group;
+          
+          try {
+            this.innerHTML = '⏳';
+            const r = await fetch(API_BASE + '/v1/auto_dict/delete_group', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ group: group })
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.detail || '清空失败');
+            
+            // 刷新面板数据
+            await refreshAutoDictCount();
+            
+          } catch (e) {
+            alert('清空分组失败：' + e.message);
+            this.innerHTML = '✕';
+          }
+        }
+      });
+
+      function resetState(el) {
+        clickCount = 0;
+        clearTimeout(resetTimer);
+        el.style.color = 'var(--muted)';
+        el.style.background = 'transparent';
+        el.style.borderColor = 'transparent';
+        el.classList.remove('btn-delete-group-warning');
+        el.title = '连续点击三次清空该分组';
+        if (el.innerHTML === '⏳') el.innerHTML = '✕';
+      }
+    });
+  }
+
+  // ★ 处理删除逻辑（二次点击确认）
+  window.__deleteAutoDictItem = async function(base, ruby, el) {
+    // 第一次点击，变红警告
+    if (!el.dataset.confirm) {
+      el.dataset.confirm = 'true';
+      el.style.color = '#fff';
+      el.style.background = 'var(--danger)';
+      el.style.fontWeight = '900';
+      el.title = '再次点击确认删除！';
+      
+      // 3秒后没有第二次点击，自动恢复原状
+      setTimeout(() => {
+        if (el.dataset.confirm === 'true') {
+          el.dataset.confirm = '';
+          el.style.color = 'var(--muted)';
+          el.style.background = 'transparent';
+          el.style.fontWeight = 'bold';
+          el.title = '点击两次确认删除';
+          // ★ 核心修复：3秒后如果没点，强制重绘一次面板，把之前可能积压的后台新数据刷出来
+          renderAutoDictDetails();
+        }
+      }, 3000);
+      return;
+    }
+
+    // 第二次点击，执行删除
+    el.dataset.confirm = '';
+    el.style.color = '#fff';
+    el.style.background = '#999'; // 等待中颜色
+    el.innerHTML = '⏳';
+    
+    try {
+      const r = await fetch(API_BASE + '/v1/auto_dict/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ base: base, ruby: ruby })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || '删除失败');
+      
+      // 删除成功后，重新拉取数据刷新面板
+      await refreshAutoDictCount();
+      
+    } catch (e) {
+      // 如果失败，还原按钮
+      el.innerHTML = '✕';
+      el.style.color = 'var(--muted)';
+      el.style.background = 'transparent';
+      alert('删除失败：' + e.message);
+    }
+  };
+
+  // ★ 绑定打开文件夹、详情切换与刷新按钮事件
+  document.addEventListener('DOMContentLoaded', () => {
+    // 绑定打开文件夹按钮
+    const btnOpenDirAuto = $('btnOpenRulesFromAutoDict');
+    if (btnOpenDirAuto) {
+      btnOpenDirAuto.addEventListener('click', async () => {
+        try {
+          const r = await fetch(API_BASE + '/v1/rules/open', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ filename: '.' })
+          });
+          if (!r.ok) throw new Error('打开失败');
+        } catch (e) {
+          alert('打开文件夹失败：请确认后端 tts.py 的 /v1/rules/open 接口支持传入目录路径。');
+        }
+      });
+    }
+
+    const btnRefresh = $('btnRefreshAutoDict');
+    if (btnRefresh) {
+      btnRefresh.addEventListener('click', async function() {
+        const oldText = this.innerText;
+        this.innerText = '刷新中...';
+        this.disabled = true;
+        await refreshAutoDictCount();
+        this.innerText = oldText;
+        this.disabled = false;
+      });
+    }
+
+    const btn = $('btnToggleAutoDict');
+    if (btn) {
+      btn.addEventListener('click', function() {
+        const box = $('autoDictDetails');
+        if (box.style.display === 'none') {
+          box.style.display = 'block';
+          this.innerText = '收起';
+          this.classList.add('active');
+          renderAutoDictDetails();
+        } else {
+          box.style.display = 'none';
+          this.innerText = '详情';
+          this.classList.remove('active');
+        }
+      });
+    }
+  });
+
+  function updateAutoConfigPreview() {
+    const engine = $('monitorEngine').value;
+    let model = '';
+    if (engine === 'voicevox') {
+      const n = parseInt($('monitorTtsNum').value, 10) || 1;
+      model = `${n}`;
+    } else if (engine === 'cevio') {
+      model = $('monitorCevioModel').value;
+    } else if (engine === 'windows') {
+      model = 'windows:' + $('monitorWindowsModel').value;
+    } else if (engine === 'edge') {
+      model = 'edge:' + $('monitorEdgeModel').value;
+    }
+    const speed = parseFloat($('monitorSpeed').value) || 1.0;
+
+    let langText = 'jp /* 日语 */';
+    if (_pendingLang === 'zh') langText = 'cn /* 汉语 */';
+    if (_pendingLang === 'en') langText = 'en /* 英语 */';
+
+    $('monitorAutoInfo').innerHTML = `
+      lang = <span style="color:var(--primary-dark);font-weight:bold;">${langText}</span><br>
+      model = <span style="color:var(--primary-dark);font-weight:bold;">${model || '-'}</span><br>
+      speed = <span style="color:var(--primary-dark);font-weight:bold;">${speed}</span>
+    `;
+  }
+
+  // ★ 恢复下拉框的自定义排序
+  function applyCustomSort(selectEl) {
+    // ★ 优先级 1：localStorage（拖拽后立即生效，无需等请求）
+    // ★ 优先级 2：后端 _ui_order（跨浏览器 / 换设备场景）
+    let newOrder = null;
+    const saved = localStorage.getItem(`sort_${selectEl.id}`);
+    if (saved) {
+      try { newOrder = JSON.parse(saved); } catch (e) {}
+    }
+    if (!Array.isArray(newOrder) || newOrder.length === 0) {
+      const serverOrder = (window.__uiOrder || {})[selectEl.id];
+      if (Array.isArray(serverOrder) && serverOrder.length) newOrder = serverOrder;
+    }
+    if (!newOrder) return;
+
+    try {
+      const options = Array.from(selectEl.options);
+      const groups  = Array.from(selectEl.querySelectorAll('optgroup'));
+
+      if (groups.length > 0) {
+        groups.forEach(g => {
+          const groupVals = Array.from(g.options).map(o => o.value);
+          newOrder.forEach(val => {
+            if (groupVals.includes(val)) {
+              const opt = options.find(o => o.value === val);
+              if (opt) g.appendChild(opt);
+            }
+          });
+        });
+      } else {
+        newOrder.forEach(val => {
+          const opt = options.find(o => o.value === val);
+          if (opt) selectEl.appendChild(opt);
+        });
+      }
+    } catch (e) {}
+  }
+
+  function fillModelSelect() {
+    // ★ 根据暂存语种动态隐藏引擎选项
+    const engineSel = $('monitorEngine');
+    const isJa = (_pendingLang === 'ja' || _pendingLang === 'auto');
+    
+    const optCevio = engineSel.querySelector('option[value="cevio"]');
+    const optVoicevox = engineSel.querySelector('option[value="voicevox"]');
+    
+    if (!isJa) {
+      if (optCevio) { optCevio.hidden = true; optCevio.style.display = 'none'; }
+      if (optVoicevox) { optVoicevox.hidden = true; optVoicevox.style.display = 'none'; }
+      if (engineSel.value === 'cevio' || engineSel.value === 'voicevox') {
+        engineSel.value = 'edge'; // 强制切换到 Edge
+      }
+    } else {
+      if (optCevio) { optCevio.hidden = false; optCevio.style.display = ''; }
+      if (optVoicevox) { optVoicevox.hidden = false; optVoicevox.style.display = ''; }
+    }
+
+    const cevioSel = $('monitorCevioModel');
+    cevioSel.innerHTML = '';
+    
+    let hasCevioData = false;
+    if (MODEL_CONFIGS.sapi && Object.keys(MODEL_CONFIGS.sapi).length > 0) hasCevioData = true;
+    if (MODEL_CONFIGS.cevio_com && Object.keys(MODEL_CONFIGS.cevio_com).length > 0) hasCevioData = true;
+
+    if (!isJa) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = '（当前语种无可用模型，CeVIO 仅支持日语）';
+      cevioSel.appendChild(o);
+    } else if (hasCevioData) {
+      if (MODEL_CONFIGS.sapi) {
+        for (const [key, val] of Object.entries(MODEL_CONFIGS.sapi)) {
+          const o = document.createElement('option'); o.value = key; o.textContent = val; cevioSel.appendChild(o);
+        }
+      }
+      if (MODEL_CONFIGS.cevio_com) {
+        for (const [key, val] of Object.entries(MODEL_CONFIGS.cevio_com)) {
+          const o = document.createElement('option'); o.value = key; o.textContent = `${val.cast || key} (${key})`; cevioSel.appendChild(o);
+        }
+      }
+    } else {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = '未检测到任何 CeVIO 配置';
+      cevioSel.appendChild(o);
+    }
+
+    const ttsWrap = $('ttsNumWrap');
+    const ttsInput = $('monitorTtsNum');
+    if (!isJa) {
+      ttsWrap.style.display = 'none';
+    } else {
+      ttsWrap.style.display = '';
+      const ttsList = MODELS.filter(m => /^\d+$/.test(m));
+      _ttsMax = 0;
+      ttsList.forEach(m => {
+        const n = parseInt(m, 10);
+        if (n > _ttsMax) _ttsMax = n;
+      });
+      if (_ttsMax === 0) _ttsMax = 1;
+      ttsInput.max = String(_ttsMax);
+      $('ttsNumLabel').textContent = `Model ID（1–${_ttsMax}）`;
+    }
+
+    // ★ 核心修复：只有没有保存的全局配置时，才使用硬编码的默认值
+    if (!window.__savedGlobalConfig || !window.__savedGlobalConfig.engine) {
+      if (MODEL_CONFIGS.cevio_com && Object.keys(MODEL_CONFIGS.cevio_com).length > 0 && isJa) {
+        engineSel.value = 'cevio';
+        if (MODEL_CONFIGS.cevio_com['com-karin-happy']) $('monitorCevioModel').value = 'com-karin-happy';
+        else {
+          const karinKey = Object.keys(MODEL_CONFIGS.cevio_com).find(k => k.includes('karin'));
+          if (karinKey) $('monitorCevioModel').value = karinKey;
+          else $('monitorCevioModel').selectedIndex = 0;
+        }
+      } else if (isJa) {
+        engineSel.value = 'voicevox';
+      }
+    }
+    
+    // ★ 核心修复：强行从 global_config 里恢复界面状态
+    if (window.__savedGlobalConfig) {
+      // 1. 恢复引擎
+      if (window.__savedGlobalConfig.engine) {
+        const opt = engineSel.querySelector(`option[value="${window.__savedGlobalConfig.engine}"]`);
+        if (opt && !opt.hidden) engineSel.value = window.__savedGlobalConfig.engine;
+      }
+      // 2. 恢复 Model ID（适配各种不同的引擎前缀）
+      if (window.__savedGlobalConfig.model) {
+        const targetModel = window.__savedGlobalConfig.model;
+        if (engineSel.value === 'voicevox') {
+          const num = targetModel.replace('tts-', '');
+          $('monitorTtsNum').value = num;
+        } else if (engineSel.value === 'cevio') {
+          if (MODEL_CONFIGS.cevio_com[targetModel]) $('monitorCevioModel').value = targetModel;
+        } else if (engineSel.value === 'edge') {
+          const v = targetModel.replace('edge:', '');
+          if (Array.from($('monitorEdgeModel').options).some(o => o.value === v)) $('monitorEdgeModel').value = v;
+        } else if (engineSel.value === 'windows') {
+          const v = targetModel.replace('windows:', '');
+          if (Array.from($('monitorWindowsModel').options).some(o => o.value === v)) $('monitorWindowsModel').value = v;
+        }
+      }
+      // 3. 恢复 Speed
+      if (window.__savedGlobalConfig.speed) {
+        $('monitorSpeed').value = window.__savedGlobalConfig.speed;
+      }
+    }
+
+    updateEngineVisibility();
+    updateAutoConfigPreview();
+    applyCustomSort($('monitorCevioModel'));
+    if (typeof syncComPanelFromTop === 'function') syncComPanelFromTop();
+  }
+
+  function updateEngineVisibility() {
+    const engine = $('monitorEngine').value;
+    $('ttsNumWrap').style.display = 'none';
+    $('cevioModelWrap').style.display = 'none';
+    $('windowsModelWrap').style.display = 'none';
+    $('edgeModelWrap').style.display = 'none';
+
+    if (engine === 'voicevox') {
+      // VOICEVOX 仅限日语
+      if (_pendingLang !== 'ja' && _pendingLang !== 'auto') {
+        $('ttsNumWrap').style.display = '';
+        $('monitorTtsNum').value = ''; // 清空提示用户
+      } else {
+        $('ttsNumWrap').style.display = '';
+      }
+    } else if (engine === 'cevio') {
+      $('cevioModelWrap').style.display = '';
+    } else if (engine === 'windows') {
+      $('windowsModelWrap').style.display = '';
+      if (_allWindowsVoices.length === 0) loadWindowsVoices(); // 首次加载
+      else renderWindowsVoices();
+    } else if (engine === 'edge') {
+      $('edgeModelWrap').style.display = '';
+      if (_allEdgeVoices.length === 0) loadEdgeVoices();
+      else renderEdgeVoices();
+    }
+  }
+
+  function getResolvedModel() {
+    const engine = $('monitorEngine').value;
+    if (engine === 'voicevox') {
+      const numInp = $('monitorTtsNum');
+      let n = parseInt(numInp.value, 10);
+      if (!isFinite(n) || n < 1) n = 1;
+      if (n > _ttsMax) n = _ttsMax;
+      if (String(n) !== numInp.value) numInp.value = String(n);
+      return `tts-${n}`;
+    } else if (engine === 'cevio') {
+      return $('monitorCevioModel').value;
+    } else if (engine === 'cevio') {
+      return $('monitorCevioModel').value;
+    } else if (engine === 'windows') {
+      const val = $('monitorWindowsModel').value;
+      return val ? 'windows:' + val : 'windows:'; // 拼接前缀
+    } else if (engine === 'edge') {
+      const val = $('monitorEdgeModel').value;
+      return val ? 'edge:' + val : 'edge:'; // 拼接前缀
+    }
+    return 'only';
+  }
+
+  async function loadWindowsVoices() {
+    try {
+      const r = await fetch(API_BASE + '/v1/voices/windows');
+      if (r.ok) {
+        const data = await r.json();
+        _allWindowsVoices = data.voices || [];
+        renderWindowsVoices();
+      }
+    } catch(e) { console.warn("Windows voices 加载失败", e); }
+  }
+
+  function renderWindowsVoices() {
+    const sel = $('monitorWindowsModel');
+    if (!sel) return;
+    sel.innerHTML = '';
+
+    const filtered = _allWindowsVoices.filter(v => {
+      const name = v.toLowerCase();
+      if (_pendingLang === 'zh') return name.includes('chinese') || name.includes('huihui') || name.includes('yaoyao') || name.includes('kangkang');
+      if (_pendingLang === 'en') return name.includes('english') || name.includes('zira') || name.includes('david') || name.includes('mark');
+      if (_pendingLang === 'ja') return name.includes('japanese') || name.includes('haruka') || name.includes('ayumi') || name.includes('ichiro');
+    });
+
+    if (filtered.length === 0) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = '（无匹配语种的语音，请去系统设置安装）';
+      sel.appendChild(o);
+    } else {
+      filtered.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = v; sel.appendChild(o);
+      });
+    }
+    applyCustomSort(sel);
+    updateAutoConfigPreview();
+  }
+
+  async function loadEdgeVoices() {
+    try {
+      const r = await fetch(API_BASE + '/v1/voices/edge');
+      if (r.ok) {
+        const data = await r.json();
+        _allEdgeVoices = data.voices || [];
+        renderEdgeVoices();
+      }
+    } catch(e) { console.warn("Edge voices 加载失败", e); }
+  }
+
+  function renderEdgeVoices() {
+    const sel = $('monitorEdgeModel');
+    if (!sel) return;
+    sel.innerHTML = '';
+
+    const filtered = _allEdgeVoices.filter(v => {
+      const sn = v.ShortName.toLowerCase();
+      if (_pendingLang === 'zh') return sn.startsWith('zh-');
+      if (_pendingLang === 'en') return sn.startsWith('en-');
+      if (_pendingLang === 'ja') return sn.startsWith('ja-');
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = '（无匹配语种的 Edge 语音）';
+      sel.appendChild(o);
+    } else {
+      filtered.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v.ShortName; o.textContent = `[${v.Locale}] ${v.ShortName} (${v.Gender})`;
+        sel.appendChild(o);
+      });
+    }
+    applyCustomSort(sel);
+    updateAutoConfigPreview();
+  }
+
+  /* ===== 规则文件 ===== */
+  async function loadRulesFiles() {
+    const list = $('monitorRulesList');
+    try {
+      const r = await fetch(API_BASE + '/v1/rules/files');
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || ('HTTP ' + r.status));
+      if (!data.files.length) { list.innerHTML = '<div style="color:#7a8194">replace_rules 文件夹为空</div>'; return; }
+      
+      // ★ 核心修改：对文件列表进行自定义排序
+      allRulesFiles = data.files.sort((a, b) => {
+        const aIsPerson = a.name === 'person_dict.txt' || a.name.startsWith('person_dict_');
+        const bIsPerson = b.name === 'person_dict.txt' || b.name.startsWith('person_dict_');
+        if (aIsPerson && !bIsPerson) return -1;
+        if (!aIsPerson && bIsPerson) return 1;
+        if (aIsPerson && bIsPerson) {
+          if (a.name === 'person_dict.txt') return -1;
+          if (b.name === 'person_dict.txt') return 1;
+        }
+        if (a.name === 'auto_dict.txt') return -1;
+        if (b.name === 'auto_dict.txt') return 1;
+        return a.name.localeCompare(b.name);
+      });
+      renderRulesPage();
+    } catch (e) { list.textContent = '加载失败：' + e.message; }
+  }
+
+  function renderRulesPage() {
+    const list = $('monitorRulesList');
+    const totalPages = Math.ceil(allRulesFiles.length / rulesPageSize) || 1;
+    if (rulesPage > totalPages) rulesPage = totalPages;
+    if (rulesPage < 1) rulesPage = 1;
+
+    const start = (rulesPage - 1) * rulesPageSize;
+    const pageFiles = allRulesFiles.slice(start, start + rulesPageSize);
+
+    list.innerHTML = pageFiles.map(f => {
+      const kb = (f.size / 1024).toFixed(1);
+      return `<div class="rule-item">
+        <input type="checkbox" data-name="${escapeHtml(f.name)}"
+               ${f.enabled ? 'checked' : ''} ${f.locked ? 'disabled' : ''}>
+        <span class="rule-name" onclick="openRuleFile('${escapeHtml(f.name)}')" title="点击直接打开文件">${escapeHtml(f.name)}</span>
+        <span class="tag-size">${kb}KB</span>
+        ${f.locked ? '<span class="tag-locked">锁定</span>' : ''}
+      </div>`;
+    }).join('');
+
+    // ==========================================
+    // ★ 动态高度计算
+    // ==========================================
+    // 1. 先临时清除高度，让内容撑开以获取真实的单条高度
+    list.style.height = 'auto';
+    
+    let itemH = 30; // 默认兜底高度
+    const firstItem = list.querySelector('.rule-item');
+    if (firstItem) {
+      const rect = firstItem.getBoundingClientRect();
+      if (rect.height > 0) itemH = rect.height;
+    }
+    
+    const count = pageFiles.length;
+    const borderH = 2; // 上下边框 1px + 1px
+    
+    if (count <= 8) {
+      // 当词库文件小于或等于 8 个时，高度按 8 条的高度展示窗口
+      list.style.height = Math.ceil(8 * itemH + borderH) + 'px';
+    } else if (count >= 16) {
+      // 当词库文件大于或等于 16 个时，高度按 16 条的高度展示窗口
+      list.style.height = Math.ceil(16 * itemH + borderH) + 'px';
+    } else {
+      // 介于 8~16 个时，高度自适应完整展示
+      list.style.height = Math.ceil(count * itemH + borderH) + 'px';
+    }
+    // ==========================================
+
+    $('rulesPageInfo').textContent = `${rulesPage} / ${totalPages}`;
+    $('rulesPrevPage').disabled = (rulesPage === 1);
+    $('rulesNextPage').disabled = (rulesPage === totalPages);
+
+    list.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const fileName = e.target.dataset.name;
+        const file = allRulesFiles.find(x => x.name === fileName);
+        if (file) file.enabled = e.target.checked;
+      });
+    });
+  }
+
+  function selectAllRules(on) {
+    const checkboxes = document.querySelectorAll('#monitorRulesList input[type=checkbox]:not([disabled])');
+    checkboxes.forEach(cb => {
+      cb.checked = on;
+      const fileName = cb.dataset.name;
+      const file = allRulesFiles.find(x => x.name === fileName);
+      if (file) file.enabled = on;
+    });
+  }
+
+  async function saveRulesFiles() {
+    const btn = $('monitorRulesSave');
+    if (btn.disabled) return; // 防止重复点击
+
+    // 1. 点击瞬间给反馈：禁用按钮，改变文字
+    btn.innerText = '保存中...';
+    btn.disabled = true;
+
+    const enabled = allRulesFiles.filter(f => f.enabled).map(f => f.name);
+    
+    try {
+      const r = await fetch(API_BASE + '/v1/rules/files', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ enabled_files: enabled }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || ('HTTP ' + r.status));
+      
+      // 2. 保存成功后的短暂反馈
+      btn.innerText = '✓ 已保存';
+      
+      // 成功后刷新列表
+      loadRulesFiles();
+      
+      setTimeout(() => {
+        btn.innerText = '保存';
+        btn.disabled = false;
+      }, 1500);
+      
+    } catch (e) {
+      // 失败时弹窗提示，并立即恢复
+      alert('保存失败：' + e.message);
+      btn.innerText = '保存';
+      btn.disabled = false;
+    }
+  }
+
+  /* ===== auto 配置 ===== */
+  async function loadAutoConfig() {
+    try {
+      const r = await fetch(API_BASE + '/v1/auto/config');
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || ('HTTP ' + r.status));
+      
+      window.__autoConfig = data;
+      updateAutoConfigDisplay();
+    } catch (e) { $('monitorAutoInfo').textContent = '加载失败：' + e.message; }
+  }
+
+  function updateAutoConfigDisplay() {
+    const ac = window.__autoConfig;
+    if (ac) {
+      if (ac.lang) {
+        _currentLang = ac.lang;
+        _pendingLang = ac.lang;
+      }
+      updateAutoConfigPreview();
+    }
+  }
+
+  async function saveAutoConfig() {
+    const engine = $('monitorEngine').value;
+    let model = '';
+    let voice = 'alloy';
+    let speed = parseFloat($('monitorSpeed').value) || 1.0;
+
+    if (engine === 'voicevox') {
+      model = getResolvedModel();
+    } else if (engine === 'cevio') {
+      model = $('monitorCevioModel').value;
+    } else if (engine === 'windows') {
+      model = 'windows:' + $('monitorWindowsModel').value;
+    } else if (engine === 'edge') {
+      model = 'edge:' + $('monitorEdgeModel').value;
+    } else {
+      return;
+    }
+
+    const btn = $('monitorAutoSave');
+    const oldText = btn.innerText;
+    btn.innerText = '保存中...';
+    btn.disabled = true;
+
+    try {
+      // ★ 核心：在此刻才真正应用语种，并将页面上的语种、引擎、模型、速度一并同步到 global_config.json
+      _currentLang = _pendingLang;
+      localStorage.setItem('ttsLang', _currentLang);
+      
+      fetch(API_BASE + '/v1/global/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ 
+            lang: _currentLang,
+            engine: engine,
+            model: model,
+            speed: speed
+        })
+      }).catch(e => console.warn("同步全局配置失败", e));
+
+      // ★ 核心修复：保存成功后，必须同步更新内存中的全局配置快照！
+      // 否则下方调用 fillModelSelect() 刷新 UI 时，会拿着上一次的旧数据把你刚选好的模型强行覆盖掉。
+      window.__savedGlobalConfig = {
+          lang: _currentLang,
+          engine: engine,
+          model: model,
+          speed: speed
+      };
+
+      fillModelSelect();
+      renderWindowsVoices();
+      renderEdgeVoices();
+
+      const r = await fetch(API_BASE + '/v1/auto/config', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ model: model, voice: voice, speed: speed }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || ('HTTP ' + r.status));
+      
+      window.__autoConfig = data;
+
+      const text = $('monitorInput').value.trim();
+      if (text) {
+        const r2 = await fetch(API_BASE + '/v1/monitor/synthesize', {
+          method:'POST', headers:{'Content-Type':'application/json'}, 
+          body: JSON.stringify({ input: text, model: 'auto', voice: 'alloy', speed: 1.0 })
+        });
+        const data2 = await r2.json();
+        if (r2.ok) {
+          showPreview(data2.final_text, data2.ruby_findings);
+          playWithHighlight('data:audio/wav;base64,' + data2.audio, data2.id);
+        }
+      }
+
+      btn.innerText = '✓ 运行成功';
+      setTimeout(() => { btn.innerText = '以此配置运行'; btn.disabled = false; }, 2000);
+
+    } catch (e) {
+      alert('保存失败：' + e.message);
+      btn.innerText = '以此配置运行';
+      btn.disabled = false;
+    }
+  }
+
+  /* ===== 预览 / 合成 ===== */
+  function showPreview(finalText, findings) {
+    $('monitorPreviewBox').value = finalText || '';
+    $('monitorPreviewBox').dataset.edited = 'false'; // 重置编辑状态
+    const wrap = $('monitorRubyWrap'), list = $('monitorRubyList');
+    if (findings && findings.length) {
+      wrap.style.display = '';
+      list.innerHTML = findings.map(f => {
+        let mainText = escapeHtml(f.base) + ' => ' + escapeHtml(f.ruby);
+        let noteText = '';
+        if (f.from_dict && f.final !== f.ruby) noteText = '（词典：' + escapeHtml(f.final) + '）';
+        // ★ 核心修复：同样使用 flex
+        return `<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
+          <code class="ruby-map-tag">${mainText}</code><span class="ruby-note-text">${noteText}</span>
+        </div>`;
+      }).join('');
+    } else wrap.style.display = 'none';
+  }
+  async function doPreview() {
+    const req = currentRequest();
+    if (!req.input.trim()) { alert('请输入文本'); return; }
+    try {
+      const r = await fetch(API_BASE + '/v1/monitor/preview', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(req),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || ('HTTP ' + r.status));
+      showPreview(data.final_text, data.ruby_findings);
+    } catch (e) { alert('预览失败：' + e.message); }
+  }
+
+  function stopPlayback() {
+    if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+    if (currentAudio) { try { currentAudio.pause(); currentAudio.src = ''; } catch(_){} currentAudio = null; }
+    document.querySelectorAll('#monitorRecords .sentence.active').forEach(el => el.classList.remove('active'));
+  }
+  function playWithHighlight(dataUrl, recordId) {
+    stopPlayback();
+    let attempts = 0;
+    (function tryPlay(){
+      const recEl = $('record-' + recordId);
+      if (!recEl && attempts < 20) { attempts++; setTimeout(tryPlay, 100); return; }
+      if (!recEl) return;
+      const sEls = recEl.querySelectorAll('.sentence');
+      if (!sEls.length) return;
+      const total = Array.from(sEls).reduce((a, el) => a + el.textContent.length, 0) || 1;
+      const th = []; let acc = 0;
+      for (const el of sEls) { acc += el.textContent.length; th.push(acc / total); }
+      const audio = new Audio(dataUrl);
+      currentAudio = audio; let lastIdx = -1;
+      function tick() {
+        if (currentAudio !== audio) return;
+        const dur = audio.duration;
+        if (dur && isFinite(dur) && dur > 0.01) {
+          const ratio = audio.currentTime / dur;
+          let idx = th.length - 1;
+          for (let i = 0; i < th.length; i++) { if (ratio <= th[i] + 1e-6) { idx = i; break; } }
+          if (idx !== lastIdx) {
+            sEls.forEach((el, i) => el.classList.toggle('active', i === idx));
+            if (sEls[idx]) sEls[idx].scrollIntoView({ block:'nearest', behavior:'smooth' });
+            lastIdx = idx;
+          }
+        }
+        _rafId = requestAnimationFrame(tick);
+      }
+      audio.addEventListener('ended', () => {
+        if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+        sEls.forEach(el => el.classList.remove('active'));
+        if (currentAudio === audio) currentAudio = null;
+      });
+      audio.addEventListener('error', () => {
+        if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+        sEls.forEach(el => el.classList.remove('active'));
+      });
+      audio.play().then(() => { _rafId = requestAnimationFrame(tick); })
+        .catch(err => { alert('音频播放失败：' + err.message); sEls.forEach(el => el.classList.remove('active')); });
+    })();
+  }
+  async function doSynthesize() {
+    const req = currentRequest();
+    const editedText = $('monitorPreviewBox').value.trim();
+    
+    if (!req.input.trim() && !editedText) { alert('请输入文本'); return; }
+    
+    // ★ 核心：如果用户手动修改了“最终朗读文本”，直接用它作为合成输入
+    if (editedText && $('monitorPreviewBox').dataset.edited === 'true') {
+        req.input = editedText;
+    }
+
+    try {
+      const r = await fetch(API_BASE + '/v1/monitor/synthesize', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(req),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || ('HTTP ' + r.status));
+      
+      // 合成后重置编辑状态，并同步后端最终生成的文本
+      $('monitorPreviewBox').dataset.edited = 'false';
+      showPreview(data.final_text, data.ruby_findings);
+      
+      playWithHighlight('data:audio/wav;base64,' + data.audio, data.id);
+    } catch (e) { stopPlayback(); alert('合成失败：' + e.message); }
+  }
+
+  /* ===== 记录 ===== */
+  function renderRecord(rec) {
+    // 将数据缓存到全局对象，方便重播时提取
+    window.__recordsMap = window.__recordsMap || {};
+    window.__recordsMap[rec.id] = rec;
+
+    const div = document.createElement('div');
+    div.className = 'record'; div.id = 'record-' + rec.id;
+    const statusTag = rec.status === 'ok'
+      ? '<span class="tag ok">OK</span>' : '<span class="tag err">ERR</span>';
+    const modelTag = (rec.auto_used ? '<span style="color:#fbbf24">auto</span> → ' : '') + escapeHtml(rec.model || '-');
+    
+    // ★ 重播按钮
+    const replayBtnHtml = `<button class="btn ghost small replay-btn" style="margin-left:auto; padding: 0 8px; height: 22px; font-size: 11px; line-height: 1; display: flex; align-items: center; gap: 4px;" title="重播此记录">▶ 重播</button>`;
+
+    const rubyHtml = (rec.ruby_findings && rec.ruby_findings.length)
+      ? '<div class="label">Ruby</div><div class="val ruby">' +
+        rec.ruby_findings.map(f => {
+          let mainText = escapeHtml(f.base) + ' => ' + escapeHtml(f.ruby);
+          let noteText = '';
+          if (f.from_dict && f.final !== f.ruby) noteText = '（词典：' + escapeHtml(f.final) + '）';
+          // ★ 核心修复：使用 flex 布局强制在同一行，并消除缩进
+          return `<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
+            <code class="ruby-map-tag">${mainText}</code><span class="ruby-note-text">${noteText}</span>
+          </div>`;
+        }).join('') + '</div>' : '';
+    const errHtml = rec.error
+      ? '<div class="label">错误</div><div class="val error">' + escapeHtml(rec.error) + '</div>' : '';
+    const finalHtml = splitSentences(rec.final_text)
+      .map(s => '<span class="sentence">' + escapeHtml(s) + '</span>').join('');
+      
+    div.innerHTML =
+      '<div class="meta">' + statusTag +
+        '<span>' + escapeHtml(rec.timestamp) + '</span>' +
+        '<span class="tag">' + modelTag + '</span>' +
+        '<span class="tag">' + escapeHtml(rec.voice || '-') + '</span>' +
+        '<span class="tag">x' + rec.speed + '</span>' +
+        '<span class="tag">' + escapeHtml(rec.backend || '-') +
+          (rec.speaker ? ' | ' + escapeHtml(rec.speaker) : '') + '</span>' +
+        replayBtnHtml +
+      '</div>' +
+      '<div class="label">原始文本</div><div class="val record-text-box">' + escapeHtml(rec.raw_text) + '</div>' +
+      rubyHtml +
+      '<div class="label">最终朗读</div><div class="final-text-box record-text-box">' + finalHtml + '</div>' +
+      errHtml;
+
+    // ★ 绑定重播按钮事件
+    const btn = div.querySelector('.replay-btn');
+    if (btn) {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '⏳ 加载中';
+        btn.disabled = true;
+
+        // 1. 如果记录里已经有 base64 音频，直接播放
+        if (rec.audio) {
+          playWithHighlight('data:audio/wav;base64,' + rec.audio, rec.id);
+          btn.innerHTML = oldHtml;
+          btn.disabled = false;
+          return;
+        }
+
+        // 2. 如果没有缓存音频（比如是历史快照），则向后端重新请求合成
+        try {
+          const req = {
+            input: rec.raw_text,
+            model: rec.auto_used ? 'auto' : rec.model, // 保留 auto 状态
+            speed: rec.speed || 1.0
+          };
+          
+          const r = await fetch(API_BASE + '/v1/monitor/synthesize', {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify(req)
+          });
+          
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.detail || '合成失败');
+          
+          // 把新生成的音频存入缓存，下次点击就不用再请求了
+          rec.audio = data.audio; 
+          playWithHighlight('data:audio/wav;base64,' + data.audio, rec.id);
+          
+        } catch (err) {
+          alert('重播失败：' + err.message);
+        } finally {
+          btn.innerHTML = oldHtml;
+          btn.disabled = false;
+        }
+      });
+    }
+
+    return div;
+  }
+  function clearRecords() {
+    stopPlayback();
+    $('monitorRecords').innerHTML =
+      '<div id="monitorEmpty" style="color:#6b7280;text-align:center;padding:40px 0">暂无记录</div>';
+  }
+  let _sseConnection = null;
+  function connectSSE() {
+    if (_sseConnection) {
+      _sseConnection.close();
+    }
+    _sseConnection = new EventSource(API_BASE + '/v1/monitor/events');
+    _sseConnection.onerror = () => {
+      setConn('SSE 断线重连中…', '#c9821a');
+      const btn = $('monitorReconnect');
+      if (btn) btn.style.display = '';
+      // ★ 核心修改：去掉独立的重连，统一交给 connect() 函数去管理尝试次数
+      if (retryCount < MAX_RETRY) {
+        retryCount++;
+        setConn(`✗ 连接断开，正在重试 (${retryCount}/${MAX_RETRY})...`, '#c9821a');
+        setTimeout(() => { connect(); }, 1500);
+      } else {
+        setConn('✗ 自动重连已停止，请手动点击重连', '#dc2626');
+      }
+    };
+    _sseConnection.onmessage = ev => {
+      setConn('✓ 已连接 · ' + API_BASE, '#1a9e5c');
+
+      let data; try { data = JSON.parse(ev.data); } catch(_) { return; }
+      refreshAutoDictCount();
+      
+      const container = $('monitorRecords');
+      const MAX_RECORDS = 40;
+
+      if (data.type === 'snapshot') {
+        if (!data.records.length) { clearRecords(); return; }
+        container.innerHTML = '';
+        data.records.slice(-MAX_RECORDS).reverse().forEach(r => container.appendChild(renderRecord(r)));
+      } else if (data.type === 'append') {
+        const empty = $('monitorEmpty'); if (empty) empty.remove();
+        if ($('record-' + data.record.id)) return;
+        container.insertBefore(renderRecord(data.record), container.firstChild);
+        
+        while (container.children.length > MAX_RECORDS) {
+          container.removeChild(container.lastElementChild);
+        }
+      }
+    };
+  }
+
+  /* ===== 绑定 ===== */
+  $('monitorPreviewBtn').addEventListener('click', doPreview);
+  $('monitorSynthBtn').addEventListener('click', doSynthesize);
+
+  // ★ 绑定清空测试区按钮
+  $('monitorClearTestBtn').addEventListener('click', () => {
+    $('monitorInput').value = '';
+    $('monitorPreviewBox').value = '';
+    $('monitorPreviewBox').dataset.edited = 'false';
+    $('monitorRubyWrap').style.display = 'none';
+    $('monitorRubyList').innerHTML = '';
+    $('monitorInput').focus(); // 清空后自动将光标放回输入框
+  });
+
+  $('monitorClear').addEventListener('click', clearRecords);
+  
+  // ★ 绑定停止播放按钮
+  $('monitorStopAudio').addEventListener('click', () => {
+    stopPlayback();
+    // 如果用户点停止，顺便清空一下输入框里的编辑状态记录（可选，主要是为了视觉反馈）
+    document.querySelectorAll('#monitorRecords .sentence.active').forEach(el => el.classList.remove('active'));
+  });
+  $('monitorReconnect').addEventListener('click', () => { 
+    retryCount = 0; 
+    setConn('✗ 正在强制刷新连接...', 'var(--warn)');
+    
+    // 视觉反馈：强制清空当前面板
+    $('monitorWrap').style.display = 'none';
+    
+    // 直接发起连接
+    connect(); 
+  });
+
+  // ★ 主动断开连接按钮
+  $('monitorDisconnect').addEventListener('click', () => {
+    if (_sseConnection) {
+      _sseConnection.close();
+      _sseConnection = null;
+    }
+    setConn('已手动断开连接', 'var(--danger)');
+    $('monitorWrap').style.display = 'none';
+  });
+  $('monitorRulesAll').addEventListener('click', () => selectAllRules(true));
+  $('monitorRulesSave').addEventListener('click', saveRulesFiles);
+  
+  // ★ 打开 replace_rules 文件夹
+  $('monitorRulesOpenDir').addEventListener('click', async () => {
+    try {
+      // 复用后端打开文件的接口，传入 '.' 代表打开当前文件夹
+      const r = await fetch(API_BASE + '/v1/rules/open', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ filename: '.' })
+      });
+      if (!r.ok) throw new Error('打开失败');
+    } catch (e) {
+      alert('打开文件夹失败：请确认后端 tts.py 的 /v1/rules/open 接口支持传入目录路径。');
+    }
+  });
+  $('rulesPrevPage').addEventListener('click', () => { if(rulesPage > 1) { rulesPage--; renderRulesPage(); } });
+  $('rulesNextPage').addEventListener('click', () => { rulesPage++; renderRulesPage(); });
+  $('monitorAutoSave').addEventListener('click', saveAutoConfig);
+  $('monitorCevioModel').addEventListener('change', syncComPanelFromTop);
+
+  // 控制情感滑块的滚轮
+  window.adjustComSliderWheel = function(ev, el) {
+    ev.preventDefault(); // 防止页面滚动
+    const range = el.previousElementSibling;
+    if (!range || range.type !== 'range') return;
+    
+    let v = parseInt(range.value, 10) + (ev.deltaY < 0 ? 1 : -1);
+    v = Math.max(0, Math.min(100, v));
+    range.value = v;
+    el.innerText = v;
+  };
+
+  // 控制语速/音调框的滚轮
+  window.adjustComWheel = function(ev, el) {
+    ev.preventDefault();
+    let v = parseInt(el.value, 10) || 0;
+    v += (ev.deltaY < 0 ? 1 : -1);
+    v = Math.max(0, Math.min(100, v));
+    el.value = v;
+  };
+
+  /* ===== 规则文件：搜索与打开 ===== */
+  window.openRuleFile = async function(filename) {
+    try {
+      // 假定后端接口：POST /v1/rules/open
+      const r = await fetch(API_BASE + '/v1/rules/open', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ filename: filename })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || '打开失败');
+    } catch (e) {
+      alert('打开文件失败：' + e.message + '\n请确认 tts.py 后端是否已实现该接口。');
+    }
+  };
+
+  // ★ 复制搜索关键词并打开文件
+  window.copyAndOpenRuleFile = async function(filename) {
+    const keyword = $('ruleSearchInput').value.trim();
+    if (keyword && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(keyword);
+        // 可选：如果你有全局的 toast 提示，可以在这里调用，比如 showCopyToast(...)
+      } catch (e) {
+        console.warn("复制搜索词失败:", e);
+      }
+    }
+    window.openRuleFile(filename);
+  };
+
+  $('ruleSearchBtn').addEventListener('click', async () => {
+    const keyword = $('ruleSearchInput').value.trim();
+    const mode = $('ruleSearchMode').value; // 'all', 'base', 'ruby'
+    if (!keyword) return;
+
+    const resBox = $('ruleSearchResult');
+    resBox.innerHTML = '<span class="spinner"></span>检测中...';
+
+    try {
+      // 将 mode 传给后端（如果后端暂不支持会自动忽略）
+      const r = await fetch(API_BASE + '/v1/rules/search', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ keyword: keyword, mode: mode })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || 'HTTP ' + r.status);
+
+      if (!data.matches || data.matches.length === 0) {
+        resBox.innerHTML = `<span style="color:var(--warn)">未在任何规则文件中找到匹配项</span>`;
+        return;
+      }
+
+      // ★ 核心：前端二次过滤，精准匹配 A 或 B
+      const filteredMatches = data.matches.filter(m => {
+        if (mode === 'all') return true;
+        
+        // 剥离行号前缀："第 123 行: 身体能力 => しんたいのうりょく"
+        const lineText = m.line.replace(/^第\s*\d+\s*行:\s*/, '');
+        const parts = lineText.split('=>');
+        const basePart = parts[0] || '';
+        const rubyPart = parts[1] || '';
+
+        const kw = keyword.toLowerCase();
+        if (mode === 'base') return basePart.toLowerCase().includes(kw);
+        if (mode === 'ruby') return rubyPart.toLowerCase().includes(kw);
+        return true;
+      });
+
+      if (filteredMatches.length === 0) {
+        resBox.innerHTML = `<span style="color:var(--warn)">未找到符合当前搜索范围（${mode === 'base' ? 'A部分' : 'B部分'}）的匹配项</span>`;
+        return;
+      }
+
+      // 分离启用和未启用的匹配项
+      const enabledMatches = filteredMatches.filter(m => m.enabled);
+      const disabledMatches = filteredMatches.filter(m => !m.enabled);
+
+      // 单个匹配项的渲染函数
+      const renderMatchItem = (m) => {
+        const colorStyle = m.enabled ? 'color: var(--primary-dark);' : 'color: var(--muted);';
+        const statusTag = m.enabled ? '' : '<span style="font-size:11px;font-weight:normal;color:var(--muted);margin-left:6px;border:1px solid var(--border);padding:0 4px;border-radius:2px;background:var(--panel-bg);">未启用</span>';
+        
+        return `
+        <div style="margin-bottom:8px; padding:8px; background:var(--panel-bg); border-radius:6px; border:1px dashed var(--panel-border); line-height:1.5;">
+          <div style="margin-bottom:4px; font-weight:600; cursor:pointer; text-decoration:underline; text-decoration-color:transparent; transition:0.15s; ${colorStyle}"
+               onclick="window.copyAndOpenRuleFile('${escapeHtml(m.file)}')"
+               onmouseover="this.style.textDecorationColor='var(--primary)';"
+               onmouseout="this.style.textDecorationColor='transparent';"
+               title="点击直接用系统默认程序打开">
+            📄 ${escapeHtml(m.file)} ${statusTag}
+          </div>
+          <code style="font-size:12px;color:var(--text);opacity:0.85;word-break:break-all;">${escapeHtml(m.line)}</code>
+        </div>
+      `;
+      };
+
+      let html = '';
+      
+      // 1. 渲染启用的结果
+      if (enabledMatches.length > 0) {
+        html += `<div style="color:var(--ok);margin-bottom:8px;font-weight:600;">在已启用的文件中找到 ${enabledMatches.length} 处匹配：</div>`;
+        html += enabledMatches.map(renderMatchItem).join('');
+      } else {
+        html += `<div style="color:var(--warn);margin-bottom:8px;">在已启用的文件中未找到匹配。</div>`;
+      }
+
+      // 2. 渲染未启用的折叠面板
+      if (disabledMatches.length > 0) {
+        html += `
+          <div id="toggleDisabledSearch" style="margin-top:12px; margin-bottom:8px; display:flex; align-items:center; cursor:pointer; color:var(--primary-dark); font-weight:600; font-size:12px; user-select:none;">
+            <span id="toggleDisabledIcon" style="display:inline-block; transition:transform 0.2s; margin-right:6px; font-size:10px; line-height:1;">▶</span>
+            在未启用的文件中找到 ${disabledMatches.length} 处匹配 (点击展开/折叠)
+          </div>
+          <div id="disabledSearchResults" style="display:none;">
+            ${disabledMatches.map(renderMatchItem).join('')}
+          </div>
+        `;
+      }
+
+      resBox.innerHTML = html;
+
+      // 3. 绑定折叠/展开事件
+      const toggleBtn = document.getElementById('toggleDisabledSearch');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+          const container = document.getElementById('disabledSearchResults');
+          const icon = document.getElementById('toggleDisabledIcon');
+          if (container.style.display === 'none') {
+            container.style.display = 'block';
+            icon.style.transform = 'rotate(90deg)';
+          } else {
+            container.style.display = 'none';
+            icon.style.transform = 'rotate(0deg)';
+          }
+        });
+      }
+    } catch (e) {
+      resBox.innerHTML = `<span style="color:var(--danger)">查询失败：${e.message}<br>请确认 tts.py 后端是否已实现搜索接口。</span>`;
+    }
+  });
+
+  // 清除搜索
+  $('ruleSearchClearBtn').addEventListener('click', () => {
+    $('ruleSearchInput').value = '';
+    $('ruleSearchResult').innerHTML = '';
+    $('ruleSearchInput').focus();
+  });
+
+  $('ruleSearchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('ruleSearchBtn').click();
+  });
+
+  /* ===== CeVIO COM 情感参数逻辑 ===== */
+  async function initComPanel() {
+    const sel = $('comCastSelect');
+    sel.innerHTML = '<option value="">获取角色中...</option>';
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const rConfig = await fetch(API_BASE + '/v1/models/config', { cache: 'no-store', signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (rConfig.ok) {
+        MODEL_CONFIGS = await rConfig.json();
+      }
+
+      const r = await fetch(API_BASE + '/v1/com/casts');
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || ('HTTP ' + r.status));
+      
+      sel.innerHTML = '';
+      
+      const groupBase = document.createElement('optgroup');
+      groupBase.label = "基础角色";
+      data.casts.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        groupBase.appendChild(opt);
+      });
+      sel.appendChild(groupBase);
+
+      if (MODEL_CONFIGS.cevio_com && Object.keys(MODEL_CONFIGS.cevio_com).length > 0) {
+        const groupPreset = document.createElement('optgroup');
+        groupPreset.label = "已存预设";
+        for (const [id, cfg] of Object.entries(MODEL_CONFIGS.cevio_com)) {
+          const opt = document.createElement('option');
+          opt.value = `__preset__${id}`;
+          opt.textContent = `🎭 ${id} (${cfg.cast})`;
+          groupPreset.appendChild(opt);
+        }
+        sel.appendChild(groupPreset);
+      }
+      
+      // ★ 强制触发一次同步，确保默认选中 com-karin-happy
+      syncComPanelFromTop();
+
+    } catch (e) {
+      sel.innerHTML = `<option value="">❌ 获取失败: ${e.message}</option>`;
+      console.error("CeVIO 连接失败详情:", e);
+    }
+  }
+
+  function syncComPanelFromTop() {
+    const engine = $('monitorEngine').value;
+    const model = $('monitorCevioModel').value;
+    if (engine === 'cevio' && model) {
+      const sel = $('comCastSelect');
+      if (MODEL_CONFIGS.cevio_com && MODEL_CONFIGS.cevio_com[model]) {
+        sel.value = `__preset__${model}`;
+        loadComEmotions();
+      } else {
+        const found = Array.from(sel.options).find(opt => opt.value === model);
+        if (found) {
+          sel.value = model;
+          loadComEmotions();
+        }
+      }
+    }
+  }
+
+  async function loadComEmotions() {
+    const val = $('comCastSelect').value;
+    if (!val) return;
+    const box = $('comEmotionSliders');
+    box.innerHTML = '<div class="hint">加载中...</div>';
+
+    if (val.startsWith('__preset__')) {
+      const id = val.replace('__preset__', '');
+      const preset = MODEL_CONFIGS.cevio_com[id];
+      if (!preset) return;
+      
+      try {
+        const r = await fetch(API_BASE + '/v1/com/emotions/' + encodeURIComponent(preset.cast));
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail);
+        
+        box.innerHTML = '';
+        data.emotions.forEach((e, i) => {
+          // ★ 修复：使用 !== undefined 判断，防止数值 0 被错误丢弃
+          const savedVal = (preset.emotions && preset.emotions[e.name] !== undefined) ? preset.emotions[e.name] : e.default;
+          const row = document.createElement('div');
+          row.style.display = 'flex'; row.style.alignItems = 'center'; row.style.gap = '8px';
+          row.innerHTML = `
+            <span style="font-size:12px;width:60px;text-align:right;white-space:nowrap;color:var(--text);flex-shrink:0;">${e.name}</span>
+            <input type="range" id="comE_${i}" data-name="${e.name}" min="0" max="100" value="${savedVal}" style="flex:1;min-width:0;" oninput="this.nextElementSibling.innerText=this.value">
+            <div class="com-num-badge" onwheel="adjustComSliderWheel(event, this)" title="滚轮调节">${savedVal}</div>
+          `;
+          box.appendChild(row);
+        });
+        
+        if (preset.speed !== undefined) $('comSpeed').value = preset.speed;
+        if (preset.tone_scale !== undefined) $('comTone').value = preset.tone_scale;
+        
+        $('comNewModelId').placeholder = `覆盖原模型: ${id}`;
+        $('comNewModelId').value = id;
+        
+      } catch (e) { box.innerHTML = `<div class="hint" style="color:red">读取失败: ${e.message}</div>`; }
+      return;
+    }
+
+    try {
+      const r = await fetch(API_BASE + '/v1/com/emotions/' + encodeURIComponent(val));
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail);
+      box.innerHTML = '';
+      data.emotions.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.style.display = 'flex'; row.style.alignItems = 'center'; row.style.gap = '8px';
+          // ★ 修复：移除了未定义的 savedVal 变量，统一使用 e.default
+          row.innerHTML = `
+            <span style="font-size:12px;width:60px;text-align:right;white-space:nowrap;color:var(--text);flex-shrink:0;">${e.name}</span>
+            <input type="range" id="comE_${i}" data-name="${e.name}" min="0" max="100" value="${e.default}" style="flex:1;min-width:0;" oninput="this.nextElementSibling.innerText=this.value">
+            <div class="com-num-badge" onwheel="adjustComSliderWheel(event, this)" title="滚轮调节">${e.default}</div>
+          `;
+        box.appendChild(row);
+      });
+      $('comSpeed').value = 50;
+      $('comTone').value = 50;
+      $('comNewModelId').placeholder = "输入模型ID (如: com-sasara-happy)";
+      $('comNewModelId').value = '';
+    } catch (e) { box.innerHTML = `<div class="hint" style="color:red">读取失败: ${e.message}</div>`; }
+  }
+
+  async function previewCom() {
+    const val = $('comCastSelect').value;
+    if (!val) return;
+
+    let cast = val;
+    if (val.startsWith('__preset__')) {
+      const id = val.replace('__preset__', '');
+      cast = MODEL_CONFIGS.cevio_com[id].cast;
+    }
+
+    const emotions = {};
+    document.querySelectorAll('#comEmotionSliders input[type=range]').forEach(inp => {
+      emotions[inp.dataset.name] = parseInt(inp.value, 10);
+    });
+    
+    // ★ 核心修复：优先读取“输出文本”，如果为空再回退到“输入文本”
+    const outputText = $('monitorPreviewBox').value.trim();
+    const inputText = $('monitorInput').value.trim();
+    
+    let textToSpeak = '';
+    if (outputText && outputText !== '-') {
+      // 如果输出框有内容，且不是占位符，说明用户点过预览，优先使用解析后的纯文本
+      textToSpeak = outputText;
+    } else {
+      // 如果没点过预览，只能拿输入框的内容（可能会带有标签，但总比报错好）
+      textToSpeak = inputText;
+    }
+
+    // 如果全为空，给个默认测试句
+    if (!textToSpeak) {
+      textToSpeak = "只今、CeVIO AI の感情パラメータのお試しテスト運転しています。";
+    }
+
+    const req = {
+      model_id: 'preview', 
+      cast: cast,
+      emotions: emotions,
+      speed: parseInt($('comSpeed').value, 10) || 50,
+      tone_scale: parseInt($('comTone').value, 10) || 50,
+      text: textToSpeak  // ★ 使用修正后的文本
+    };
+    
+    $('comPreviewBtn').innerText = '...';
+    try {
+      const r = await fetch(API_BASE + '/v1/com/speech', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(req)
+      });
+      if (!r.ok) throw new Error("合成失败");
+      const blob = await r.blob();
+      
+      // ★ 核心修改：先停止可能正在播放的其他声音，再将当前音频挂载到全局变量
+      stopPlayback();
+      currentAudio = new Audio(URL.createObjectURL(blob));
+      currentAudio.play();
+      
+    } catch (e) { alert(e.message); }
+    $('comPreviewBtn').innerText = '试听';
+  }
+
+  async function doSaveCom() {
+    const modelId = $('comNewModelId').value.trim();
+    if (!modelId) { alert('请输入模型 ID'); return; }
+    
+    let targetFile = '';
+    const fileInp = $('comTargetFilename');
+    if (fileInp) {
+      targetFile = fileInp.value.trim();
+      // 前端自动剥除用户自己输入的 .json，防止变成 xx.json.json
+      if (targetFile.toLowerCase().endsWith('.json')) {
+        targetFile = targetFile.slice(0, -5); 
+      }
+    }
+    
+    const val = $('comCastSelect').value;
+    let cast = val;
+    if (val.startsWith('__preset__')) {
+      const id = val.replace('__preset__', '');
+      cast = MODEL_CONFIGS.cevio_com[id].cast;
+    }
+
+    const emotions = {};
+    document.querySelectorAll('#comEmotionSliders input[type=range]').forEach(inp => {
+      emotions[inp.dataset.name] = parseInt(inp.value, 10);
+    });
+    
+    try {
+      const r = await fetch(API_BASE + '/v1/com/preset', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model_id: modelId, cast: cast, emotions: emotions,
+          speed: parseInt($('comSpeed').value, 10), tone_scale: parseInt($('comTone').value, 10),
+          filename: targetFile || null
+        })
+      });
+      if (!r.ok) throw new Error((await r.json()).detail);
+      alert(`模型 '${modelId}' 已保存！`);
+      $('comSaveWrap').style.display = 'none';
+      
+      const r2 = await fetch(API_BASE + '/v1/models/config', { cache: 'no-store' });
+      if (r2.ok) MODEL_CONFIGS = await r2.json();
+      
+      fillModelSelect();
+      initComPanel();
+      
+      $('monitorEngine').value = 'cevio';
+      $('monitorCevioModel').value = modelId;
+      updateEngineVisibility();
+      syncComPanelFromTop();
+      
+    } catch (e) { alert('保存失败：' + e.message); }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    $('comCastSelect').addEventListener('change', loadComEmotions);
+    $('comPreviewBtn').addEventListener('click', previewCom);
+    
+    // ★ 核心修改：点击保存为模型时，如果已经展开则收起，反之展开并滚动到可见位置
+    $('comSaveBtn').addEventListener('click', () => {
+      const w = $('comSaveWrap');
+      if (w.style.display === 'none' || w.style.display === '') {
+        w.style.display = 'block';
+        // 自动滚动到底部，防止按钮被遮挡
+        setTimeout(() => w.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+      } else {
+        w.style.display = 'none';
+      }
+    });
+    
+    $('comDoSaveBtn').addEventListener('click', doSaveCom);
+  });
+
+  window.__initMonitor = function () { 
+      if (!inited) connect(); 
+      initComPanel();
+  };
+
+  // ★ 核心修复：页面卸载（刷新/关闭）时，主动断开 SSE，防止后端重启卡死
+  window.addEventListener('beforeunload', () => {
+    if (_sseConnection) {
+      _sseConnection.close();
+      _sseConnection = null;
+    }
+  });
+
+  // ★ 修复：如果页面初始加载就是监控台，直接触发连接
+  if (document.getElementById('pane-monitor') && document.getElementById('pane-monitor').classList.contains('active')) {
+      window.__initMonitor();
+  }
+})();
+</script>
+<script>
+(function initMonitorNav() {
+  const navBar = document.getElementById('monitorNavSidebar');
+  if (!navBar) return;
+
+  const buttons = navBar.querySelectorAll('.monitor-nav-item');
+  const sections = Array.from(buttons).map(btn => document.getElementById(btn.dataset.target)).filter(Boolean);
+
+  // 1. 点击平滑滚动 + 强力展开
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        // ★ 核心修复：加入自动记忆登记，并做差异化处理
+        const toggleMap = {
+          'monitor-sec-autodict': { btnId: 'btnToggleAutoDict', contentId: 'autoDictDetails', isAutoDict: true },
+          'monitor-sec-engine': { btnId: 'toggleEngineBtn', contentId: 'engine-details-content', isAutoDict: false },
+          'monitor-sec-cevio':  { btnId: 'toggleCevioBtn', contentId: 'cevio-details-content', isAutoDict: false },
+          'monitor-sec-test':   { btnId: 'toggleTestBtn', contentId: 'test-details-content', isAutoDict: false }
+        };
+        
+        const map = toggleMap[targetId];
+        if (map) {
+          const contentEl = document.getElementById(map.contentId);
+          const toggleBtn = document.getElementById(map.btnId);
+          if (contentEl && toggleBtn && contentEl.style.display === 'none') {
+            if (map.isAutoDict) {
+              // 如果是自动记忆登记，必须模拟点击
+              toggleBtn.click();
+            } else {
+              // 其他的面板直接改 display
+              contentEl.style.display = 'block';
+              toggleBtn.textContent = '▼';
+              toggleBtn.classList.remove('ghost'); // ★ 去掉空心
+              toggleBtn.classList.add('active');   // ★ 变成实心凹陷状态
+            }
+          }
+        }
+
+        // 执行平滑滚动（延迟 50ms 等待 DOM 重排，保证滚动位置精准）
+        setTimeout(() => {
+          const y = targetEl.getBoundingClientRect().top + window.scrollY - 80;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }, 50);
+      }
+    });
+  });
+
+  // 2. 滚动监听（Scroll Spy）自动高亮
+  let ticking = false;
+  function updateActiveNav() {
+    const pane = document.getElementById('pane-monitor');
+    if (!pane || !pane.classList.contains('active')) {
+      ticking = false;
+      return;
+    }
+
+    let currentId = sections[0].id;
+    for (const sec of sections) {
+      const rect = sec.getBoundingClientRect();
+      if (rect.top <= 150) {
+        currentId = sec.id;
+      }
+    }
+
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 50) {
+      currentId = sections[sections.length - 1].id;
+    }
+
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.target === currentId);
+    });
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateActiveNav);
+      ticking = true;
+    }
+  }, { passive: true });
+
+  // 3. ★ 核心监听 Tab 切换来控制导航栏显隐
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach(mutation => {
+      if (mutation.attributeName === 'class') {
+        const isMonitorActive = document.getElementById('pane-monitor').classList.contains('active');
+        if (isMonitorActive) {
+          navBar.classList.add('show-nav');
+          setTimeout(updateActiveNav, 100);
+        } else {
+          navBar.classList.remove('show-nav');
+        }
+      }
+    });
+  });
+
+  const monitorPane = document.getElementById('pane-monitor');
+  if (monitorPane) {
+    observer.observe(monitorPane, { attributes: true });
+    if (monitorPane.classList.contains('active')) navBar.classList.add('show-nav');
+  }
+})();
+
+// ★ 打开 bg 文件夹的全局函数
+window.openBgFolder = async function() {
+  try {
+    const r = await fetch('http://localhost:8000/v1/rules/open', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ filename: 'bg' })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || '后端返回错误');
+  } catch (e) {
+    alert('❌ 打开 bg 文件夹失败！\n\n错误信息：' + e.message + '\n\n👉 请确认是否已经重启了 tts.py？');
+  }
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Novel TTS 工具箱</title>
+<link rel="stylesheet" href="html_resources/toolbox.css">
+<script>
+/* 启动器主题同步：读取与各模块页一致的主题色/深浅模式/字体，避免切换时闪烁 */
+(function () {
+  function normalizeHex(s) {
+    if (!s) return null;
+    var h = String(s).trim().replace(/^#/, '');
+    if (/^[0-9a-fA-F]{3}$/.test(h)) h = h.split('').map(function (c) { return c + c; }).join('');
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+    return '#' + h.toLowerCase();
+  }
+  var PRESETS = {
+    '靛蓝色': '#4f6ef7', '桃红色': '#F56C6C', '樱桃粉': '#FF69B4', '荧光绿': '#32CD32',
+    '天空蓝': '#00BFFF', '杨桃黄': '#DAA520', '枫叶红': '#DC143C'
+  };
+  function applyThemeColor(hex) {
+    var root = document.documentElement.style;
+    root.setProperty('--primary', 'light-dark(' + hex + ', color-mix(in srgb, ' + hex + ' 82%, #fff))');
+    root.setProperty('--primary-dark', 'light-dark(color-mix(in srgb, ' + hex + ' 60%, #000), color-mix(in srgb, ' + hex + ' 70%, #fff))');
+    root.setProperty('--primary-light', 'light-dark(color-mix(in srgb, ' + hex + ' 20%, #fff), color-mix(in srgb, ' + hex + ' 28%, #000))');
+    root.setProperty('--primary-tint', 'color-mix(in srgb, ' + hex + ' 35%, transparent)');
+  }
+  function applyTheme() {
+    var mode = localStorage.getItem('themeMode');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.style.colorScheme = (mode ? mode === 'dark' : prefersDark) ? 'dark' : 'light';
+    var saved = localStorage.getItem('themeColor');
+    var hex = normalizeHex(saved) || PRESETS[saved] || '#4f6ef7';
+    applyThemeColor(hex);
+    var font = localStorage.getItem('themeFont');
+    if (font) document.documentElement.style.setProperty('--font-family', font);
+  }
+  applyTheme();
+  window.__applyLauncherTheme = applyTheme;
+  // 模块页（iframe）内修改主题时，storage 事件会通知本启动器实时同步
+  window.addEventListener('storage', function (e) {
+    if (!e.key || e.key === 'themeColor' || e.key === 'themeMode' || e.key === 'themeFont') applyTheme();
+  });
+})();
+</script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  .launcher { display: flex; flex-direction: column; height: 100vh; }
+  .launcher .tabs { margin: 0; padding: 10px 12px; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--card); }
+  .stage { flex: 1; min-height: 0; }
+  .stage iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
+</style>
+</head>
+<body>
+<div class="launcher">
+  <nav class="tabs">
+    <button class="tab" data-tab="voice">🎙 音色速查</button>
+    <button class="tab" data-tab="ruby">📚 EPUB Ruby 提取</button>
+    <button class="tab active" data-tab="monitor">🎛 监控台</button>
+    <button class="tab" data-tab="guide">📖 使用说明</button>
+    <button class="tab" data-tab="license">📜 License</button>
+  </nav>
+  <div class="stage">
+    <iframe id="frame" src="html_resources/TTS_main_process.html" title="功能模块"></iframe>
+  </div>
+</div>
+<script>
+(function () {
+  const PAGES = {
+    voice: 'html_resources/voicevox_check.html',
+    ruby: 'html_resources/epub_ruby_extract.html',
+    monitor: 'html_resources/TTS_main_process.html',
+    guide: 'html_resources/how_to_use.html',
+    license: 'html_resources/license.html'
+  };
+  const frame = document.getElementById('frame');
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      frame.src = PAGES[tab.dataset.tab] || PAGES.monitor;
+      if (window.__applyLauncherTheme) window.__applyLauncherTheme();
+    });
+  });
+})();
+</script>
+</body>
+</html>

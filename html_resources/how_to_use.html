@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>使用说明 · Novel TTS 工具箱</title>
+<link rel="stylesheet" href="toolbox.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+	<h1>Novel TTS 工具箱</h1>
+	<button class="settings-btn" id="btnOpenSettings" title="全局设置">⚙️</button>
+  </header>
+  <!-- 设置抽屉 -->
+  <div class="settings-drawer" id="settingsDrawer">
+	<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+	  <h2 style="margin:0;font-size:18px;">⚙️ 全局设置</h2>
+	  <button id="btnCloseSettings" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✖</button>
+	</div>
+	
+	<h3 style="font-size:14px;color:var(--muted);margin-bottom:10px;">外观模式</h3>
+	<div class="theme-toggle-wrapper">
+	  <div class="theme-toggle-label" id="themeLabelGroup" style="gap: 6px;">
+		<span id="themeLabelLight" style="font-weight: 600; color: var(--muted); transition: all .2s; cursor: pointer;" onclick="document.getElementById('themeToggle').click()">☀️ 浅色</span>
+		<span style="color: var(--border-strong); font-size: 12px;">/</span>
+		<span id="themeLabelDark" style="font-weight: 600; color: var(--muted); transition: all .2s; cursor: pointer;" onclick="document.getElementById('themeToggle').click()">🌙 深色</span>
+	  </div>
+	  <label class="switch">
+		<input type="checkbox" id="themeToggle">
+		<span class="slider"></span>
+	  </label>
+	</div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">主题色</h3>
+	<div id="themeColors" class="theme-grid"></div>
+	<div class="custom-color-row" id="customColorRow">
+	  <input type="color" id="customColorPicker" value="#4f6ef7" title="选择自定义主题色">
+	  <input type="text" id="customColorHex" placeholder="#4f6ef7" maxlength="7" spellcheck="false" autocomplete="off" title="输入十六进制色值，例如 #4f6ef7">
+	  <button class="btn small" id="customColorApplyBtn">应用</button>
+	</div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">界面字体</h3>
+	<div id="fontList"></div>
+
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">TTS 输出形式</h3>
+	<div class="output-format-group" id="outputFormatGroup">
+	  <button class="btn ghost" data-fmt="A">A. 纯汉字</button>
+	  <button class="btn ghost" data-fmt="B">B. 纯注音</button>
+	  <button class="btn ghost active" data-fmt="C">C. Ruby输出</button>
+	</div>
+	<div class="hint" style="margin-bottom:6px;font-size:12px;">示例效果：</div>
+	<pre id="outputSampleBox" style="background:var(--panel-bg);border:1px dashed var(--panel-border);border-radius:6px;padding:10px;font-size:12px;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap;margin:0;color:var(--text);">加载中...</pre>
+
+<!-- 背景图像移到最下面 -->
+	<h3 style="font-size:14px;color:var(--muted);margin:20px 0 10px;">背景图像</h3>
+	<div class="bg-image-panel" style="margin-bottom: 20px;">
+	  <div class="bg-input-row">
+		<span class="bg-path-prefix" id="btnOpenBgFolder" title="点击打开 bg 文件夹" style="cursor: pointer; transition: all .2s ease;">
+		  📂 bg/
+		</span>
+		<input type="text" id="bgFilename" class="bg-filename-input" placeholder="例如: bg02" spellcheck="false">
+		<span id="bgExtDisplay" class="bg-ext-display"></span>
+	  </div>
+	  <div style="display:flex;gap:8px;margin-top:8px;">
+		<button class="btn small" id="bgApplyBtn" style="flex:1;">应用</button>
+		<button class="btn ghost small" id="bgTestBtn" style="flex:1;">检测文件</button>
+		<button class="btn ghost small" id="bgClearBtn" style="flex:1;">清除</button>
+	  </div>
+	  <div id="bgStatus" class="hint" style="font-size:12px;margin-top:8px;min-height:16px;line-height:1.5;"></div>
+	  
+	  <div class="bg-slider-row">
+		<label>透明度</label>
+		<input type="range" id="bgOpacity" min="0" max="100" value="75">
+		<span id="bgOpacityVal">75%</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label>模糊度</label>
+		<input type="range" id="bgBlur" min="0" max="20" value="2">
+		<span id="bgBlurVal">2px</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label>背景暗化</label>
+		<input type="range" id="bgDim" min="0" max="100" value="20">
+		<span id="bgDimVal">20%</span>
+	  </div>
+
+	  <!-- 面板透明度与毛玻璃 -->
+	  <div style="border-top: 1px dashed var(--border); margin: 14px 0 10px;"></div>
+	  <div class="bg-slider-row">
+		<label title="调整面板/卡片的背景透明度">面板透明度</label>
+		<input type="range" id="uiOpacity" min="10" max="100" value="75">
+		<span id="uiOpacityVal">75%</span>
+	  </div>
+	  <div class="bg-slider-row">
+		<label title="调整面板/卡片的毛玻璃模糊半径">面板模糊</label>
+		<input type="range" id="uiBlur" min="0" max="30" value="6">
+		<span id="uiBlurVal">6px</span>
+	  </div>
+	</div>
+  </div>
+  <section class="pane active" id="pane-guide">
+	<div class="markdown-body">
+	  <h2>Epub阅读器 TTS 使用说明书</h2>
+	  <p class="hint" style="margin-bottom: 24px;">本说明已根据工具箱当前版本全面重写。服务端接入、规则系统、Ruby 注音、工具箱各标签页操作均以本页为准。</p>
+
+	  <div class="box-data" style="margin-bottom: 24px; border-left-color: #3b82f6;">
+		<strong>🧩 功能架构（v1.1.2）</strong><br>
+		<div style="margin-top: 8px; line-height: 1.8;">
+		  本工具箱按功能拆分为多个前端模块，通过 <code>launcher.html</code> 启动器以 <code>&lt;iframe&gt;</code> 内嵌、顶部标签栏切换：
+		  <ul style="margin: 6px 0 0; padding-left: 22px;">
+		    <li><b>launcher.html</b>：启动器 / 导航枢纽，内嵌其余模块。</li>
+		    <li><b>voicevox_check.html</b>：VOICEVOX 音色 ID 速查。</li>
+		    <li><b>epub_ruby_extract.html</b>：EPUB Ruby 提取与校对工作台。</li>
+		    <li><b>TTS_main_process.html</b>：TTS 主进程（引擎切换、情感参数、规则启用、合成监控）。</li>
+		    <li><b>how_to_use.html</b>：本使用说明。</li>
+		    <li><b>license.html</b>：开源许可。</li>
+		    <li><b>update_history.html</b>：更新日志。</li>
+		  </ul>
+		  共享资源：<code>toolbox.css</code>（全局视觉系统）、<code>toolbox.common.js</code>（主题/设置/代码复制/下拉框/背景图）。启动方式：直接双击打开 <code>launcher.html</code>（<code>tts.py</code> 需保持运行在 8000 端口提供 API）。
+		</div>
+	  </div>
+
+	  <div class="box-warn" style="margin-bottom: 32px; border-left-color: #dc2626; background: light-dark(#fef2f2, #3a1e1e); border-color: light-dark(#fecaca, #7f1d1d);">
+		<strong style="font-size: 15px; color: #dc2626;">⚠️ 为什么这个项目要专门为日文 TTS 做如此复杂的适配？</strong><br>
+		<div style="margin-top: 8px; line-height: 1.8; color: var(--text);">
+		  简单来说：<b>中文和英文的 TTS，基本是“打开即用”的。</b>英文只要把字符扔进去就行；中文虽然有多音字，但现代 TTS 引擎依靠上下文基本能解决 95% 的问题，最多配点基础标点规则。<br><br>
+		  但<b style="color: #dc2626; font-size: 1.1em;">日文在 TTS 领域的难度，简直是屎山代码级别的一大坨答辩。</b>因为日文是“表意汉字”和“表音假名”的无缝混排，且不说同一个汉字可能有几十种读音（音读、训读、熟字训），光是助词（如 <code>は</code> 读作 <code>わ</code>）、连浊（如 <code>一ケ月</code> 要读成 <code>いっかげつ</code>）、促音便（如 <code>がつこう</code> 变 <code>がっこう</code>），就能让普通的 TTS 引擎直接原地崩溃，读出来的声音堪比外星语。<br><br>
+		  更要命的是，EPUB 小说中的排版极其混乱。为了彻底解决这个问题，本项目做了极其庞大的底层努力：
+		  <ul style="margin: 6px 0 0; padding-left: 22px; line-height: 1.7;">
+		    <li><b>开发了极其复杂的正则与词典权重系统</b>（支持多读音概率、优先级覆盖、前后缀阻断）。</li>
+		    <li><b>写了容错率极高的 Ruby 注音解析器</b>（兼容 6 种以上的日文注音格式，自动合并被拆碎的单字注音）。</li>
+		    <li><b>加入了“疑似小字错标”与“人名专属后缀”引擎</b>，用来兜底那些排版烂到极致的原始 EPUB 文件。</li>
+		    <li><b>做了一整套前端提取工具箱</b>，让你能可视化地把看不过眼的错标读音手动纠正过来。</li>
+		  </ul>
+		  可以说，你在这个网页上看到的每一个配置项，都是无数日文小说 TTS 踩坑后总结出的血泪史。希望它能让你在听日语小说时，不再被“棒読み（毫无感情的机械朗读）”折磨。
+		</div>
+	  </div>
+
+	  <!-- ★ 配色含义说明 -->
+	  <div style="margin-bottom: 32px; padding: 20px; background: var(--panel-bg); border-radius: 8px; border: 1px dashed var(--border-strong);">
+		<h4 style="margin-top: 0; margin-bottom: 16px; color: var(--primary-dark); font-size: 15px;">📖 阅读前必看：说明文档配色图例</h4>
+		<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+		  
+		  <div class="box-tip" style="margin: 0; padding: 10px 14px; font-size: 12.5px; border-left-width: 4px;">
+			<b>📌 通用说明</b><br>常规的基础知识、操作步骤或补充提示。
+		  </div>
+		  
+		  <div class="box-success" style="margin: 0; padding: 10px 14px; font-size: 12.5px; border-left-width: 4px;">
+			<b>✅ 推荐/成功</b><br>开发者的强烈推荐、最佳实践或能极大提升效率的捷径。
+		  </div>
+		  
+		  <div class="box-data" style="margin: 0; padding: 10px 14px; font-size: 12.5px; border-left-width: 4px;">
+			<b>📊 数据/文件</b><br>核心数据流向、文件结构说明或系统级配置参考。
+		  </div>
+		  
+		  <div class="box-warn" style="margin: 0; padding: 10px 14px; font-size: 12.5px; border-left-width: 4px;">
+			<b>⚠️ 注意/警告</b><br>容易踩坑的地方、常见错误操作或需要特别留意的细节。
+		  </div>
+		  
+		  <div class="box-info" style="margin: 0; padding: 10px 14px; font-size: 12.5px; border-left-width: 4px;">
+			<b>💡 进阶/机制</b><br>底层逻辑解析、特殊状态说明或进阶功能原理解读。
+		  </div>
+		  
+		  <div class="box-danger" style="margin: 0; padding: 10px 14px; font-size: 12.5px; border-left-width: 4px;">
+			<b>🚫 危险操作</b><br>可能导致数据丢失或不可逆后果，请务必仔细阅读。
+		  </div>
+		  
+		</div>
+	  </div>
+
+<h3>0⃣ Windows Only</h3>
+<div class="box-danger" style="margin-top: 14px;">
+  <strong>⚠️ 平台限制警告：</strong><br>
+  本服务高度依赖 Windows 底层特性（SAPI 语音接口、CeVIO COM 组件、msvcrt 控制台热键监听等），<b>仅支持 Windows 10 / 11 系统</b>。<br>
+  开发者<b style="background-color: var(--danger); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--danger) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">不打算</b>再继续做非 Windows 平台的<b style="background-color: var(--danger); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--danger) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">移植版本</b>，包括但不限于：<br>
+  <ul style="margin-top: 6px; margin-bottom: 0; padding-left: 22px; line-height: 1.8;">
+    <li>安卓（Android）</li>
+    <li>Linux（Ubuntu / Debian / CentOS 等）</li>
+    <li>苹果桌面端（macOS / iMac）</li>
+    <li>苹果移动端（iOS / iPadOS）</li>
+    <li><b style="color: var(--danger); font-size: 1.1em; text-decoration: underline;">鸿蒙（HarmonyOS）</b> 及其他非 Windows 平台。</li>
+  </ul>
+
+  <!-- 新增的移植说明与许可证特殊条例 -->
+  <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(150, 150, 150, 0.4); font-size: 14px; line-height: 1.8;">
+    💡 <b>但是，我们欢迎社区开发者自行移植！</b><br>
+    跨平台移植必然涉及对底层代码的深度重写，这在许可协议中属于 <b>“实质性代码修改”</b>。根据本项目的 <b style="color: var(--primary-dark);">专属附加豁免条款</b>：
+    <br>✅ 你的移植版本 <b>允许进行商业售卖或提供服务</b>（NC 条款豁免）。
+    <br>✅ 且 <b>不强制要求</b>公开移植版的源代码（SA 条款豁免）。
+    <br>⚠️ 但务必在“关于”页面或 README 中 <b>保留原作者署名 (MoeFuta Studio / 珠峰山脚土地庙)</b>，并声明你进行了跨平台移植。
+  </div>
+</div>
+
+	  <div class="box-tip" style="margin-top: 14px;">
+		<strong>💡 浏览器兼容性提示：</strong><br>
+		前端工具箱大量使用了现代 Web API（如 <code>DecompressionStream</code> 解压 EPUB、<code>color-mix</code> 计算主题色、<code>light-dark</code> 响应系统深浅色等），强烈建议使用以下浏览器：
+		<ul style="margin-top: 6px; margin-bottom: 0; padding-left: 22px; line-height: 1.8;">
+		  <li>✅ <b>Google Chrome</b>（最推荐，开发时主要测试对象）</li>
+		  <li>✅ <b>Microsoft Edge</b>（当然可以，毕竟是同一个内核）</li>
+		  <li>✅ <b>其他 Chromium 内核的现代浏览器</b>（也不是不行）</li>
+		  <li>🤔 <b>IE 浏览器</b>（万一它真的能正常运行呢？它居然能跑，那算你厉害）</li>
+		  <li>❌ <b>各种 360、QQ、搜狗等“套壳”浏览器</b>（内核严重落后，跑不动、白屏、样式错乱属于正常现象，<b>请勿反馈此类 BUG，不修</b>）</li>
+		</ul>
+	  </div>
+
+	  <h3>1⃣  前提准备与启动</h3>
+	  <p>本节涵盖 Python 环境安装、依赖安装、服务启动的完整流程。<br>如果你已经装好 Python 和依赖，可直接跳到「启动服务」。</p>
+
+	  <h4>① 安装 Python 环境与依赖库</h4>
+	  <p>推荐 Windows 11 使用 Python 安装管理器。已有 Python 3.10+ 的可跳过本节。</p>
+	  <ol>
+		<li>打开 Python 官网：<a href="https://www.python.org/downloads/" target="_blank" rel="noopener">https://www.python.org/downloads/</a>，点击黄色按钮下载最新版本（推荐 <b>.exe</b> 或 <b>.msix</b>）。</li>
+		<li>双击下载的文件。确认发布者是 "Python Software Foundation"，点击"安装"。（如果是 exe 安装包，请务必勾选底部的 <b>"Add Python.exe to PATH"</b>）。</li>
+		<li>如果双击 .msix 文件没反应，请右键 → "打开方式" → 选择 "应用安装程序"。</li>
+		<li>按下 <code>Win + R</code>，输入 <code>cmd</code> 并回车。此时弹出的<span class="black-window-tip" data-tip="即，系统“控制台”。能听懂“控制台”这个名字的人，根本就不会关闭“控制台”，所以后续统一使用“黑窗口”来描述它">黑窗口</span>，请勿关闭它。在黑窗口中输入：<br><pre>py install 3</pre></li>
+		<li>安装完成后，输入 <code>py --version</code>，显示版本号（如 <code>Python 3.12.0</code>或更高）即成功。</li>
+		<li>继续在黑窗口中输入以下命令，安装 <b>TTS 服务基础依赖库</b>：<br><pre>py -m pip install fastapi uvicorn httpx pydantic pywin32</pre>
+			<p style="margin: 14px 0 8px;">如果需要使用高质量的在线语音引擎 <b>Edge TTS</b>，请继续输入以下命令安装其专属依赖（如果不用此引擎可跳过）：</p>
+			<pre>py -m pip install edge-tts</pre>
+			<div class="box-tip" style="margin-top: 14px; margin-bottom: 10px;">
+			  <b>💡 关于 edge-tts：</b>这是微软 Edge 在线语音引擎的依赖库。如果不需要使用此引擎，可以不安装，主程序依然能正常启动运行，只是无法在监控台选用 Edge TTS 引擎（会提示未安装）。
+			</div>
+			<div class="box-danger" style="margin-top: 10px; margin-bottom: 0;">
+			  <strong>🚫 常见报错：一定要看清行首符号！</strong><br>
+			  确认你当前所在的位置行首是 <code>C:\Users\你的用户名&gt;</code>，如果行首变成了 <code>&gt;&gt;&gt;</code>，说明你进入了 Python 内部环境，此时输入 pip 命令会报错。<br>
+			  <b>解决方法：</b>输入 <code>exit()</code> 退出 Python 内部，回到带有 <code>C:\...</code> 的普通窗口后，再执行上面的 pip 命令。
+			</div>
+		</li>
+	  </ol>
+
+<h4>② 启动服务</h4>
+	  <p><b>初始自带文件：</b>初次下载解压后，你会看到启动器、各功能模块、共享资源与后端服务等文件。把它们放在同一目录下即可。</p>
+<pre><code><span style="color: var(--danger)">📂Novel TTS/</span>
+├── <span style="color: var(--warn) !important;">📁 bg/</span>                   	<span style="color: var(--text-secondary)"># 背景图片目录（首次运行生成）</span>
+│   ├── <span style="color: var(--danger) !important;">🖼️ *.avif / 🖼️ *.bmp</span>      	<span style="color: var(--text-secondary)"># 供前端设置调用的底图（需用户自行放入）</span>
+│   ├── <span style="color: var(--danger) !important;">🖼️ *.gif  / 🖼️ *.jpeg</span>     	<span style="color: var(--text-secondary)"># </span>
+│   ├── <span style="color: var(--danger) !important;">🖼️ *.jpg  / 🖼️ *.png</span>      	<span style="color: var(--text-secondary)"># </span>
+│   └── <span style="color: var(--danger) !important;">🖼️ *.svg  / 🖼️ *.webp</span>     	<span style="color: var(--text-secondary)"># 以上格式均支持（无需写后缀即可自动匹配）</span>
+│
+├── <span style="color: var(--warn) !important;">📁 model_configs/</span>        	<span style="color: var(--text-secondary)"># 模型配置目录（首次运行生成）</span>
+│   ├── <span style="color: var(--warn) !important;"><span style="filter: hue-rotate(-30deg) saturate(1.5);">📝</span> default.json</span>           	<span style="color: var(--text-secondary)"># 首次运行自动生成</span>
+│   └── <span style="color: var(--danger) !important;"><span style="filter: hue-rotate(-30deg) saturate(1.5);">📝</span> *.json</span>                 	<span style="color: var(--text-secondary)"># 自定义配置（需用户自行建立）</span>
+│
+├── <span style="color: var(--warn) !important;">📁 replace_rules/</span>        	<span style="color: var(--text-secondary)"># 规则目录（首次运行生成）</span>
+│   ├── <span style="color: var(--warn) !important;"><span style="filter: hue-rotate(-90deg) saturate(1.5);">📝</span> auto_dict.txt</span>          	<span style="color: var(--text-secondary)"># 自动记忆（程序自动生成，只登记，不生效）</span>
+│   ├── <span style="color: var(--warn) !important;"><span style="filter: hue-rotate(-90deg) saturate(1.5);">📝</span> person_dict.txt</span>        	<span style="color: var(--text-secondary)"># 人名词典 + [suffix] 后缀（首次运行自动生成）</span>
+│   ├── <span style="color: var(--warn) !important;"><span style="filter: hue-rotate(-90deg) saturate(1.5);">📝</span> user_dict.txt</span>          	<span style="color: var(--text-secondary)"># 用户词典（首次运行自动生成，附带示例规则）</span>
+│   ├── <span style="color: var(--warn) !important;"><span style="filter: hue-rotate(-90deg) saturate(1.5);">📝</span> trash_can.txt</span>          	<span style="color: var(--text-secondary)"># 废弃词表（首次运行自动生成）</span>
+│   ├── <span style="color: var(--danger) !important;"><span style="filter: hue-rotate(-90deg) saturate(1.5);">📝</span> *.txt</span>                  	<span style="color: var(--text-secondary)"># 其他自定义规则（需用户自行建立）</span>
+│   └── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(-90deg) saturate(1.5);">📝</span> *.txt</span>                  	<span style="color: var(--text-secondary)"># 其他解压自 replace_rule.7z 的规则文件</span>
+│
+├── <span style="color: var(--warn) !important;"><span style="filter: hue-rotate(-30deg) saturate(1.5);">📝</span> global_config.json</span>         	<span style="color: var(--text-secondary)"># 全局配置（首次修改输出格式时生成）</span>
+├── <span style="color: var(--warn) !important;"><span style="filter: hue-rotate(-30deg) saturate(1.5);">📝</span> model_config_active.json</span>   	<span style="color: var(--text-secondary)"># 当前生效的模型配置文件名（运行后生成）</span>
+├── <span style="color: var(--warn) !important;"><span style="filter: hue-rotate(-30deg) saturate(1.5);">📝</span> rules_enabled.json</span>         	<span style="color: var(--text-secondary)"># 规则文件启用状态（运行后生成）</span>
+│
+├── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(180deg) saturate(1.5);">📝</span> launcher.html</span>            	<span style="color: var(--text-secondary)"># 前端启动器（双击打开）</span>
+├── <span style="color: var(--ok) !important;">📁 html_resources/</span>         	<span style="color: var(--text-secondary)"># 前端资源目录（各功能模块 + 共享资源）</span>
+│   ├── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(180deg) saturate(1.5);">📝</span> voicevox_check.html</span>       	<span style="color: var(--text-secondary)"># 音色速查模块</span>
+│   ├── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(180deg) saturate(1.5);">📝</span> epub_ruby_extract.html</span>    	<span style="color: var(--text-secondary)"># EPUB Ruby 提取模块</span>
+│   ├── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(180deg) saturate(1.5);">📝</span> TTS_main_process.html</span>      	<span style="color: var(--text-secondary)"># TTS 主进程模块</span>
+│   ├── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(180deg) saturate(1.5);">📝</span> how_to_use.html</span>             	<span style="color: var(--text-secondary)"># 使用说明模块</span>
+│   ├── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(180deg) saturate(1.5);">📝</span> license.html</span>                	<span style="color: var(--text-secondary)"># 许可模块</span>
+│   ├── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(180deg) saturate(1.5);">📝</span> update_history.html</span>         	<span style="color: var(--text-secondary)"># 更新日志模块</span>
+│   ├── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(180deg) saturate(1.5);">📝</span> toolbox.css</span>                 	<span style="color: var(--text-secondary)"># 共享样式</span>
+│   └── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(180deg) saturate(1.5);">📝</span> toolbox.common.js</span>           	<span style="color: var(--text-secondary)"># 共享脚本</span>
+├── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(240deg) saturate(1.5);">📝</span> License.txt</span>                	<span style="color: var(--text-secondary)"># 许可证</span>
+├── <span style="color: var(--ok) !important;">📦 replace_rule.7z.backup</span>     	<span style="color: var(--text-secondary)"># 开发者的规则参考包（仅供参考，不具备普适性）</span>
+├── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(-60deg) saturate(1.5);">📝</span> run tts.bat</span>                	<span style="color: var(--text-secondary)"># 启动脚本（请保存为 ANSI 编码）</span>
+├── <span style="color: var(--ok) !important;"><span style="display:inline-block; width:14px; height:14px; vertical-align:middle; margin-right:2px; margin-top:-2px;"><svg width="14" height="14" viewBox="0 0 24 24"><defs><linearGradient id="ds-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6" /><stop offset="100%" stop-color="#8b5cf6" /></linearGradient></defs><path d="M4,13 C4,9 8,7 13,8 C16,8.5 18,10 19,11 L23,8 L21,14 L23,20 L18,16 C15,18 8,17 5,14.5 C4.3,14 4,13.5 4,13 Z" fill="url(#ds-grad)"/><circle cx="9" cy="11.5" r="1" fill="#fff" opacity="0.9"/></svg></span> skill.md</span>                   	<span style="color: var(--text-secondary)"># 提供给 AI 的技能/上下文说明文件</span>
+└── <span style="color: var(--ok) !important;"><span style="filter: hue-rotate(90deg) saturate(1.5);">📝</span> tts.py</span>                     	<span style="color: var(--text-secondary)"># 主服务</span></code></pre>
+
+	  <div class="box-tip">
+		<strong>🎨 字体颜色说明：</strong><br>
+		<ul style="margin: 6px 0 0; padding-left: 20px; line-height: 1.8;">
+		  <li><span style="color: var(--ok); font-weight: bold;">🟢 绿色文字</span>：<b>初始自带</b>文件（解压后即可看到，无需改动）。</li>
+		  <li><span style="color: var(--warn); font-weight: bold;">🟡 黄色文字</span>：<b>首次运行后自动生成</b>（程序会自行创建，直接使用即可）。</li>
+		  <li><span style="color: var(--danger); font-weight: bold;">🔴 红色文字</span>：<b>需要用户自行建立或放入</b>（例如在 <code>bg/</code> 文件夹内放入自己的底图，或在 <code>replace_rules/</code> 下新建自定义的 <code>*.txt</code> 规则文件）。</li>
+		</ul>
+	  </div>
+
+	  <div class="box-warn" style="margin-top:14px;">
+		<b style="color:var(--primary-dark);">💡 关于自动生成的文件：</b>
+		<ul style="margin:6px 0 0;padding-left:22px;line-height:1.8;">
+		  <li><code>📂model_configs/</code> 和 <code>📂replace_rules/</code> 文件夹以及内部的基础文件，会在首次启动时自动创建。</li>
+		  <li>如果你没看到 <code>global_config.json</code>，说明你还没在网页「设置」里切换过 A/B/C 输出模式。</li>
+		  <li>这些文件随时可以删除，下次启动会自动恢复默认值（<code>📂replace_rules/</code> 里的自定义规则除外）。</li>
+		</ul>
+	  </div>
+
+<div class="box-info" style="margin-top:14px;">
+  <b style="color:var(--primary-dark);">💡 关于需要手动配置与导入的文件：</b>
+  <ul style="margin:6px 0 0;padding-left:22px;line-height:1.8;">
+    <li><b>需要你自行准备的资源与规则：</b><code>📂bg/</code> 目录下的背景图片需要你自行置入（推荐使用<b>不小于 1280*1440 的竖版图片</b>）。此外，如果你有其他自定义的替换规则，请手动新建 <code>*.txt</code> 文件，并<b>务必将其放置到 <code>📂replace_rules/</code> 目录下</b>才会生效，程序并不会凭空生成它们。</li>
+    
+    <li><b>自动生成的词典文件：</b>程序首次启动会<b>自动生成</b>专有名词专用词典 <code>person_dict.txt</code>、包含示例规则的 <code>user_dict.txt</code> 、用于程序自动收集/记录的 <code>auto_dict.txt</code>，以及用于标记废弃词的 <code>trash_can.txt</code>。你可以把 <code>user_dict.txt</code> 当做自己的“主力词典”来编辑；如果你从工具箱里导出了带书名的文件（如 <code>user_dict_*.txt</code>），直接把它放到同一个文件夹下，它们会同时生效，互不冲突。</li>
+    
+    <li><b>关于工具箱导出的文件：</b>从「📚 EPUB Ruby 提取」导出的 <code>user_dict_*.txt</code>，是直接通过<b style="background-color: var(--kata); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--kata) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">浏览器下载</b>到你本地的（下载路径取决于你的浏览器设置），它<b style="background-color: var(--kata); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--kata) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">绝对不会自动出现</b>在 <code>📂replace_rules/</code> 文件夹里。你需要自己检查浏览器的下载目录，手动将文件移动或复制到该目录下才能生效。</li>
+  </ul>
+</div>
+
+	  <h4>③ 常见安装问题排查</h4>
+	  <table class="guide-table">
+		<tr><th style="width: 30%;">报错 / 现象</th><th>原因与解决方法</th></tr>
+		<tr><td><b>"py 不是内部或外部命令"</b></td><td>Python 管理器没装好，或者装完没有重启电脑。<br>重启电脑，或去微软商店搜索 "Python Install Manager" 安装。</td></tr>
+		<tr><td><b>依赖下载速度极慢 / 报错超时</b></td><td>网络问题。<br>请关闭 VPN 或代理，或者尝试连接手机热点重新下载。</td></tr>
+		<tr><td><b>pip 提示 "not on PATH"</b></td><td>这是一个正常的黄色警告。<br>只要命令行最后显示 <code>Successfully installed...</code>，就不影响使用。</td></tr>
+		<tr>
+			<td><b>安装 pywin32 失败</b></td>
+			<td>
+				如果你是 64 位系统，请务必确保安装的是 64 位的 Python。<br>
+				<b>如何确认系统位数：</b>按下 <code>Win + I</code> 打开系统“设置” → 左侧选择“系统” → 右侧最下方点击“系统信息”，在“设备规格”下的“系统类型”中查看。<br>如果显示的是 <code>64 位操作系统, 基于 x64 的处理器</code>，就必须安装 64 位的 Python。
+			</td>
+		</tr>
+	  </table>
+
+	  <h3>2⃣  OpenAI接口 接入配置</h3>
+	  <table class="guide-table">
+		<tr><th>配置项</th><th>填写内容</th><th>说明</th></tr>
+		<tr><td>API 地址</td><td><code>http://127.0.0.1:8000</code></td><td>固定填这个。<br>注意：它完全兼容写成 <code>http://localhost:8000</code>，两者等价，填哪个都可以。</td></tr>
+		<tr><td>API Key</td><td>任意（如 <code>123456</code>）</td><td>无验证</td></tr>
+				<tr><td>模型 ID</td><td><code>auto</code>（推荐）</td><td>走「监控台 → 以此配置运行」保存的当前配置。该配置会持久化保存在 <code>global_config.json</code> 中，重启不丢失。</td></tr>
+	  </table>
+
+	  <div class="box-data">
+		<strong>🔒 为什么是 HTTP 而不是 HTTPS？会不会不安全？</strong><br>
+		完全安全，因为这是一个<b style="background-color: var(--primary-dark); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--primary-dark) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">纯本地服务</b>。<br>
+		<code>127.0.0.1</code> 和 <code>localhost</code> 都是指代“你自己的这台电脑”。数据只在你电脑内部的内存之间流转，<b style="background-color: var(--primary-dark); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--primary-dark) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">根本不经过路由器</b>，也不会连接到外部互联网。因此既不需要，也无法使用公网 HTTPS 证书（强行配自签证书只会让浏览器到处弹“不安全”的红色警告）。<br>
+		<b>安全前提：</b>只要你不把这个端口映射到公网，也不在路由器里乱搞“内网穿透”，它就只有你自己能访问。哪怕是同一局域网下的其他电脑，默认也是访问不到的。
+	  </div>
+
+	  <div class="box-success">
+		<strong>💡 <span style="color: var(--primary-dark);">模型 ID</span> 填什么？ What should the <span style="color: var(--primary-dark);">Model ID</span> be?</strong><br>
+		推荐填 <b><code>auto</code></b>：角色、情绪、语速全部在监控台切换，阅读器不用改。<br>
+		也可以直接填具体模型名：<br>
+		• <code>1</code> ~ <code>999</code>：VOICEVOX 的 speaker ID（在「🎙 音色速查」里查）<br>
+		• <code>tts-1</code>、<code>tts-3</code> 等：等价于对应的数字<br>
+		• <code>satou</code> / <code>rikka</code> / <code>maki</code> 等：SAPI 模型名<br>
+		• <code>com-karin-happy</code> 等：监控台保存的 CeVIO 情绪预设
+	  </div>
+
+<h3>3⃣  独创的语法结构</h3>
+<p>所有替换规则放在 <code>📂replace_rules/</code> 目录，全部为 <b>UTF-8 编码的<code>*.txt</code></b>。<br>改完任意文件后<b>无需重启</b>，下一次合成自动<b>热重载</b>。</p>
+
+<h4>① 基础语法</h4>
+<pre><code># 以 # 开头为注释，空行忽略
+原文 =&gt; 替换文本</code></pre>
+<p>大小写、全半角（<code>ABC</code> / <code>ａｂｃ</code>）自动兼容。<br>原文中夹杂的半角/全角空格会被自动忽略（<code>終　章</code> 能命中 <code>終章 =&gt; しゅうしょう</code>）。</p>
+
+<h4>② 优先级权重 <code>&lt;= count:N</code></h4>
+<pre><code>今日 =&gt; きょう &lt;= count:100</code></pre>
+<p><code>N</code> 是该规则的<b>优先级权重</b>，默认 <code>1</code>。<br>同一个 pattern 在多个文件里出现时，<code>N</code> 更大的胜出，<b>直接无视文件名字母序</b>。规则一旦生效会替换全文所有匹配。</p>
+<div class="box-info">
+  <b>💡 典型用法：</b>词典里给条目设高 count 数值（如 <code>&lt;= count:100</code>），保证永远压过其他词典里的同词规则。EPUB 提取工具导出时，出现次数 &gt; 1 的词条会自动追加 <code>&lt;= count:N</code>。
+</div>
+
+<h4>③ 多对一</h4>
+<pre><code>二〇日|二十日|20日 =&gt; はつか</code></pre>
+<p>用 <code>|</code> 分隔的纯文本等价写法，会展开成多条独立规则。上面的写法完全等价于：</p>
+<pre><code>二〇日 =&gt; はつか
+二十日 =&gt; はつか
+20日 =&gt; はつか</code></pre>
+
+<h4>④ 一对多</h4>
+<pre><code>お兄ちゃん =&gt; おにいちゃん|おにいさま|あにき
+お兄ちゃん =&gt; おにいちゃん(70%)|おにいさま(20%)|あにき(10%)</code></pre>
+<p>多个选项用 <code>|</code> 分隔，等概率随机。写 <code>(N%)</code> 表示权重，也可写 <code>(7)</code> 等数值按比例分配。<b>权重不必总和为 100</b>。</p>
+
+<h4>⑤ 正则替换</h4>
+<pre><code>(\d+)年 =&gt; \1ねん</code></pre>
+<p>只要 <code>=&gt;</code> 左侧包含正则元字符（<code>.^$*+?{}[]\|()</code>），就按正则编译；否则按纯文本处理（并享受大小写 / 全半角 / 空格兼容）。</p>
+
+<h4>⑥ 规则文件启用 / 禁用</h4>
+<p>配置保存在 <code>rules_enabled.json</code>，首次运行为空（全部启用）。<code>auto_dict.txt</code> 与 <code>trash_can.txt</code> <b>永远启用</b>（锁定，不可关闭）。<br><code>person_dict.txt</code> 及其带后缀的变体（<code>person_dict_*.txt</code>）中的 <code>(苗字|名前) =&gt; (...)</code> 与 <code>[suffix]</code> 语法<b>只在这类文件中生效</b>，其他文件写了会被忽略。<br><code>trash_can.txt</code> 是废弃词表：记录在里面的词，即便原文带了 ruby 注音，也不会再登记进 <code>auto_dict.txt</code>。</p>
+<p>在「🎛 监控台 → 规则文件启用」中可勾选、全选、保存，支持 16 条/页翻页、搜索词条、点击文件名直接打开。</p>
+
+<h3>4⃣  自动记忆池 (auto_dict.txt)</h3>
+	  <div class="box-warn">
+		<strong>⚠️ auto_dict 已降级为「仅作登记」：</strong><br>
+		每次合成时，从原文 ruby 中提取 <code>base => ruby</code> 自动追加到该文件（单字不登记，重复不登记）。但<b style="background-color: var(--warn); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.4); border: 1px solid color-mix(in srgb, var(--warn) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">它不会直接参与替换</b>，只作为人工筛选的素材。<br>
+		在「🎛 监控台 → 🔤 自动记忆登记」可实时查看条数，点击可打开文件确认。确认无误后手动复制到其他规则文件即可生效。
+	  </div>
+
+	  <h3>5⃣  人名专属词典</h3>
+	  <p>以 <code>person_dict</code> 开头的文件（<code>person_dict.txt</code> 或 <code>person_dict_*.txt</code>）才会解析人名词法与后缀语法。</p>
+
+	  <h4>人名映射</h4>
+	  <pre><code>(苗字|名前|别名) =&gt; (读音1|读音2|读音3)
+
+(桐ヶ谷|和人|キリト) =&gt; (きりがや|かずと|きりと)
+(結城|明日奈|アスナ) =&gt; (ゆうき|あすな|アスナ)</code></pre>
+	  
+	  <div class="box-info">
+		<strong>✨ 语法等价性说明：</strong><br>
+		<code>(桐ヶ谷|和人|キリト) =&gt; (きりがや|かずと|きりと)</code> 这行代码完全等价于分开写成三条独立规则：
+		<pre style="margin-top:8px; margin-bottom:8px; background: light-dark(#fdf8ff, #1c1424); border-color: light-dark(#d1b3e0, #4a2e66);"><code>桐ヶ谷 =&gt; きりがや
+和人 =&gt; かずと
+キリト =&gt; きりと</code></pre>
+		左侧的多个写法与右侧的多个读音严格<b>按顺序一一对应</b>，<b>绝不会造成错配</b>（例如绝对不会出现 <code>桐ヶ谷 =&gt; かずと</code> 这种交叉映射）。
+	  </div>
+
+	  <ul>
+		<li>原文 = 读音时（如 <code>(アスナ) =&gt; (アスナ)</code>）只登记为人名，不生成替换规则。</li>
+		<li>登记的人名会参与后缀修正。</li>
+	  </ul>
+
+	  <h4>后缀规则 <code>[suffix]</code></h4>
+	  <pre><code>[suffix] 君 =&gt; くん
+[suffix] 様 =&gt; さま
+[suffix] 殿 =&gt; どの
+[suffix] 家 =&gt; け
+[suffix] は =&gt; わ</code></pre>
+	  <table class="guide-table">
+		<tr><th>原字类型</th><th>处理方式</th><th>输出（模式 C）</th></tr>
+		<tr><td>汉字（ruby 型）</td><td>生成注音框</td><td><code>｜君《くん》</code></td></tr>
+		<tr><td>假名（kana 型）</td><td>直接替换</td><td><code>わ</code></td></tr>
+	  </table>
+	  <p><b>生效条件：</b>后缀必须<b>紧跟在已登记的人名之后</b>（可夹一个已有的 <code>《注音》</code>）。内置默认 <code>家 → け</code>、<code>は → わ</code>，如果人名词典（<code>person_dict*.txt</code>）里写了同名字段会覆盖内置默认。</p>
+	  <div class="box-warn">
+		<b>⚠️ 后缀修正需要至少登记一个人名才会启动。</b>如果只想用 <code>は → わ</code> 而暂时没有人名，可以写一条 <code>(ダミー) =&gt; (ダミー)</code> 占位。
+	  </div>
+
+	  <div class="box-info" style="margin-top: 14px;">
+		<b style="color: var(--primary-dark);">💡 </b>如果出现了本不该被读成 <code>わ</code> 的 <code>は</code>，要怎么映射呢？</b><br>
+		<b>A：</b><b style="background-color: var(--kata); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 1.1em; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.3); border: 1px solid color-mix(in srgb, var(--kata) 70%, #000); box-shadow: var(--raised-btn); margin: 0 2px;">采用片假名</b>注音，举例说明：<br>
+		<code>(桐ヶ谷|直葉|すぐは) =&gt; (きりがや|スグハ|スグハ)</code>
+	  </div>
+
+	  <h3>6⃣  更宽容的文本匹配</h3>
+	  <p>本节的匹配逻辑同时作用于规则替换与 Ruby 注音。</p>
+
+	  <h4>支持的 Ruby 格式</h4>
+	  <table class="guide-table">
+		<tr><th>格式</th><th>示例</th><th>说明</th></tr>
+		<tr><td>HTML ruby</td><td><code>&lt;ruby&gt;漢字&lt;rt&gt;かんじ&lt;/rt&gt;&lt;/ruby&gt;</code></td><td>EPUB 标准格式</td></tr>
+		<tr><td>竖线式</td><td><code>｜漢字《かんじ》</code> 或 <code>|漢字《かんじ》</code></td><td>青空文库 / 阅读器常用</td></tr>
+		<tr><td>汉字 + 假名书名号</td><td><code>漢字《かんじ》</code></td><td>自动识别</td></tr>
+		<tr><td>花括号式</td><td><code>{漢字|かんじ}</code></td><td>部分阅读器格式</td></tr>
+		<tr><td>方括号（全角）</td><td><code>漢字［かんじ］</code></td><td>自动识别</td></tr>
+		<tr><td>方括号（半角）</td><td><code>漢字[かんじ]</code></td><td>自动识别</td></tr>
+	  </table>
+
+	  <div class="box-danger" style="margin-top: 14px;">
+		<strong>⚠️ 重要概念：显性 Ruby 与 隐性 Ruby</strong><br>
+		很多日文 EPUB 或青空文库文本在排版时，会省略注音标记的起始点，这两者的处理逻辑和兼容性有很大区别：
+		<ul style="margin-top: 6px; margin-bottom: 0; padding-left: 22px; line-height: 1.8;">
+		  <li><b>显性 Ruby</b>：例如 <code>｜東京大学《とうきょうだいがく》</code>。以竖线 <code>｜</code> 作为明确的起始点，解析器能就此 100% 准确切分。</li>
+		  <li><b>隐性 Ruby</b>：例如 <code>「東京大学《とうきょうだいがく》」</code>。没有竖线起点，完全依赖前方的标点符号或汉字边界进行自动识别。</li>
+		</ul>
+		<div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed light-dark(#e0b3b3, #663333);">
+		  <strong>🚨 兼容性警告（古早 TTS 引擎的坑）：</strong><br>
+		  如果你使用其他旧版 TTS 引擎或阅读器，它们可能无法正确识别<b>隐性 Ruby</b>。在解析时，它们极大概率会将原文的汉字和注音框里的汉字同时读出来，导致出现类似 <code>東京東京大学</code> 这样的<b>重复朗读错乱</b>。<br>
+		</div>
+		<div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed light-dark(#e0b3b3, #663333);">
+		  <b>💡 解决建议：</b>在导出或提供给其他引擎使用时，建议将隐性 Ruby 全部替换为显性 Ruby（在汉字前手动加上 <code>｜</code>），以保证最大的兼容性。
+		  <div style="font-size: 12px; color: var(--text-secondary); margin-top: 6px; opacity: 0.8;">
+			我寻思你都看到这里了，已经找到现成的解决方案了，结果还去手动修改小说原文……这未免也太自虐了一点了吧
+		  </div>
+		</div>
+	  </div>
+
+	  <h4>输出模式 A / B / C</h4>
+	  <table class="guide-table">
+		<tr><th>模式</th><th>行为</th><th>示例输入</th><th>示例输出</th></tr>
+		<tr><td>A</td><td>只保留原文</td><td><code>｜漢字《かんじ》</code></td><td><code>漢字</code></td></tr>
+		<tr><td>B</td><td>只保留读音</td><td><code>｜漢字《かんじ》</code></td><td><code>かんじ</code></td></tr>
+		<tr><td>C（默认）</td><td>Ruby 注音框</td><td><code>｜漢字《かんじ》</code></td><td><code>｜漢字《かんじ》</code></td></tr>
+	  </table>
+	  <p>在「⚙️ 设置 → TTS 输出形式」中切换，会同步写入 <code>global_config.json</code>，实时生效。<br>
+	  （注：监控台的引擎、模型与语速配置同样会持久化保存在这个文件中，作为全局唯一基准。）</p>
+
+	  <div class="box-success" style="margin-top: 14px;">
+		<strong>✅ 日语 TTS 引擎推荐配置：</strong>
+		<ul style="margin-top: 6px; margin-bottom: 0; padding-left: 22px; line-height: 1.8;">
+		  <li><b>Edge TTS</b>：极度推荐！完全免费、无需额外引擎、发音极自然。保持联网即可体验顶级朗读，推荐 <b>C（Ruby 输出）</b>。</li>
+		  <li><b>CeVIO AI [COM/SAPI]</b>：强烈推荐 <b>C（Ruby 输出）</b>。注音框会直接渲染为朗读假名，兼容性最佳。</li>
+		  <li><b>纯 VOICEVOX</b>：若阅读器支持解析 Ruby 用 C；<b>若不识别 ruby，请改用 B（纯注音）</b>。</li>
+		  <li><b>词库党极端配置（A 模式）</b>：如果你已有极度完善的 <code>replace_rules</code> 大辞典级词库，可用 <b>A（纯汉字）</b>，让 TTS 完全脱离原文 ruby，只依赖你的词典发音。</li>
+		</ul>
+	  </div>
+
+	  <div class="box-tip" style="margin-top: 14px;">
+		<strong>🌐 针对其他语种的选择建议：</strong>
+		<ul style="margin-top: 6px; margin-bottom: 0; padding-left: 22px; line-height: 1.8;">
+		  <li><b>英语 TTS</b>：请选择 <b>A（纯原文）</b>，无映射必要，仅发送原文即可。</li>
+		  <li><b>汉语 TTS</b>：请选择 <b>B（纯注音）</b>。多音字可采用替代注音法，如 <code>弹琴 => 谈琴</code>、<code>大夫 => 代夫</code>、<code>的确 => 迪确</code>、<code>重复 => 虫复</code>、<code>朝气 => 招气</code>、<code>还钱 => 环钱</code>、<code>角色 => 觉色</code>（用无多音字的同音字进行替代）。</li>
+		</ul>
+	  </div>
+
+	  <h4>合并与覆盖逻辑</h4>
+	  <ul>
+		<li><b>无视空格</b>：原文是 <code>終　章</code>（中间有全角空格），写 <code>終章 =&gt; しゅうしょう</code> 也能命中。</li>
+		<li><b>拦截错注音</b>：如果 EPUB 排版或 OCR 识别时标了完全错误的读音，比如把 <code>協力</code> 错标为 <code>|協力《くきようりよく》</code>（显然是把促音和拗音全拆错了），但只要你的词典里写有 <code>協力 =&gt; きょうりょく</code>，系统就会直接废弃 EPUB 自带的错标，强制使用词典里的正确读音。</li>
+		<li><b>相邻 ruby 合并</b>：<code>｜一《いつ》｜瞬《しゆん》</code> → 若词典命中 <code>一瞬 =&gt; いっしゅん</code>，则丢弃原注音，交给替换规则。</li>
+		<li><b>原文 = 读音</b>：直接返回原词（如 <code>アスナ《アスナ》</code> → <code>アスナ</code>）。</li>
+		<li><b>丢弃重复注音</b>：<code>｜ＮＰＣ《ＮＰＣ》</code> 这种无效标签会自动去重，防止 TTS 读两遍。</li>
+		<li><b>数字保护</b>：模式 C 下，对于「数字 + 汉字/量词」的词条，系统不会将注音框错误地套在纯数字上。它经过内部算法处理后，会自动剥离数字并转换，例如：
+		  <pre style="margin: 6px 0;"><code>input: 24本
+output: にじゅう｜4本《よんほん》
+
+input: 128人
+output: ひゃくにじゅう｜8匹《はっぴき》</code></pre>
+		  这样既保证了数字部分能被正确朗读，也避免了后续的 <code>本 =&gt; ほん</code> 等替换规则产生冲突或重复识别。
+		</li>
+	  </ul>
+
+	  <div class="box-success" style="margin-top: 14px;">
+		<b style="color: var(--primary-dark);">✅ 想要使用这个功能？</b><br>
+		1. 将 <code>replace_rule.7z.backup</code> 后缀名修改为 <code>replace_rule.7z</code> 并解压缩；<br>2. 将其中的 <code>00_top_rule.txt</code> 放置到 <code>📂replace_rules/</code> 文件夹内；<br>3. 前往【🎛 监控台】的「规则文件启用」列表勾选并保存，使其生效。
+	  </div>
+
+	  <h3>7⃣  监控台UI引导</h3>
+	  <p>「🎛 监控台」是日常调参和排错的核心面板，分为<b>左侧控制面板</b>和<b>右侧历史记录</b>。</p>
+
+	  <h4>① 顶部连接状态</h4>
+	  <ul>
+		<li>正常启动服务并打开页面后，右侧会显示绿色的 <b>✓ 已连接 · http://localhost:8000</b>。</li>
+		<li>如果显示红色的 <b>✗ 未连接</b>，说明 <code>tts.py</code> 黑窗口闪退了，或者没有启动。请点「重新连接」或<b>重启服务</b>。</li>
+	  </ul>
+
+	  <h4>② 自动记忆监控</h4>
+	  <ul>
+		<li>显示当前 <code>auto_dict.txt</code> 中累积的词条数量。</li>
+		<li>点击下方的文字链接，可以直接用系统默认程序打开 <code>auto_dict.txt</code>，方便你人工确认并提取到其他规则文件中。</li>
+	  </ul>
+
+	  <h4>③ 引擎与模型配置</h4>
+	  <ul>
+		<li><b>引擎</b>：下拉切换 <code>CeVIO AI</code>、<code>VOICEVOX</code>、<code>Windows 讲述人</code> 或 <code>Edge TTS</code>。<br>
+		  <span style="color: var(--text-secondary); font-size: 12.5px;">（注：本工具的引擎架构为 <b>按需调用</b>。只要你不选择它，它就不会在后台占用任何内存或 CPU，完美释放电脑资源。）</span>
+		</li>
+		<li><b>Model ID</b>：
+		  <ul>
+			<li><b>VOICEVOX</b>：数字输入框（1~999）。可以直接填数字，或者 滚轮 / 点上下箭头 微调。</li>
+			<li><b>CeVIO AI</b>：下拉选择框，包含系统 SAPI 角色以及你保存的 COM 情绪预设。</li>
+			<li><b>Windows 讲述人</b>：下拉列表会读取你系统中安装的所有原生 SAPI 语音（如 Microsoft Haruka 等）。</li>
+<li>
+  <b>Edge TTS</b>：下拉列表会请求微软服务器，获取最自然的中/日/英文在线语音。<b>使用此引擎需保持电脑联网</b>。<br>
+  <span style="color: var(--text-secondary); font-size: 12.5px;">
+    推荐模型：<br>
+    · <b>日语</b>：ja-JP-NanamiNeural（七海，女声）<br>
+    · <b>中文</b>：zh-CN-XiaoxiaoNeural（晓晓，女声）<br>
+    · <b>英文</b>：en-US-JennyNeural（珍妮，女声）
+  </span>
+</li>
+		  </ul>
+		</li>
+		<li><b>Speed（语速）</b>：数字输入框，范围 <code>0.5 ~ 2.0</code>。<br>
+		  <span style="color: var(--text-secondary); font-size: 12.5px;">（注：这里的 Speed 仅对 <b>VOICEVOX</b> 以及 <b>SAPI 路径的 CeVIO AI</b> 生效；<b style="color: var(--primary-dark);">COM 路径的 CeVIO AI 模型自带独立的语速参数，会完全覆盖此处的设置</b>。）</span>
+		</li>
+		<li><b>配置预览 + 以此配置运行</b>：核对下方的 <code>model</code> 和 <code>speed</code> 是否正确。点击按钮后，会立即将当前设置保存为 <code>auto</code> 模型，并使用这段配置<b>合成一次上方输入的文本</b>，方便你马上听到效果。</li>
+	  </ul>
+	  <div class="box-tip">
+		<b>💡 auto 配置持久化机制：</b>点击「以此配置运行」后，当前的语种、引擎、模型与语速会自动写入根目录下的 <code>global_config.json</code> 中。<br>
+		<b>重启 <code>tts.py</code> 进程或刷新前端页面后，系统会自动恢复上一次的选择</b>，不再需要重复配置。
+	  </div>
+
+	  <h4>④ 文本输入与合成</h4>
+	  <ul>
+		<li><b>输出文本</b>：显示解析替换后、真正送去给语音引擎朗读的最终文本。如果你发现读音不对，可以直接在这里手动修改。</li>
+		<li><b>预览</b>：只执行规则替换并在输出框显示结果，不发声。</li>
+		<li><b>合成</b>：执行替换并合成声音，并在右侧历史记录里逐句高亮播放。<br><span style="color: var(--text-secondary); font-size: 12.5px;">（注：如果你在输出框里手动改过字，系统会<b>直接使用你改后的文本</b>合成（<b>绕过</b>规则库）。</span></li>
+		<li>
+		  <b>验证实际效果</b>：在「输入文本」框中粘贴一段文本，如<br>
+		  <pre style="margin: 6px 0; padding: 8px 12px;"><code>今日は、昨日よりもっと沢山の漢字が読めるようになった。</code></pre>点击「预览」或「合成」。<br>哪怕你的 <code>📂replace_rules/</code> 是一个完全初始的状态，自带的示例文件依然自带了一点点微不足道的映射规则。<br>此时在「输出文本」框中，它会被成功转译为：<br>
+		  <pre style="margin: 6px 0; padding: 8px 12px;"><code>｜今日《きょう》は、｜昨日《きのう》よりもっと沢山の｜漢字《かんじ》が読めるようになった。</code></pre>
+		</li>
+	  </ul>
+
+	  <h4>⑤ Ruby 识别结果</h4>
+	  <p>点过「预览」或「合成」后，如果文本里包含注音，这里会列出系统识别到的所有 <code>base → ruby</code> 对照。如果词典强制覆盖了原文的读音，这里也会显示 <code>（词典：...）</code> 的提示。</p>
+
+	  <h4>⑥ 🎭 CeVIO 情感参数</h4>
+	  <p>只有使用 CeVIO AI 引擎时才需要关注这里，用于调配独一无二的情绪模型。</p>
+	  <ol>
+		<li><b>基于角色 / 已存预设</b>：选择一个基础角色（或读取已保存的预设），下方会自动加载该角色的情绪滑块。</li>
+		<li><b>情绪滑块</b>：拖动滑块调整（如：元気、怒り 等），鼠标悬停在右侧数字上还可以用<b>滚轮微调</b>。</li>
+		<li><b>语速 / 音调</b>：额外调整语速（0~100）和音调（0~100）。</li>
+		<li><b>试听</b>：用当前的滑块参数，合成上方输入框里的文本（若输入框为空，会读一句自带的测试日语）。</li>
+		<li><b>保存为模型</b>：点开后，输入一个模型 ID（如 <code>com-karin-happy</code>），并可选填要写入的 JSON 文件名，点击「写入配置文件」即可永久保存这套情绪预设。</li>
+	  </ol>
+
+	  <h4>⑦ 规则文件启用与管理</h4>
+	  <ul>
+		<li><b><code>📂</code> 文件夹按钮</b>：直接打开 <code>📂replace_rules/</code> 文件夹。</li>
+		<li><b>全选 / 保存</b>：一键勾选/取消当前页的所有规则文件，点击「保存」立即热重载生效。</li>
+		<li>
+		  <b>词条检测</b>：在输入框输入一个词（如 <code>今日</code>），点击「检测」，系统会在所有已启用的规则文件中搜索。如果找到，会列出文件名和具体内容行，例如：<br>
+		  <pre style="margin: 6px 0; padding: 8px 12px;"><code>📄 user_dict.txt
+第 15 行: 今日 => きょう</code></pre>
+		  <b>点击文件名可直接用系统默认程序打开该规则文件</b>。
+		</li>
+		<li><b>文件列表</b>：显示当前文件夹下的所有 .txt 文件及其大小。勾选/取消勾选用于启用/禁用该文件（<code>auto_dict.txt</code> 强制锁定）。点击文件名同样可以直接打开文件进行编辑。</li>
+		<li><b>翻页</b>：规则文件太多时，按底部的「上一页 / 下一页」浏览（每页 16 个）。</li>
+	  </ul>
+
+	  <h4>⑧ 右侧：历史记录</h4>
+	  <ul>
+		<li>SSE 实时推送，最多保留 40 条，展示阅读器或监控台发来的每一次合成请求。</li>
+		<li>每条记录包含：<b>状态</b>（OK/ERR）、<b>时间</b>、<b>模型</b>（带 auto 标记）、<b>voice</b>、<b>speed</b>、<b>后端</b>、<b>speaker</b>。</li>
+		<li>往下依次展示：<b>原始文本</b>、<b>Ruby 识别情况</b>、<b>最终朗读</b>。</li>
+		<li><b>逐句高亮（仅限监控台内部）</b>：当在左侧点击「合成」时，右侧对应的「最终朗读」记录会逐句放大并高亮显示。</li>
+	  </ul>
+	  
+	  <div class="box-tip" style="margin-top: 14px;">
+		<b>⚠️ 关于逐句高亮的说明</b><br>
+		<b>该高亮仅对直接在左侧【输入文本】中输入的文本生效。</b><br>
+		<span style="color: var(--text-secondary); font-size: 13px;">
+		  原理说明：本工具本质上是将文本提前发送给 TTS 引擎，然后顺序播放，<b>本工具无法获取 TTS 引擎当前正在播放的句子的真实进度</b>。前端的高亮是基于文本长度和音频总时长<b>按比例计算模拟</b>出来的。因此如果音频中有长停顿，高亮可能与声音有轻微不同步，仅供定位参考。
+		</span>
+	  </div>
+
+	  <h3>8⃣  EPUB Ruby 提取</h3>
+
+	  <h4>步骤 1：选择 EPUB / 重写 TXT / 粘贴文本</h4>
+	  <ul>
+		<li><b>EPUB</b>：拖拽或点击选择，提取 <code>&lt;ruby&gt;</code> 标签。相邻单字 ruby 会自动合并（如 <code>挨|あい</code> + <code>拶|さつ</code> → <code>挨拶|あいさつ</code>）。</li>
+		<li><b>重写 TXT</b>：之前从本工具导出的 <code>user_dict_*.txt</code>，可以恢复提取结果继续编辑。</li>
+		<li><b>粘贴文本</b>：直接粘贴带 ruby 的文本，支持 6 种格式；也支持 <code>汉字 =&gt; 读音</code> 规则行（自动识别）。每次点击生成一条独立的「粘贴文本 #N」。</li>
+	  </ul>
+	  <div class="box-tip">
+		<b>💡 步骤 1 的 TXT 是「重写」</b>，用于恢复之前导出的结果继续编辑；<b>步骤 2 的 TXT 是「参考词典」</b>，用于去重与 ★ 标记。两处功能不同，请勿混淆。
+	  </div>
+
+	  <h4>步骤 2：导入参考词典（可选）</h4>
+	  <ul>
+		<li><b>📄 上传 .txt</b>：作为去重参考词典（即 <code>replace_rules</code> 里的规则）。</li>
+		<li><b>📁 选择文件夹</b>：直接选 <code>📁X:\TTS\replace_rules\</code>，读取其中所有 .txt 并合并作为参考。</li>
+		<li><b>★ 已收录优先</b>：参考词典中已有的词条会标红 ★，冲突时默认使用其读音，可在候选按钮里切换。</li>
+	  </ul>
+
+	  <h4>步骤 3：编辑提取结果</h4>
+	  <p>点击汉字或假名可直接修改。<b>光标在文字后或选中文字时，会显示悬浮按钮：</b></p>
+	  <table class="guide-table">
+		<tr><th style="width: 80px; text-align: center;">按钮图标</th><th>作用</th></tr>
+		
+		<tr>
+		  <td style="text-align: center; vertical-align: middle;">
+			<span style="display:inline-block; padding:2px 6px; font-size:16px; font-weight:bold; color:var(--muted); border:1px solid var(--border); border-radius:4px;">⇄</span>
+		  </td>
+		  <td>交换原文和读音。</td>
+		</tr>
+
+		<tr>
+		  <td style="text-align: center; vertical-align: middle;">
+			<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:var(--primary);color:#fff;border-radius:4px;box-shadow:var(--raised-btn);border:1px solid var(--primary-dark);line-height:1;">
+			  <span style="font-size:15px;opacity:0.4;font-weight:900;">大</span><span style="font-size:10px;font-weight:900;">小</span>
+			</span>
+		  </td>
+		  <td>日文大小字双向切换（<code>や⇄ゃ</code>、<code>つ⇄っ</code> 等）。图标中实色的字代表即将变成的状态。<br>
+			<span style="color: var(--text-secondary); font-size: 12.5px;">注：此按钮仅处理日文假名。但本工具的底层规则引擎已完全兼容西文的“大小写”与“全半角”读取（例如词典写 <code>ABC => えーびーしー</code>，原文中无论是 <code>abc</code>、<code>ABC</code>，还是全角 <code>ａｂｃ</code>、<code>ＡＢＣ</code> 都能自动命中，无需手动转换）。</span><br>
+			<span style="color: var(--primary-dark); font-size: 12.5px; font-weight: 600;">✨ 导出自动归一化</span>：在导出规则时，左侧的西文会被自动统一转换为纯半角小写（<code>abc</code>）。无论你通过Epub读取的是大小写还是全半角，最终生成的词典文件始终是最标准、最干净的格式。</td>
+		</tr>
+
+		<tr>
+		  <td style="text-align: center; vertical-align: middle;">
+			<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:var(--split);color:#fff;border-radius:4px;box-shadow:var(--raised-btn);border:1px solid color-mix(in srgb, var(--split) 70%, #000);vertical-align:middle;position:relative;">
+			  <span style="position:absolute;top:1px;left:4px;font-size:9px;font-weight:900;">"</span>
+			  <span style="position:absolute;top:1px;right:4px;font-size:9px;font-weight:900;">°</span>
+			  <span style="font-size:12px;font-weight:900;padding-top:8px;">浊</span>
+			</span>
+		  </td>
+		  <td>
+			假名循环切换：<br>
+			• 对于 <b>は 行</b>（有半浊音）：<br>
+			<span style="background-color: #4caf50; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-right: 4px;">清音</span> →
+			<span style="background-color: #ffca28; color: #333; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-right: 4px;">浊音</span> →
+			<span style="background-color: #ef5350; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-right: 4px;">半浊音</span> →
+			<span style="background-color: #4caf50; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: bold;">回到清音</span><br>
+			<span style="color: var(--text-secondary); font-size: 12.5px; margin-left: 4px;">（例：<code>は → ば → ぱ → は</code>）</span><br><br>
+			• 对于 <b>か 行</b>（无半浊音）：<br>
+			<span style="background-color: #4caf50; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-right: 4px;">清音</span> →
+			<span style="background-color: #ffca28; color: #333; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-right: 4px;">浊音</span> →
+			<span style="background-color: #4caf50; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: bold;">回到清音</span><br>
+			<span style="color: var(--text-secondary); font-size: 12.5px; margin-left: 4px;">（例：<code>か → が → か</code>）</span>
+		  </td>
+		</tr>
+
+		<tr>
+		  <td style="text-align: center; vertical-align: middle;">
+			<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:var(--kata);color:#fff;border-radius:4px;box-shadow:var(--raised-btn);border:1px solid color-mix(in srgb, var(--kata) 70%, #000);font-weight:900;font-size:16px;vertical-align:middle;">%</span>
+		  </td>
+		  <td>把当前读音拆分为多读音概率分支。已有分支时再点会追加一项。</td>
+		</tr>
+
+		<tr>
+		  <td style="text-align: center; vertical-align: middle;">
+			<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:var(--ok);color:#fff;border-radius:4px;box-shadow:var(--raised-btn);border:1px solid color-mix(in srgb, var(--ok) 70%, #000);vertical-align:middle;">
+			  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+			</span>
+		  </td>
+		  <td>复制当前词条并在下方生成新草稿（浅黄底虚线框），点击 <b>“✔ 确认”</b> 将其加入列表，或点击 <b>“✖ 废弃”</b> 将其删除。</td>
+		</tr>
+
+		<tr>
+		  <td style="text-align: center; vertical-align: middle;">
+			<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:#8b5cf6;color:#fff;border-radius:4px;box-shadow:var(--raised-btn);border:1px solid #7c3aed;vertical-align:middle;font-size:16px;">👤</span>
+		  </td>
+		  <td>标记为“名词”（人名或专有名词），标记后导出时会单独分组。</td>
+		</tr>
+
+		<tr>
+		  <td style="text-align: center; vertical-align: middle;">
+			<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:#f59e0b;color:#fff;border-radius:4px;box-shadow:var(--raised-btn);border:1px solid #d97706;vertical-align:middle;font-weight:900;font-size:16px;">?</span>
+		  </td>
+		  <td>标记为“存疑”搁置。</td>
+		</tr>
+	  </table>
+	  <p><b>候选读音：</b>当同一原文有多个来源读音时，会显示候选按钮。★ 表示参考词典中已有；选中的按钮高亮。悬停可查看来源与变体。</p>
+	  <p><b>出现次数徽章（×N）：</b>用滚轮或直接输入数字修改。大于 1 时导出会追加 <code>&lt;= count:N</code>。</p>
+	  <p><b>统计卡片：</b>点击可一键筛选对应分类——总条目 / 组词 / 单字 / 疑似小字错标 / カ 含片假名 / A 含西文 / ★ 已收录 / 已存在 / 冲突 / 已勾选。</p>
+	  
+	  <div class="box-info" style="margin-top:14px;">
+		<b style="color:var(--primary-dark);">💡 如何使用筛选栏？</b><br>
+		这里的筛选按钮不需要打勾，而是<b>点击循环切换</b>。每点一次，按钮的文字和颜色就会变一次（默认灰 → 蓝色 → 红色 → 默认灰）。<br>
+		我们以「组词」按钮为例：<br>
+		<ul style="margin:6px 0 0;padding-left:20px;">
+		  <li>
+			点第一下，按钮变蓝（显示为 <span style="background-color: var(--primary); color: #fff; padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid var(--primary-dark); display: inline-block; box-shadow: var(--raised-btn);">仅组词</span> ）：此时列表里<b>只显示</b>组词。
+		  </li>
+		  <li>
+			点第二下，按钮变红（显示为 <span style="background-color: var(--danger); color: #fff; padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid color-mix(in srgb, var(--danger) 70%, #000); display: inline-block; box-shadow: var(--raised-btn);">不含组词</span> ）：此时列表里<b>排除</b>所有组词。
+		  </li>
+		  <li>
+			点第三下，恢复原样（显示为 <span style="background-color: var(--panel-bg); color: var(--text-secondary); padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); display: inline-block; box-shadow: var(--raised-btn);">组词</span> ）：不再按组词筛选。
+		  </li>
+		</ul>
+		<br>
+		不同分组的文字会稍有不同，但逻辑完全一致：
+		<ul style="margin:6px 0 0;padding-left:20px;">
+		  <li><b>编辑状态</b>：点第一下是“<b>已</b>勾选/收录/编辑”，点第二下是“<b>未</b>勾选/收录/编辑”。</li>
+		  <li><b>Ruby 小字</b>：点第一下是“<b>含</b>常见/特殊小字”，点第二下是“常见/特殊小字<b>已小字化</b>”（帮你挑出已经纠正过小字状态的词条）。</li>
+		  <li><b>标记</b>：同理，帮你单独筛出标了名词或存疑的词条。</li>
+		</ul>
+		如果点乱了，直接点击右侧的<b>清空筛选</b>按钮，所有条件就会一键复原。
+	  </div>
+	  
+	  <p>工具栏支持搜索、排序（五十音 / 正文顺序 / 出现次数）、升降序、全选 / 取消全选当前筛选词条。</p>
+
+	  <div class="box-data">
+		<b>⚠️ 疑似小字检测：</b>读音中包含本应写成小字的大字字符时会被标记。<br>
+		为了方便分类处理，系统将其分为了两类（可通过筛选栏的循环按钮进行过滤）：
+		
+		<div style="display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap;">
+		  <div style="flex: 1; min-width: 280px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 6px;">
+			<div style="font-weight: 800; color: var(--susp); margin-bottom: 6px;">🔸 常见小字</div>
+			<div style="font-size: 13px; line-height: 1.6;">
+			  检测平假名 <code>やゆよつ</code>，片假名 <code>ヤユヨツ</code>。<br>
+			  <span style="color:var(--text-secondary);font-size:12.5px;">
+			  如：<code>きよう</code> → 应为 <code>きょう</code><br>
+			  <code>がつこう</code> → 应为 <code>がっこう</code>
+			  </span>
+			</div>
+		  </div>
+		  
+		  <div style="flex: 1; min-width: 280px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 6px;">
+			<div style="font-weight: 800; color: var(--susp); margin-bottom: 6px;">🔹 特殊小字</div>
+			<div style="font-size: 13px; line-height: 1.6;">
+			  检测片假名 <code>ケカ</code> 以及 <code>アイウエオ</code>。<br>
+			  <span style="color:var(--text-secondary);font-size:12.5px;">
+			  如：<code>一ケ月</code> → 应为 <code>一ヶ月</code><br>
+			  <code>フアイ</code> → 应为 <code>ファイ</code>
+			  </span>
+			</div>
+		  </div>
+		</div>
+
+		<br><b>建议：</b>在导出文件后，将这类词条单独复制出来，交给免费的 AI（如 ChatGPT、Kimi、通义千问等）进行批量分析和修正，效率最高。
+	  </div>
+
+	  <h4>步骤 4：导出</h4>
+	  <ul>
+		<li><b>下载勾选词条</b>：文件名 <code>user_dict_书名.txt</code>，直接放进 <code>📂X:\TTS\replace_rules\</code> 即可生效，无需重启 <code>tts.py</code>。</li>
+		<li><b>下载合并版</b>：把新增词条追加到步骤 2 的参考词典文本后，一起下载。</li>
+		<li><b>复制到剪贴板</b>：粘贴到任意编辑器。</li>
+		<li><b>🧹 去重</b>：按「汉字 + 读音分布」合并重复条目（单值与多值分开去重），已收录（★）词条只做标签高亮，不会被自动剔除或取消勾选。</li>
+		<li><b>❌ 清空当前工作区</b>：彻底清空当前的提取结果、勾选和编辑状态。</li>
+	  </ul>
+	  <p style="margin-bottom: 6px;"><b>导出顺序：</b></p>
+	  <ul style="margin-top: 0;">
+		<li><b>名词 → 疑似小字 → 原文仅西文 → 原文仅片假名 → 组词 → 单字 → 存疑</b>；</li>
+		<li>组内按出现次数倒序；出现次数 &gt; 1 追加 <code>&lt;= count:N</code>；存疑词条会带上 <code>[?]</code> 标记。</li>
+	  </ul>
+	  
+	  <div class="box-info" style="margin-top:14px;">
+		<b style="color:var(--primary-dark);">💡 进阶：自动合并与去重机制</b><br>
+		当多个不同的汉字组合指向同一注音（如 <code>汉字1 => 注音</code> 和 <code>汉字2 => 注音</code>）时，导出会自动将它们合并为等价规则：<code>汉字1|汉字2 => 注音</code>，并将 <code>count</code> 数值相加。<br>
+		<span style="color:var(--danger); font-size:12.5px; font-weight:bold;">⚠️ 注意：</span>如果右侧包含多读音概率语法（如 <code>A => B(1)|C(3)</code>），则不参与此合并，原样保留。
+	  </div>
+
+	  <div class="box-data">
+		<strong>💡 为什么需要 AI 辅助？关于自动提取的痛点：</strong><br>
+		自动提取 EPUB 中的 ruby 后，最多也最繁杂的人工校验工作莫过于：<br>
+		1. <b>人名及特定术语</b>：常常出现“写作 A 读作 B”的情况，或者包含特殊的西文/片假名注音。<br>
+		2. <b>读音涉及小字</b>：亦即拗音（如 <code>きゃ</code>）或促音（如 <code>っ</code>）在注音时被错误地标成了大字。<br><br>
+		<b>然而，人工一行行校验是非常不健康的！</b>为此，本工具在导出文件时专门设计了输出顺序（存疑搁置的条目会被统一放在最末尾，方便最后统一处理）：
+		<pre style="margin-top:6px; margin-bottom:6px; background: light-dark(#fcf8ff, #1e1426); border-color: light-dark(#d1b3e0, #4a2e66);"><code># ===== 名词（n 条） =====
+# ===== 疑似小字（n 条） =====
+# ===== 原文仅西文（n 条） =====
+# ===== 原文仅片假名（n 条） =====
+# ===== 组词（n 条） =====
+# ===== 单字（n 条） =====
+# ===== 存疑（n 条） =====</code></pre>
+		这前几类容易被机器误判的“重灾区”词条，会被单独列出并放在导出文件的最顶部。你只需要把这几大块直接复制发给<b>免费的 AI（如 ChatGPT、Kimi、通义千问等）</b>，让 AI 帮你批量分析和修正，效率瞬间提升百倍。最后再去处理最末尾带有 <code>[?]</code> 标记的存疑项即可。<br><br>
+		<span style="font-size: 12.5px; color: var(--muted); display: inline-block; margin-top: 4px;">p.s. 一个很有趣的现象，遇到这种简单但费劲的机械劳动，Deepseek 居然故意不向用户推荐 Deepseek 吗？这很大肥鱼了。</span>
+	  </div>
+
+	  <div class="box-warn" style="margin: 20px 0 14px;">
+		<b style="color:var(--primary-dark);">💾 关于“自动保存防丢”机制：</b><br>
+		为了防止您手滑刷新页面导致几个小时的工作白费，当前工具箱具有<b>实时本地缓存功能</b>。<br>
+		您的所有操作（包括勾选、修改读音、标记人名、调整次数）都会静默保存到浏览器的本地硬盘中。<b>关闭网页、关闭浏览器、甚至重启电脑都不会丢失</b>，下次打开时依然会<b>自动恢复上次的工作进度</b>。<br>
+		<span style="color:var(--danger); font-size:12.5px; font-weight:bold;">⚠️ 注意：</span>由于数据保存在当前浏览器中，如果您手动清除了浏览器的“缓存/Cookie”、使用了“无痕模式”，或者更换了浏览器（如从 Edge 换成 Chrome），进度将会丢失。建议在阶段性工作完成后，顺手点一下导出。
+	  </div>
+	  
+
+	  <div class="box-danger" style="margin: 0 0 30px; padding: 14px 18px;">
+		<b style="font-size: 15px;">🚨 如何彻底重来？</b><br>
+		<div style="margin-top: 6px;">
+		  如果您想放弃当前所有进度，彻底清空并重新开始，请点击最下方的 <b>【❌ 清空当前工作区】</b> 按钮。
+		</div>
+		<div class="warning-breathing">
+		  警告：此操作不可恢复，请在点击前确保已导出需要保留的数据！
+		</div>
+	  </div>
+
+	  <div class="box-info" style="margin: 0 0 30px; padding: 16px 18px; border-left-width: 6px;">
+		<b style="font-size: 15px; color: var(--primary-dark);">🚦 状态说明：<span style="color: var(--text); font-size: 1.15em; font-weight: 900;">Editing</span> vs <span style="color: var(--text); font-size: 1.15em; font-weight: 900;">Edited</span> vs <span style="color: var(--text); font-size: 1.15em; font-weight: 900;">Enabled</span></b>
+		
+		<!-- 阶段 1 -->
+		<div style="margin-top: 10px; font-size: 13.5px; line-height: 1.8;">
+		  请注意：您在【📚 EPUB Ruby 提取】页做的一切操作（包括修改读音、勾选、去重、自动保存等），<b>都处于 Editing（正在编辑）的状态</b>。它们只是存放在浏览器的沙盒内存中，<b>绝对不会</b>直接让 TTS 引擎使用这些新词库。
+		</div>
+		
+		<div style="border-top: 1px dashed var(--border-strong); margin: 12px 0;"></div>
+		
+		<!-- 阶段 2 -->
+		<div style="font-size: 13.5px; line-height: 1.8;">
+		  只有当您点击【下载勾选词条】或【复制到剪贴板】，并将其<b>手动放置到 <code>📂replace_rules/</code> 文件夹内</b>后，这个状态才会跨越为 <b>Edited（已保存）</b>。<br>
+		  <span style="font-size: 12.5px; color: var(--text-secondary);">（注：该文件夹位于 <code>tts.py</code> 以及 <code>launcher.html</code> 的同一目录下，路径可按需自定义）</span>
+		</div>
+		
+		<div style="border-top: 1px dashed var(--border-strong); margin: 12px 0;"></div>
+		
+		<!-- 阶段 3 -->
+		<div style="font-size: 13.5px; line-height: 1.8;">
+		  但这依然不够！您还需要前往【🎛 监控台】，在「规则文件启用」列表中<b>勾选该文件并点击「保存」</b>，热加载后，才会跨越为最终的 <b>Enabled（已生效）</b>。
+		</div>
+		
+		<div style="border-top: 1px dashed var(--border-strong); margin: 12px 0;"></div>
+		
+		<!-- 总结 -->
+		<div style="font-size: 13.5px; line-height: 1.8;">
+		  请务必记得完成这最后两步（导出放入文件夹 + 监控台启用），否则您辛苦改了一天的进度，对 TTS 引擎来说等于完全没有发生过！
+		</div>
+	  </div>
+
+	  <h3>9⃣  工具箱其他功能</h3>
+
+	  <h4>🎙 音色速查</h4>
+	  <ul>
+		<li><b>查询角色 ID</b>：支持角色名、样式名、或直接输入数字 speaker ID。</li>
+		<li><b>🔄 从本地 VOICEVOX 获取实时列表</b>：需先启动 VOICEVOX 引擎（默认端口 50021）。</li>
+		<li><b>手动解析 JSON</b>：跨域失败时，打开 <code>http://127.0.0.1:50021/speakers</code>，全选复制 JSON 粘贴到下方，点击「解析并更新」。</li>
+		<li><b>全量音色列表</b>：每 30 个 ID 一条分割线，3 列展示，方便直接查 speaker ID 填到监控台。</li>
+	  </ul>
+
+	  <h4>⚙️ 设置抽屉</h4>
+	  <ul>
+		<li><b>浅色 / 深色模式</b>：原生 <code>color-scheme</code> 切换。</li>
+		<li><b>主题色</b>：7 种预设
+		  <span style="background-color: #4f6ef7; color: #fff; padding: 2px 8px; border-radius: 4px; display: inline-block; margin: 0 2px; font-size: 12.5px; font-weight: bold;">靛蓝色</span>
+		  <span style="background-color: #F56C6C; color: #fff; padding: 2px 8px; border-radius: 4px; display: inline-block; margin: 0 2px; font-size: 12.5px; font-weight: bold;">桃红色</span>
+		  <span style="background-color: #FF69B4; color: #fff; padding: 2px 8px; border-radius: 4px; display: inline-block; margin: 0 2px; font-size: 12.5px; font-weight: bold;">樱桃粉</span>
+		  <span style="background-color: #32CD32; color: #fff; padding: 2px 8px; border-radius: 4px; display: inline-block; margin: 0 2px; font-size: 12.5px; font-weight: bold;">荧光绿</span>
+		  <span style="background-color: #00BFFF; color: #fff; padding: 2px 8px; border-radius: 4px; display: inline-block; margin: 0 2px; font-size: 12.5px; font-weight: bold;">天空蓝</span>
+		  <span style="background-color: #DAA520; color: #fff; padding: 2px 8px; border-radius: 4px; display: inline-block; margin: 0 2px; font-size: 12.5px; font-weight: bold;">杨桃黄</span>
+		  <span style="background-color: #DC143C; color: #fff; padding: 2px 8px; border-radius: 4px; display: inline-block; margin: 0 2px; font-size: 12.5px; font-weight: bold;">枫叶红</span>
+		  
+		</li>
+		<li><b>界面字体</b>：5 种
+		  <div style="display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-left: 6px;">
+			<span style="font-family: ui-monospace, Consolas, 'Courier New', monospace; background: var(--panel-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 12.5px; box-shadow: var(--raised-btn);">等宽</span>
+			<span style="font-family: 'TaishaMincho-DemiBold', 'SimSun', 'Songti SC', serif; background: var(--panel-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 12.5px; box-shadow: var(--raised-btn);">明朝</span>
+			<span style="font-family: 'FOT-TsukuMinPr6N-D', 'KaiTi', 'Kaiti SC', serif; background: var(--panel-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 12.5px; box-shadow: var(--raised-btn);">楷体</span>
+			<span style="font-family: 'TaishaMaru-DemiBold', 'Nunito', 'Varela Round', 'Yuanti SC', 'Hiragino Sans GB', sans-serif; background: var(--panel-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 12.5px; box-shadow: var(--raised-btn);">圆体</span>
+			<span style="font-family: 'TaishaGothic-DemiBold', 'Microsoft YaHei', 'PingFang SC', sans-serif; background: var(--panel-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 12.5px; box-shadow: var(--raised-btn);">黑体</span>
+		  </div>
+		</li>
+		<li><b>TTS 输出形式</b>：A / B / C，切换后同步 <code>POST /v1/global/config</code>，示例效果实时预览。</li>
+		<li><b>背景图像</b>：位于抽屉最底部，可读取本地图片并调节界面毛玻璃效果。（详见下方说明）</li>
+	  </ul>
+
+	  <h4>🖼️ 背景图像与毛玻璃化</h4>
+	  <p>为了让工具箱看起来更漂亮且不伤眼，我们在 <b>⚙️ 全局设置</b> 最底部新增了「背景图像」功能。</p>
+	  
+	  <div class="box-data">
+		<strong>📁 图片读取规则：</strong><br>
+		1. 只能读取与 <code>launcher.html</code> <b>同目录下</b>的 <code>📂bg/</code> 文件夹内的图片。<br>
+		2. 将图片放入该文件夹后，在设置里只需输入<b>纯文件名</b>（例如 <code>bg02</code> 或 <code>1</code>），<b>无需输入后缀名</b>。<br>
+		3. 系统会自动依次尝试 <code>.jpg</code>、<code>.png</code>、<code>.webp</code> 等常见格式。如果没有找到支持的格式，会直接弹窗警告。
+	  </div>
+
+	  <div class="box-info">
+		<strong>💡 进阶外观调整（磨砂毛玻璃）：</strong><br>
+		此功能不仅支持换底图，还可以调整界面 UI 的质感。我们提供了两组滑条：
+		<ul style="margin-top: 6px; margin-bottom: 6px;">
+		  <li><b>底图设置</b>：<code>透明度</code>（底图本身）、<code>模糊度</code>（底图）、<code>背景暗化</code>（底图变暗，防止文字看不清）。</li>
+		  <li><b>面板设置</b>：<code>面板透明度</code>、<code>面板模糊</code>。这直接影响所有卡片、侧边栏、监控台的透光程度。</li>
+		</ul>
+		<b>✨ 推荐配方（macOS 现代质感）：</b><br>
+		底图透明度 75%、底图模糊 2px、背景暗化 20%、面板透明度 66%、面板模糊 6px（这也是本工具目前的默认初始设置）。<br>
+		你可以自由降低面板透明度，增加模糊值，所有 UI 元素都会变成半透明的磨砂玻璃，完美透出底图又不会影响阅读。
+	  </div>
+
+	  <h4>黑窗口快捷键</h4>
+	  <table class="guide-table">
+		<tr><th>按键</th><th>行为</th><th>说明</th></tr>
+		<tr><td><code>Ctrl + C</code></td><td>停止服务</td><td>进程彻底退出，黑窗口 关闭</td></tr>
+		<tr><td><code>Ctrl + R</code></td><td>重启服务</td><td>热重启 uvicorn，重载全部规则 / 模型 / 配置，进程不退出</td></tr>
+		<tr><td><code>F5</code></td><td>重启服务</td><td>同 <code>Ctrl + R</code></td></tr>
+	  </table>
+	  <p class="hint">快捷键只对当前有焦点的 黑窗口 生效，请先用鼠标点一下窗口再按。</p>
+
+	  <h3>?? 常见问题Q&A</h3>
+	  <div style="margin-top: 18px; line-height: 1.8;">
+
+		<!-- 第 1 个 (奇) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px;">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: 黑窗口汉字乱码怎么办？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> <code>run tts.bat</code> 被保存成了 UTF-8 编码。用记事本打开它 → 另存为 → 编码选择 <b>ANSI</b>（中文 Windows 下即 GBK），覆盖保存即可。</p>
+		</div>
+
+		<!-- 第 2 个 (偶) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: var(--panel-bg);">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: 按 <code>Ctrl + R</code> / <code>F5</code> 没反应？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> 快捷键只对当前有焦点的黑窗口生效。请先用鼠标点一下黑窗口确保有焦点；并且确认黑窗口里已经打印了「服务已就绪」。</p>
+		</div>
+
+		<!-- 第 3 个 (奇) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px;">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: 监控台提示「VOICEVOX 引擎未就绪」？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> VOICEVOX 没启动，或者端口不是 <code>50021</code>。请先启动 VOICEVOX 引擎，然后按 <code>Ctrl + R</code> 重启一下服务重连。</p>
+		</div>
+
+		<!-- 第 4 个 (偶) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: var(--panel-bg);">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: CeVIO COM 报错「无法连接 CeVIO AI」？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> 请先启动 CeVIO AI 程序，并确保你的电脑已安装 <code>CeVIO.Talk.RemoteService2</code> COM 组件（随 CeVIO AI 安装）。</p>
+		</div>
+
+		<!-- 第 5 个 (奇) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px;">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: CeVIO 报错「外部接口被占用」？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> 后台有旧的 Python 进程或 CeVIO 进程没关干净，导致端口/接口死锁。最简单粗暴且最稳的方法是：<b>重启电脑</b>。</p>
+		</div>
+
+		<!-- 第 6 个 (偶) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: var(--panel-bg);">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: 监控台报错 <code>Failed to fetch</code>？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> 多半是 <code>tts.py</code> 的黑窗口闪退了。重新双击 <code>run tts.bat</code> 启动它即可。</p>
+		</div>
+
+		<!-- 第 7 个 (奇) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px;">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: <code>&lt;= count:N</code> 是限制替换次数吗？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> 不是。它是<b>优先级权重</b>。<code>N</code> 越大优先级越高，直接无视文件名字母序。一旦规则生效，依然会替换全文所有匹配的词语。</p>
+		</div>
+
+		<!-- 第 8 个 (偶) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: var(--panel-bg);">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: <code>[suffix]</code> 规则写了不生效？</b></p>
+		  <div style="margin-top: 0; color: var(--text-secondary);">
+			<b>A:</b> 必须满足三个条件：
+			<ol style="margin-top: 4px; margin-bottom: 0; padding-left: 24px;">
+			  <li>只能在 <code>person_dict.txt</code> 或 <code>person_dict_*.txt</code> 中写，其他文件无效；</li>
+			  <li>后缀必须紧跟在已登记的人名之后；</li>
+			  <li>如果暂时没有人名，写一条 <code>(ダミー) =&gt; (ダミー)</code> 占位。</li>
+			</ol>
+		  </div>
+		</div>
+
+		<!-- 第 9 个 (奇) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px;">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: <code>A => B</code> 规则改了为什么不生效？</b></p>
+		  <p style="margin-top: 0; margin-bottom: 6px; color: var(--text-secondary);"><b>A:</b> 请依次确认：</p>
+		  <ol style="margin-top: 0; margin-bottom: 6px; padding-left: 24px; color: var(--text-secondary);">
+			<li>文件在 <code>replace_rules/</code> 下；</li>
+			<li>在监控台里已勾选启用；</li>
+			<li>按 <code>Ctrl + R</code> 强制重载。</li>
+		  </ol>
+		  <p style="margin-top: 0; color: var(--text-secondary);">如果都不行，检查字典里是不是有同词但优先级权重 <code>&lt;= count:N</code> 更高的规则把它覆盖了。</p>
+		</div>
+
+		<!-- 第 10 个 (偶) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: var(--panel-bg);">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: <code>auto_dict.txt</code> 为什么不参与替换？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> <b>设计如此。</b><br>当原文（如 EPUB）里出现了一个词库里没有的特殊注音时，系统会<b>当场认可并使用这个注音进行朗读</b>，同时把它提取出来登记到 <code>auto_dict.txt</code> 中。<br>
+		  但是，<b>机器（OCR 或 EPUB 制作工具）给出的注音不一定是对的</b>。万一是错标的注音（比如把汉字标成了完全无关的假名），如果直接让它变成了全局替换规则，就会导致以后整本书里所有的这个词都跟着读错，严重污染词库。<br>
+		  因此，<code>auto_dict.txt</code> 必须是<b>“仅登记，不参与后续全局替换”</b>的状态。你需要在监控台打开它，人工确认这些注音没问题后，手动复制到 <code>user_dict.txt</code> 等正式规则文件里，它才会真正变成全局生效的替换规则。</p>
+		</div>
+
+		<!-- 第 11 个 (奇) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px;">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: 启动后前端页面没有自动弹出？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> <code>tts.py</code> 启动后延迟 1.5 秒，如果 1.5 秒内没有任何前端请求才会弹出。手动双击 <code>launcher.html</code> 也可以，只要保证它和 <code>tts.py</code> 在同一个目录即可。</p>
+		</div>
+
+		<!-- 第 12 个 (偶) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: var(--panel-bg);">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: 能不能在 Linux / macOS 上跑？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> <b>不能。</b> SAPI 语音接口、CeVIO COM 组件、以及 <code>msvcrt</code> 快捷键监听均深度依赖 Windows，且开发者已明确不再做其他系统的移植。</p>
+		</div>
+
+		<!-- 第 13 个 (奇) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px;">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: epub以外的格式能不能读？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> 原则上，只要是能被读取到纯文本的格式都可以。</p>
+		</div>
+
+		<!-- 第 14 个 (偶) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: var(--panel-bg);">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: 我用的某某某阅读器能不能读？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> 这需要同时满足两个条件：<br>
+		  1. 阅读器本身必须自带 <b>TTS（文本转语音）朗读功能</b>；<br>
+		  2. 它的朗读设置中必须<b>支持接入 OpenAI 接口</b>（或者允许自定义 TTS 引擎的 API 地址）。<br>
+		  只有同时满足这两点，才能成功接入本服务并正常朗读。</p>
+		</div>
+
+		<!-- 第 15 个 (奇) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px;">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: 我可以去哪里获得 epub 电子书？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> 首先，最正当的途径当然是去各大正版电子书平台购买并下载，<b style="color: var(--primary-dark);">支持正版永远是第一位的</b>。<br>
+		  根据你需要阅读的语种和类型，可以选择以下正版渠道：
+		  <ul style="margin-top: 6px; margin-bottom: 10px; padding-left: 20px; line-height: 1.7; font-size: 13.5px;">
+		    <li><b>日文轻小说 / 漫画</b>：<a href="https://www.amazon.co.jp/kindle-dbs/storefront" target="_blank" rel="noopener">Amazon Kindle</a>、<a href="https://bookwalker.jp/" target="_blank" rel="noopener">BookWalker</a>、<a href="https://www.kobo.com/jp/ja" target="_blank" rel="noopener">Kobo</a></li>
+		    <li><b>中文电子书</b>：<a href="https://weread.qq.com/" target="_blank" rel="noopener">微信读书</a>、<a href="https://read.douban.com/" target="_blank" rel="noopener">豆瓣阅读</a>、京东读书</li>
+		    <li><b>英文及公版书</b>：<a href="https://www.gutenberg.org/" target="_blank" rel="noopener">Project Gutenberg</a>（免费公版）、<a href="https://archive.org/details/texts" target="_blank" rel="noopener">Internet Archive</a>（海量数字化图书）</li>
+		    <li><b>学术期刊与文献</b>：<a href="https://www.cnki.net/" target="_blank" rel="noopener">中国知网 (CNKI)</a>、<a href="http://www.wanfangdata.com.cn" target="_blank" rel="noopener">万方数据</a>、<a href="https://www.sciencedirect.com/" target="_blank" rel="noopener">ScienceDirect</a>（需机构订阅）</li>
+		    <li><b>外文原版聚合</b>：<a href="https://www.iresearchbook.cn/" target="_blank" rel="noopener">爱学术</a>、<a href="https://ebookcentral.proquest.com/" target="_blank" rel="noopener">ProQuest Ebook Central</a></li>
+		  </ul>
+		  其次，如果你要找一些绝版或偏门资源，就不得不提 <b>Z-library</b>（全球最大的电子书交流网站）。<br>虽然我们绝不鼓励盗版，也必须承认 z-lib 确实存在一定的版权争议，但同样不可否认的是，在如今互联网越来越封闭、各大平台疯狂圈地建墙的时代，z-lib 几乎是极少数最能体现早期“开放、共享”互联网精神的存在了。<br>
+		  <span style="font-size: 13px; color: var(--muted); margin-top: 4px; display: inline-block;">（p.s. 如何获取 z-lib 的网址本身就是一道最基础的门槛，所以我不会在这里提供网页链接）<br>（p.s.的p.s. 如果议题涉及<b style="color: var(--primary-dark);">“慈禧老巫婆已经付过钱了”</b>？那么我会怀抱着<b style="color: var(--primary-dark);">无以伦比的热情</b>，<b style="color: var(--primary-dark);">坚定不移地推荐</b>你也拥抱 z-lib）</span></p>
+		</div>
+
+		<!-- 第 16 个 (偶) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: var(--panel-bg);">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: 如何获得 VOICEVOX？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> VOICEVOX 是一款<b>完全免费、开源</b>的语音合成软件。你可以直接前往官方网站下载对应系统（Windows / Mac / Linux）的安装包：<br>
+		  🌐 官网地址：<a href="https://voicevox.hiroshiba.jp/" target="_blank" rel="noopener">https://voicevox.hiroshiba.jp/</a><br>
+		  下载安装并启动后，默认会在 <code>127.0.0.1:50021</code> 端口提供引擎服务，本工具即可直接调用。</p>
+		</div>
+
+		<!-- 第 17 个 (奇) -->
+		<div style="padding: 12px; margin-bottom: 8px; border-radius: 6px;">
+		  <p style="margin-bottom: 4px;"><b style="color: var(--primary-dark); font-size: 15px;">Q: 如何获得 CeVIO AI？</b></p>
+		  <p style="margin-top: 0; color: var(--text-secondary);"><b>A:</b> CeVIO AI 是一款高质量的日文语音合成软件，属于<b>付费闭源商业软件</b>，需要购买正版才能使用。<br>
+		  🌐 官方购买与下载：<a href="https://cevio.jp/" target="_blank" rel="noopener">https://cevio.jp/</a><br>
+		  此外，由于 CeVIO AI 本身是闭源的，官方不在 GitHub 发布代码，但社区在 GitHub 上有非常丰富的开源生态（例如相关的 API 桥接工具、Python 封装库等）：<br>
+<svg style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 4px; fill: currentColor;" viewBox="0 0 16 16" aria-hidden="true">
+  <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+</svg> GitHub 社区资源：<a href="https://github.com/search?q=CeVIO" target="_blank" rel="noopener">https://github.com/search?q=CeVIO</a><br>
+<svg style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 4px; fill: currentColor;" viewBox="0 0 16 16" aria-hidden="true">
+  <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+</svg> 神秘小资源：<a href="https://github.com/wangyw15/CeVIOActivator/releases" target="_blank" rel="noopener" style="text-decoration: none !important;">click to get <span style="background-color: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; display: inline-block; font-weight: bold; margin-left: 4px;">WHAT YOU KNOW</span></a></p>
+		</div>
+
+	  </div>
+  </section>
+  <!-- ★ 页面最底部的版本号 -->
+  <div style="display: flex; justify-content: center; padding: 30px 0 20px;">
+    <div id="changelogBtn" style="
+      padding: 6px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      box-shadow: var(--raised-panel);
+      text-shadow: none;
+      user-select: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(var(--ui-blur, 0px));
+      -webkit-backdrop-filter: blur(var(--ui-blur, 0px));
+    " onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='none'; this.style.boxShadow='var(--raised-panel)';" title="点击查看更新日志">
+      Novel TTS Toolbox <span id="appVersion" style="font-weight: bold; color: var(--primary-dark); margin-left: 4px;">v1.1.2</span>
+    </div>
+  </div>
+</div>
+<div class="float-tools">
+  <!-- 前往顶部 -->
+  <button id="backToTop" class="float-tool-btn" type="button" title="前往顶部" aria-label="前往顶部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+  <!-- 设置 -->
+  <button id="floatSettings" class="float-tool-btn" type="button" title="设置" aria-label="设置">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
+  <!-- 前往底部 -->
+  <button id="backToBottom" class="float-tool-btn" type="button" title="前往底部" aria-label="前往底部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+  </button>
+</div>
+<script src="toolbox.common.js"></script>
+<script>
+(function initMarkdownSidebar() {
+  document.querySelectorAll('.markdown-body').forEach(body => {
+    if (body.dataset.hasSidebar) return;
+    body.dataset.hasSidebar = 'true';
+
+    // 1. 抓取 h2, h3, h4 标题
+    const headings = Array.from(body.querySelectorAll('h2, h3, h4'));
+    if (headings.length === 0) return;
+
+    // 读取折叠状态
+    const isH4Visible = localStorage.getItem('md_sidebar_h4') === 'true';
+
+    const sidebarDiv = document.createElement('div');
+    sidebarDiv.className = 'md-sidebar';
+    if (isH4Visible) sidebarDiv.classList.add('show-h4');
+
+    // 2. 构建头部与切换按钮
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'md-sidebar-header';
+    headerDiv.innerHTML = `
+      <h4>📑 目录索引</h4>
+      <button class="toggle-h4-btn" title="展开/折叠详细目录">${isH4Visible ? '▲' : '▼'}</button>
+    `;
+    sidebarDiv.appendChild(headerDiv);
+
+    const sidebarList = document.createElement('ul');
+    sidebarDiv.appendChild(sidebarList);
+
+    // 3. 生成目录列表
+    headings.forEach((h, index) => {
+      if (!h.id) h.id = 'md-heading-' + index;
+      
+      const tag = h.tagName.toLowerCase();
+      const li = document.createElement('li');
+      
+      // 如果是 h4，添加特定类名用于折叠控制
+      if (tag === 'h4') li.className = 'h4-item';
+
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      
+      if (tag === 'h3') a.className = 'h3-link';
+      if (tag === 'h4') a.className = 'h4-link';
+      
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        sidebarList.querySelectorAll('a').forEach(el => el.classList.remove('active'));
+        a.classList.add('active');
+        h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      li.appendChild(a);
+      sidebarList.appendChild(li);
+    });
+
+    // 4. 构建主体内容区
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'md-content';
+    while (body.firstChild) {
+      contentDiv.appendChild(body.firstChild);
+    }
+
+    const layoutDiv = document.createElement('div');
+    layoutDiv.className = 'md-layout';
+    layoutDiv.appendChild(sidebarDiv);
+    layoutDiv.appendChild(contentDiv);
+
+    body.appendChild(layoutDiv);
+    body.classList.add('has-sidebar');
+
+    // 5. 绑定折叠按钮点击事件
+    const toggleBtn = headerDiv.querySelector('.toggle-h4-btn');
+    toggleBtn.addEventListener('click', () => {
+      const isNowVisible = sidebarDiv.classList.toggle('show-h4');
+      // ★ 修改这里，去除方括号
+      toggleBtn.textContent = isNowVisible ? '▲' : '▼';
+      localStorage.setItem('md_sidebar_h4', isNowVisible);
+      
+      // 状态切换后可能高度发生变化，延迟刷新一下高亮
+      setTimeout(updateActiveLink, 50);
+    });
+
+    // 6. 滚动监听与高亮逻辑
+    let ticking = false;
+    
+    function updateActiveLink() {
+      const pane = body.closest('.pane');
+      if (pane && !pane.classList.contains('active')) {
+        ticking = false;
+        return;
+      }
+
+      // 如果在折叠状态，则过滤掉 h4 标题
+      const isExpanded = sidebarDiv.classList.contains('show-h4');
+      const visibleHeadings = headings.filter(h => isExpanded || h.tagName.toLowerCase() !== 'h4');
+      
+      if (visibleHeadings.length === 0) return;
+
+      let activeIndex = 0;
+      for (let i = 0; i < visibleHeadings.length; i++) {
+        const rect = visibleHeadings[i].getBoundingClientRect();
+        // 如果标题距离顶部超过 150px，说明属于下一个章节了
+        if (rect.top > 150) break;
+        activeIndex = i;
+      }
+      
+      // 强制修正：如果在页面最顶部，无条件高亮第一个可见标题
+      if (window.scrollY <= 20) {
+        activeIndex = 0;
+      }
+
+      const currentId = visibleHeadings[activeIndex].id;
+      sidebarList.querySelectorAll('a').forEach(a => {
+        if (a.getAttribute('href') === '#' + currentId) {
+          a.classList.add('active');
+        } else {
+          a.classList.remove('active');
+        }
+      });
+      ticking = false;
+    }
+
+    // 暴露给外部函数调用（用于 tab 切换时）
+    window.updateMdSidebar = updateActiveLink;
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateActiveLink);
+        ticking = true;
+      }
+    }, { passive: true });
+
+    // 初始化执行一次
+    setTimeout(updateActiveLink, 100);
+  });
+})();
+</script>
+<script>
+(function addQANumberWatermark() {
+  // 延迟执行，确保页面 DOM 加载完毕
+  setTimeout(() => {
+    // 找到所有 Q&A 块所在的父容器
+    const qaBlocks = document.querySelectorAll('#pane-guide .md-content > div > div');
+    let count = 1;
+    
+    qaBlocks.forEach(div => {
+      // 如果这个 div 的第一个 p 标签文本以 "Q:" 开头，说明它是 Q&A 块
+      const firstP = div.querySelector('p');
+      if (firstP && firstP.textContent.trim().startsWith('Q:')) {
+        
+        // 1. 让当前 Q&A 块成为相对定位，并隐藏溢出（防止数字超出圆角）
+        div.style.position = 'relative';
+        div.style.overflow = 'hidden';
+        
+        // 2. 创建水印数字元素
+        const watermark = document.createElement('div');
+        watermark.textContent = count++;
+        watermark.style.cssText = `
+          position: absolute;
+          left: 20px; /* 向右移动 */
+          top: 10px;   /* 向下移动 */
+          font-size: 90px;
+          font-weight: 900;
+          color: var(--text);
+          opacity: 0.08;
+          pointer-events: none;
+          line-height: 1;
+          font-family: 'Impact', 'Arial Black', sans-serif;
+          z-index: 0;
+          user-select: none;
+          letter-spacing: -2px;
+        `;
+        
+        // 3. 插入水印
+        div.insertBefore(watermark, div.firstChild);
+        
+        // 4. 将内部所有原有子元素的层级提高，以免被水印盖住
+        Array.from(div.children).forEach(child => {
+          if (child !== watermark) {
+            child.style.position = 'relative';
+            child.style.zIndex = '1';
+          }
+        });
+      }
+    });
+  }, 100);
+})();
+</script>
+<script>
+(function initBlackWindowTipClick() {
+  document.addEventListener('click', function(e) {
+    const tipEl = e.target.closest('.black-window-tip');
+    
+    // 如果点击的是“黑窗口”这个元素本身
+    if (tipEl) {
+      // 切换 show-tip 类，实现点击打开/关闭
+      tipEl.classList.toggle('show-tip');
+      e.stopPropagation(); 
+    } else {
+      // 如果点击了页面的其他区域，自动收起所有点击打开的提示框
+      document.querySelectorAll('.black-window-tip.show-tip').forEach(el => {
+        el.classList.remove('show-tip');
+      });
+    }
+  });
+})();
+</script>
+<script>
+(function initContentFade() {
+  const FADE = 72; // 渐变高度 72px
+  let el = null;
+  
+  function updateMask() {
+    // 每次尝试获取，因为 DOM 是动态生成的
+    if (!el) el = document.querySelector('.md-content');
+    if (!el) return;
+
+    // 如果当前不在“使用说明”标签页，直接清空遮罩
+    const pane = el.closest('.pane');
+    if (pane && !pane.classList.contains('active')) {
+      el.style.webkitMaskImage = 'none';
+      el.style.maskImage = 'none';
+      return;
+    }
+
+    const rect = el.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    
+    // 计算需要渐变的距离
+    let topFade = 0;
+    let bottomFade = 0;
+
+    if (rect.top < 0) {
+      topFade = Math.min(FADE, Math.abs(rect.top));
+    }
+    if (rect.bottom > vh) {
+      bottomFade = Math.min(FADE, rect.bottom - vh);
+    }
+
+    // 如果上下都不需要渐变（比如整个卡片都在视口内），恢复原样
+    if (topFade === 0 && bottomFade === 0) {
+      el.style.webkitMaskImage = 'none';
+      el.style.maskImage = 'none';
+      return;
+    }
+
+    // 计算视口上下边缘在元素内部的 Y 坐标绝对值
+    const viewTopY = -rect.top;
+    const viewBottomY = viewTopY + vh;
+
+    // 构建顶部渐变节点
+    // 如果滚上去了，0 到 viewTopY 是透明，viewTopY 到 viewTopY+topFade 是渐变，之后是黑色
+    let topStopStr = topFade > 0 
+      ? `transparent 0px, transparent ${viewTopY}px, black ${viewTopY + topFade}px` 
+      : `black 0px`;
+      
+    // 构建底部渐变节点
+    // 如果没到底，viewBottomY-bottomFade 到 viewBottomY 是渐变，之后是透明
+    let bottomStopStr = bottomFade > 0 
+      ? `black ${viewBottomY - bottomFade}px, transparent ${viewBottomY}px, transparent 100%` 
+      : `black 100%`;
+
+    const cssGrad = `linear-gradient(to bottom, ${topStopStr}, ${bottomStopStr})`;
+    
+    // 应用真正的透明蒙版
+    el.style.webkitMaskImage = cssGrad;
+    el.style.maskImage = cssGrad;
+  }
+
+  // 绑定事件监听
+  window.addEventListener('scroll', updateMask, { passive: true });
+  window.addEventListener('resize', updateMask, { passive: true });
+  
+  // 页面初始化
+  document.addEventListener('DOMContentLoaded', () => setTimeout(updateMask, 100));
+  if (document.readyState !== 'loading') setTimeout(updateMask, 100);
+  
+  // 挂载到目录更新事件（确保切换页面时也能重新计算）
+  const orig = window.updateMdSidebar;
+  window.updateMdSidebar = function() {
+    if (orig) orig();
+    updateMask();
+  };
+})();
+</script>
+</body>
+</html>
