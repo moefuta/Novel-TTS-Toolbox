@@ -16,14 +16,22 @@
 
 # 运行须下载的文件
 ```
-📂Novel TTS/                	# 文件目录请自行建立
-├── 📝 launcher.html              	# 前端启动器
-├── 📁 html_resources/            	# 前端资源目录（各功能模块 + 共享资源）
-├── 📝 License.txt                	# 许可证
-├── 📦 replace_rule.7z.backup     	# 开发者的规则参考包（仅供参考，不具备普适性）
-├── 📝 run tts.bat                	# 启动脚本（请保存为 ANSI 编码）
-├── 🐟 skill.md                   	# 提供给 AI 的技能/上下文说明文件
-└── 📝 tts.py                     	# 主服务
+📂Novel TTS/
+├── 📁 html_resources/                  # 前端资源目录（各功能模块 + 共享资源）
+│   ├── 📝 voicevox_check.html          # 音色速查模块
+│   ├── 📝 epub_ruby_extract.html       # EPUB Ruby 提取模块
+│   ├── 📝 TTS_main_process.html        # TTS 主进程模块
+│   ├── 📝 how_to_use.html              # 使用说明模块
+│   ├── 📝 license.html                 # 许可模块
+│   ├── 📝 update_history.html          # 更新日志模块
+│   ├── 📝 toolbox.css                  # 共享样式
+│   └── 📝 toolbox.common.js            # 共享脚本
+├── 📝 launcher.html                    # 前端启动器（双击打开）
+├── 📝 License.txt                      # 许可证
+├── 📦 replace_rule.7z.backup           # 开发者的规则参考包（仅供参考，不具备普适性）
+├── 📝 run tts.bat                      # 启动脚本（双击打开）
+├── 🐟 skill.md                         # 提供给 AI 的技能/上下文说明文件
+└── 📝 tts.py                           # 主服务
 ```
 
 # 运行需要进行的设置
