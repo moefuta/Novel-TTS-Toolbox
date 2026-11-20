@@ -1,0 +1,133 @@
+========================================================================
+ Novel TTS 工具箱 · 前端代码结构说明
+========================================================================
+
+本文件用于说明拆分后的前端代码结构，以及「想改某功能时，该去哪个文件、搜什么关键词」。
+
+--------------------------------------------------------------------
+ 一、目录结构
+--------------------------------------------------------------------
+📂 项目根目录/
+├── launcher.html              ← 前端启动器（唯一入口，双击打开）
+├── tts.py                     ← 后端主服务（FastAPI，端口 8000）
+├── requirements.txt           ← Python 依赖
+├── skill.md                   ← 提供给 AI 的技能/上下文说明
+├── README.md                  ← 项目说明
+├── License.txt
+├── run tts.bat                ← 启动后端脚本
+└── 📂 html_resources/         ← 前端资源目录（本说明所在目录）
+    ├── toolbox.css            ← 共享全局样式（视觉系统）
+    ├── toolbox.common.js      ← 共享脚本（主题/设置/复制/下拉框/背景图/悬浮工具/更新日志弹窗）
+    ├── voicevox_check.html    ← 模块：音色速查（VOICEVOX ID）
+    ├── epub_ruby_extract.html ← 模块：EPUB Ruby 提取工作台
+    ├── TTS_main_process.html  ← 模块：TTS 主进程 / 监控台
+    ├── how_to_use.html        ← 模块：使用说明
+    ├── license.html           ← 模块：开源许可
+    └── update_history.html    ← 模块：更新日志
+
+--------------------------------------------------------------------
+ 二、各文件职责
+--------------------------------------------------------------------
+【launcher.html】（在根目录，不在本目录）
+  - 顶部原版标签栏（5 个模块）+ iframe 内嵌切换各模块。
+  - 自带「主题同步」脚本，读取 localStorage 应用主题色/深浅模式/字体，
+    避免切换模块时闪烁。
+
+【toolbox.css】
+  - 全局设计令牌（颜色、字体、阴影、层次）与全部组件样式。
+  - 毛玻璃/背景图/面板透明度相关样式也在这里。
+
+【toolbox.common.js】（所有模块页都会加载）
+  - initSettings：全局设置抽屉（主题色/字体/输出形式/深浅模式）。
+  - initBackgroundImage：背景图 + 面板透明度 + 毛玻璃。
+  - 代码块复制按钮、自定义下拉框、右下角悬浮工具（回顶/设置/回底）。
+  - initChangelogModal：更新日志悬浮弹窗。
+
+【voicevox_check.html】VOICEVOX 音色 ID 查询，纯前端，直连 VOICEVOX。
+【epub_ruby_extract.html】EPUB 解压、Ruby 注音提取、校对、导出（核心工作区）。
+【TTS_main_process.html】监控台：引擎/语种/情绪参数/规则文件启用/合成历史（SSE）。
+【how_to_use.html】静态使用说明文档。
+【license.html】开源许可页面。
+【update_history.html】更新日志内容（被悬浮弹窗以 iframe 加载）。
+
+--------------------------------------------------------------------
+ 三、修改指引（想改什么 → 去哪个文件 → 搜什么）
+--------------------------------------------------------------------
+▶ 主题色 / 配色
+  · 预设主题色列表         → toolbox.common.js     搜 NATURE_THEMES
+  · 主题色动态变体计算     → toolbox.common.js     搜 applyThemeColor
+  · 全局颜色/字体变量      → toolbox.css           搜 :root、--primary、--bg、--card
+  · 启动器主题同步         → launcher.html         搜 applyLauncherTheme
+
+▶ 全局设置抽屉
+  · 抽屉 HTML 结构         → 各功能页(如 voicevox_check.html) 搜 settingsDrawer
+  · 抽屉样式 / 深色遮罩    → toolbox.css          搜 .settings-drawer、.settings-backdrop
+  · 主题/字体/输出形式逻辑 → toolbox.common.js    搜 initSettings
+
+▶ 背景图 / 面板透明度 / 毛玻璃
+  · 逻辑                   → toolbox.common.js    搜 initBackgroundImage
+  · 样式                   → toolbox.css          搜 body.has-bg、--ui-opacity、--ui-blur
+
+▶ 更新日志
+  · 日志内容（改文字）     → update_history.html   搜 v1.1、cl-item
+  · 悬浮弹窗逻辑           → toolbox.common.js    搜 initChangelogModal
+  · 底部版本号             → 各功能页              搜 appVersion、changelogBtn
+
+▶ 音色速查
+  · 全部逻辑               → voicevox_check.html   搜 VOICE_ORDER、MODEL_SPEAKERS、doParse
+
+▶ EPUB Ruby 提取
+  · EPUB 解压              → epub_ruby_extract.html 搜 MiniZip
+  · 注音提取正则           → epub_ruby_extract.html 搜 RUBY_PATTERNS、extractRubyFromAnyText
+  · 词条编辑/筛选/渲染     → epub_ruby_extract.html 搜 renderEntryList、filterState
+  · 导出分组               → epub_ruby_extract.html 搜 buildExportBuckets、normalizeBaseForExport
+  · 本地自动保存           → epub_ruby_extract.html 搜 localStorage、novel_tts_toolbox_state
+
+▶ TTS 主进程 / 监控台
+  · 后端连接               → TTS_main_process.html 搜 API_BASE、connect、__initMonitor
+  · 引擎/模型下拉          → TTS_main_process.html 搜 fillModelSelect、updateEngineVisibility
+  · 语种切换               → TTS_main_process.html 搜 initLangSelector
+  · 自动记忆登记           → TTS_main_process.html 搜 renderAutoDictDetails、containsYayuyotsu
+  · 规则文件启用           → TTS_main_process.html 搜 loadRulesFiles、renderRulesPage
+  · 合成历史(SSE)          → TTS_main_process.html 搜 connectSSE、monitorRecords
+
+▶ 使用说明
+  · 文档内容               → how_to_use.html       搜 pane-guide、markdown-body
+
+▶ License
+  · 许可内容               → license.html          搜 pane-license
+
+--------------------------------------------------------------------
+ 四、后端 tts.py 速查（配合前端修改时常用）
+--------------------------------------------------------------------
+  · 路径常量               → 搜 BASE_DIR、RULES_DIR、AUTO_DICT_FILE
+  · 全局配置               → 搜 _global_config、GlobalConfigModel、set_global_config
+  · 规则加载/解析          → 搜 load_all_rules、_parse_single_file
+  · 规则文件开关           → 搜 _is_file_enabled、list_rules_files
+  · 人名词典/后缀          → 搜 _is_person_dict_file、fix_person_suffixes
+  · 废弃词表               → 搜 trash_can、_is_in_trash_can
+  · auto_dict 登记         → 搜 _append_to_auto_dict、_contains_yayuyotsu、delete_auto_dict_group
+  · Ruby 解析              → 搜 parse_ruby、_extract_html_ruby
+  · TTS 合成               → 搜 _do_synthesize
+
+--------------------------------------------------------------------
+ 五、历史拆分映射（原单文件 → 现拆分）
+--------------------------------------------------------------------
+原「all in one toolbox.html」已按功能拆分（该旧文件已删除）：
+  · 主 <style> 块           → toolbox.css
+  · 音色速查脚本            → voicevox_check.html
+  · EPUB Ruby 提取脚本      → epub_ruby_extract.html
+  · 监控台脚本              → TTS_main_process.html
+  · 使用说明面板            → how_to_use.html
+  · License 面板            → license.html
+  · 更新日志弹窗            → update_history.html
+  · 主题/设置/复制/下拉框/背景图/悬浮工具（多处共用）→ toolbox.common.js
+
+--------------------------------------------------------------------
+ 六、注意事项
+--------------------------------------------------------------------
+ 1. toolbox.common.js 被所有模块页加载，改它会影响全局，请谨慎。
+ 2. 各模块页通过 <iframe> 内嵌；页面间的 localStorage 在 file:// 下可能
+    不互通，若需完全一致请用本地服务器（python -m http.server 8080）。
+ 3. 后端 tts.py 与前端通过 http://localhost:8000 的 /v1/* 接口通信。
+========================================================================

@@ -43,6 +43,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
+# ★ 黑窗口详细任务日志：统一走 stdout，确保中文/日文不乱码
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+def _log(tag: str, msg: str = ""):
+    """统一日志输出到黑窗口，带时间戳与标签，方便排查映射流程。"""
+    try:
+        ts = datetime.now().strftime("%H:%M:%S")
+    except Exception:
+        ts = "--:--:--"
+    line = f"[{ts}][{tag}] {msg}".rstrip()
+    try:
+        print(line, flush=True)
+    except Exception:
+        pass
+
 # ============================================================
 # 一、路径与常量
 # ============================================================
@@ -233,6 +252,9 @@ _auto_dict_words = {}  # ★ 存放仅作登记的 auto_dict 词条
 _dict_any_word_regex = None  # ★ 用于匹配词典中任意长度>1的词，解决长词包裹问题
 _auto_dict_lock = threading.Lock()
 _dict_lock = threading.RLock()
+
+# ★ auto_dict 待检验词条数量阈值播报：只在“组词”数量越过 50/100 时各播报一次
+_auto_dict_announced_thresholds = set()
 
 _rules_enabled_files = None
 
@@ -534,6 +556,162 @@ def _split_equivalent_patterns(pattern_str):
     if not parts or not all(_is_plain_text(p) for p in parts): return [pattern_str]
     return parts
 
+def _estimate_regex_match_len(pattern: str) -> int:
+    """
+    估算一个正则「实际消耗文本」的最大长度，用于规则引擎的「长词优先」排序。
+    规则：
+      - 字面量字符、字符类[...]、转义\\X、点号 . 各算 1 个字符；
+      - 零宽断言 (?=...) (?!...) (?<=...) (?<!...) 算 0（不参与长词判定）；
+      - 选择 a|b 取各分支长度的最大值（而不是把分支长度相加）；
+      - 量词 *+?{m,n} 只作用在前一个原子上（{m,n} 取 n，其余取保守值）。
+    这样 (?<![0-9])(1|一)本 会被正确估算为 2，而不是 3。
+    """
+    n = len(pattern)
+    i = 0
+
+    def skip_group():
+        nonlocal i
+        depth = 0
+        while i < n:
+            ch = pattern[i]
+            if ch == '\\':
+                i += 2
+                continue
+            if ch == '[':
+                i += 1
+                if i < n and pattern[i] == '^':
+                    i += 1
+                if i < n and pattern[i] == ']':
+                    i += 1
+                while i < n and pattern[i] != ']':
+                    i += 1
+                i += 1
+                continue
+            if ch == '(':
+                depth += 1
+            elif ch == ')':
+                depth -= 1
+                if depth == 0:
+                    i += 1
+                    return
+            i += 1
+
+    def parse_repeat():
+        nonlocal i
+        if i >= n:
+            return 1
+        c = pattern[i]
+        if c == '*':
+            i += 1
+            return 1
+        if c == '+':
+            i += 1
+            return 1
+        if c == '?':
+            i += 1
+            return 1
+        if c == '{':
+            j = pattern.find('}', i)
+            if j != -1:
+                body = pattern[i + 1:j]
+                parts = body.split(',')
+                v = 0
+                try:
+                    if len(parts) == 2 and parts[1]:
+                        v = int(parts[1])
+                    elif parts[0]:
+                        v = int(parts[0])
+                except ValueError:
+                    v = 0
+                i = j + 1
+                return v
+        return 1
+
+    def parse_atom():
+        nonlocal i
+        if i >= n:
+            return 0
+        c = pattern[i]
+        if c == '(':
+            # 零宽断言：跳过整个括号内容，算 0
+            if i + 2 < n and pattern[i + 1] == '?':
+                if pattern[i + 2] in '=!':
+                    skip_group()
+                    return 0
+                if pattern[i + 2] == '<' and i + 3 < n and pattern[i + 3] in '=!':
+                    skip_group()
+                    return 0
+            # 非捕获组 (?:...) / 命名组 (?P<name>...) / 普通组 (...)：跳过前缀，递归解析内容
+            if i + 2 < n and pattern[i + 1] == '?':
+                if pattern[i + 2] == ':':
+                    i += 3
+                elif pattern[i + 2] == 'P':
+                    i += 2
+                    gt = pattern.find('>', i)
+                    rp = pattern.find(')', i)
+                    if gt != -1 and (rp == -1 or gt < rp):
+                        i = gt + 1
+                else:
+                    i += 1
+            else:
+                i += 1
+            base = parse_alt()
+            if i < n and pattern[i] == ')':
+                i += 1
+            return base
+        if c == '[':
+            j = i + 1
+            if j < n and pattern[j] == '^':
+                j += 1
+            if j < n and pattern[j] == ']':
+                j += 1
+            while j < n and pattern[j] != ']':
+                j += 1
+            i = (j + 1) if j < n else n
+            return 1
+        if c == '\\':
+            i += 2
+            return 1
+        if c == '.':
+            i += 1
+            return 1
+        if c in '^$':
+            i += 1
+            return 0
+        if c in '|)':
+            return 0
+        if c in '*+?{':
+            i += 1
+            return 0
+        i += 1
+        return 1
+
+    def parse_seq():
+        nonlocal i
+        total = 0
+        while i < n:
+            c = pattern[i]
+            if c == '|' or c == ')':
+                break
+            base = parse_atom()
+            rep = parse_repeat()
+            total += base * max(0, rep)
+        return total
+
+    def parse_alt():
+        nonlocal i
+        branches = [parse_seq()]
+        while i < n and pattern[i] == '|':
+            i += 1
+            branches.append(parse_seq())
+        return max(branches)
+
+    try:
+        result = parse_alt()
+    except Exception:
+        result = 0
+    return max(1, result)
+
 def _init_rules_dir():
     # 1. 检查并创建必需的目录
     if not os.path.exists(RULES_DIR): 
@@ -554,7 +732,8 @@ def _init_rules_dir():
             f.write("# 请将本文件（auto_dict.txt）连同（Skill.md）一同发给DeepSeek或其他免费AI进行校验。\n")
             f.write("# 确认读音无误后，请手动将其复制到 user_dict.txt 或其他规则文件中。\n\n")
             f.write("# ===== 组词 =====\n\n")
-            f.write("# ===== 单字 =====\n\n")
+            f.write("# ===== 单字（含やゆよつ） =====\n\n")
+            f.write("# ===== 单字（不含やゆよつ） =====\n\n")
             
     # 3. 检查并创建示例 user_dict.txt
     user_dict_path = os.path.join(RULES_DIR, "user_dict.txt")
@@ -602,7 +781,9 @@ def _init_rules_dir():
             f.write("# 废弃词表（trash_can.txt）\n")
             f.write("# ==========================================\n")
             f.write("# 记录在这里的「词」，即便原文里带了它的 ruby 注音，\n")
-            f.write("# 也会被视作废弃，不会再登记进 auto_dict.txt。\n#\n")
+            f.write("# 也不会再登记进 auto_dict.txt（仅此而已）。\n")
+            f.write("# ⚠️ 注意：它【不会】影响朗读本身——原文自带的 ruby 注音仍会被正常读取并使用，\n")
+            f.write("#   因此特别适合「多音字/多音词」：不同地方用不同注音时，别写死规则，登记到这里即可。\n#\n")
             f.write("# 用法：每行写一个词；也兼容「原文 => 读音」格式（只取左侧原文）。\n")
             f.write("# 以 # 开头的行是注释，保存后下次朗读自动热重载生效。\n\n")
             f.write("# 示例（删除行首 # 即可生效）：\n")
@@ -759,15 +940,11 @@ def _parse_single_file(path):
             except Exception:
                 compiled = re.compile(re.escape(part))
             
-            # ★ 核心修复：估算匹配长度
+            # ★ 核心修复：估算匹配长度（正则只按“实际消耗文本”计长，长词优先排序才正确）
             if _is_plain_text(part):
                 orig_len = len(part)
             else:
-                # 如果是正则，剥离元字符和断言，只算真实字符的权重
-                s = re.sub(r'\[\^?.*?\]', '', part)       # 去掉字符类 [一-龥]
-                s = re.sub(r'\(\?.*?\)', '', s)           # 去掉非捕获组和断言 (?<!...)
-                s = re.sub(r'[\(\)\|\?\*\+\\\^\$\.\{\}]', '', s) # 去掉其他元字符
-                orig_len = max(1, len(s))                 # 剩下的字符长度
+                orig_len = _estimate_regex_match_len(part)
                 
             rules.append((compiled, options, count, orig_len, part))
     return rules, errors, person_names, suffixes
@@ -797,12 +974,17 @@ def load_all_rules(force=False):
             
         is_auto = (filename == AUTO_DICT_BASENAME)
         if filename == TRASH_CAN_BASENAME:
-            continue  # ★ 废弃词表不参与规则解析，仅用于过滤 auto_dict 登记
+            # ★ 废弃词表（trash_can.txt）绝不参与规则解析 / ruby 解析 / TTS 判定：
+            #    它只通过 _is_in_trash_can() 过滤 auto_dict 的登记，原文 ruby 注音照常读取。
+            continue
         rules, _, persons, suffixes = _parse_single_file(filepath)
         if rules is None: 
             continue
             
         if is_auto:
+            # ★ auto_dict.txt 只做登记，绝不参与任何 TTS 判定：
+            #    只把它记录进 auto_keys / auto_dict_words，用于前端展示与 AI 校验，
+            #    绝不写入 pattern_map / new_exact_dict（即 _all_rules / _exact_dict_lookup）。
             for compiled, options, count, orig_len, original_text in rules:
                 auto_keys.add(compiled.pattern)
                 if options:
@@ -812,16 +994,11 @@ def load_all_rules(force=False):
         new_person_names.update(persons)
         new_person_suffixes.update(suffixes)
         
+        # ★ 走到这里的一定是 person_dict / user_dict 等真实规则文件，
+        #    auto_dict.txt 已在上面 continue 跳过，杜绝其参与 ruby 解析与替换判定。
+        is_person = _is_person_dict_file(filename)
         for compiled, options, count, orig_len, original_text in rules:
-            if is_auto: 
-                auto_keys.add(compiled.pattern)
-                
-            if is_auto:
-                priority = (2, -count)
-            elif _is_person_dict_file(filename):
-                priority = (0, -count)
-            else:
-                priority = (1, -count)
+            priority = (0, -count) if is_person else (1, -count)
                 
             if compiled.pattern not in pattern_map or priority < pattern_map[compiled.pattern][0]:
                 pattern_map[compiled.pattern] = (priority, compiled, options, orig_len)
@@ -879,6 +1056,12 @@ def load_all_rules(force=False):
         _auto_dict_words.clear()
         _auto_dict_words.update(new_auto_dict_words)
 
+    # ★ 详细任务日志：仅在实际重建规则时输出，避免每次请求刷屏
+    word_rules = [p for p in all_loaded_rules if p[2] > 1]
+    _log("规则", f"已重载规则：共 {len(all_loaded_rules)} 条（多字 {len(word_rules)} 条），"
+                 f"精确词表 {len(new_exact_dict)} 个，人名 {len(new_person_names)} 个，"
+                 f"auto_dict 登记 {len(new_auto_dict_words)} 条")
+
 def apply_replace_rules(text, output_mode='B', clean_punct=True):
     load_all_rules()
     with _dict_lock: rules_snapshot = list(_all_rules)
@@ -897,8 +1080,9 @@ def apply_replace_rules(text, output_mode='B', clean_punct=True):
     if output_mode == 'C':
         text = protect_rubies(text)
 
+    matched_rules = []  # ★ 日志：记录本次替换实际命中的规则
     for pattern, options, _ in rules_snapshot:
-        def replacer(m, options=options, output_mode=output_mode):
+        def replacer(m, options=options, output_mode=output_mode, pattern=pattern):
             original = m.group(0)
             if len(options) == 1:
                 chosen = options[0][0]
@@ -909,6 +1093,7 @@ def apply_replace_rules(text, output_mode='B', clean_punct=True):
                 
             try: chosen_expanded = m.expand(chosen)
             except Exception: chosen_expanded = chosen
+            matched_rules.append((pattern.pattern, original, chosen_expanded))
                 
             if output_mode == 'A': return original
             elif output_mode == 'B': return chosen_expanded
@@ -930,6 +1115,17 @@ def apply_replace_rules(text, output_mode='B', clean_punct=True):
                 text = protect_rubies(text)
         except Exception: 
             pass
+
+    # ★ 日志：汇总本次替换命中的规则（去重，避免刷屏）
+    if matched_rules:
+        seen_rules = []
+        for pat, original, chosen in matched_rules:
+            if (pat, original, chosen) not in seen_rules:
+                seen_rules.append((pat, original, chosen))
+        for pat, original, chosen in seen_rules[:20]:
+            _log("替换", f"规则命中: {original} => {chosen}  (pattern={pat})")
+        if len(seen_rules) > 20:
+            _log("替换", f"…… 共命中 {len(seen_rules)} 条规则，仅显示前 20 条")
             
     # 彻底还原所有保护
     if output_mode == 'C':
@@ -1021,7 +1217,8 @@ def fix_person_suffixes(text, output_mode='C'):
                 res = suffix_str
         else:  
             res = info["reading"]
-            
+
+        _log("后缀", f"修正人名后缀: {full} -> {name_part + res}")
         return name_part + res
         
     return pattern.sub(replacer, text)
@@ -1092,7 +1289,9 @@ def _merge_adjacent_rubies(text):
                         break
             if matched_len > 0:
                 # 命中词典，直接返回纯文本，丢弃原注音，让后面的 apply_replace_rules 接管
-                result.append(''.join(p[0] for p in pairs[i:i+matched_len]))
+                merged_base = ''.join(p[0] for p in pairs[i:i+matched_len])
+                _log("Ruby", f"ruby 命中词典，丢弃原注音（交由词库替换接管）: {merged_base}")
+                result.append(merged_base)
                 i += matched_len
             else:
                 # 没命中，原样保留该 ruby 标签
@@ -1124,7 +1323,9 @@ def _merge_adjacent_rubies(text):
                         matched_len = j - i
                         break
             if matched_len > 0:
-                result.append(''.join(p[0] for p in pairs[i:i+matched_len]))
+                merged_base = ''.join(p[0] for p in pairs[i:i+matched_len])
+                _log("Ruby", f"ruby 命中词典，丢弃原注音（交由词库替换接管）: {merged_base}")
+                result.append(merged_base)
                 i += matched_len
             else:
                 b, r = pairs[i]
@@ -1163,6 +1364,7 @@ def parse_ruby(text, output_mode='B'):
             if not base or not ruby: return m.group(0)
             
             if base == ruby:
+                _log("Ruby", f"丢弃注音（原文=读音）: {base} => {ruby}")
                 return base
                 
             # ★ 核心新增：自动屏蔽纯英文/数字/符号的注音
@@ -1172,6 +1374,7 @@ def parse_ruby(text, output_mode='B'):
                 key = (base, ruby, "已屏蔽英文注音", True)
                 if key not in _seen_findings:
                     _seen_findings.add(key)
+                    _log("Ruby", f"屏蔽英文注音: {base} => {ruby}")
                     findings.append({"base": base, "ruby": ruby, "final": "已屏蔽英文注音", "from_dict": True})
                 return base
                 
@@ -1179,17 +1382,29 @@ def parse_ruby(text, output_mode='B'):
             with _dict_lock:
                 base_no_space = re.sub(r'[ \u3000]', '', base)
                 if base in _exact_dict_lookup or base_no_space in _exact_dict_lookup:
-                    findings.append({"base": base, "ruby": ruby, "final": "由用户词典覆盖", "from_dict": True})
+                    _log("Ruby", f"由用户词典覆盖，丢弃原文注音: {base} => {ruby}")
+                    key = (base, ruby, "由用户词典覆盖", True)
+                    if key not in _seen_findings:
+                        _seen_findings.add(key)
+                        findings.append({"base": base, "ruby": ruby, "final": "由用户词典覆盖", "from_dict": True})
                     return base
                 
                 # ★ 核心修复：如果该词在 person_suffixes 中，说明它是待修正的后缀，直接废弃原注音
                 if base in _person_suffixes:
-                    findings.append({"base": base, "ruby": ruby, "final": "由后缀词典覆盖", "from_dict": True})
+                    _log("Ruby", f"由后缀词典覆盖，丢弃原文注音: {base} => {ruby}")
+                    key = (base, ruby, "由后缀词典覆盖", True)
+                    if key not in _seen_findings:
+                        _seen_findings.add(key)
+                        findings.append({"base": base, "ruby": ruby, "final": "由后缀词典覆盖", "from_dict": True})
                     return base
                 
                 # ★ 拦截：如果 base 的某个子串在词典中（如 施錠音 包含 施錠），也废弃注音，交由后续规则处理
                 if _dict_any_word_regex and _dict_any_word_regex.search(base):
-                    findings.append({"base": base, "ruby": ruby, "final": "包含词典词，已拆解由词典接管", "from_dict": True})
+                    _log("Ruby", f"包含词典词，拆解由词典接管，丢弃原文注音: {base} => {ruby}")
+                    key = (base, ruby, "包含词典词，已拆解由词典接管", True)
+                    if key not in _seen_findings:
+                        _seen_findings.add(key)
+                        findings.append({"base": base, "ruby": ruby, "final": "包含词典词，已拆解由词典接管", "from_dict": True})
                     return base
                     
             def clean(r): return re.sub(r'[·・\s]', '', r)
@@ -1209,6 +1424,7 @@ def parse_ruby(text, output_mode='B'):
                     key = (base, ruby, chosen, False)
                     if key not in _seen_findings:
                         _seen_findings.add(key)
+                        _log("Ruby", f"保留注音（多读音随机抽取）: {base} => {ruby} → 抽中 {chosen}")
                         findings.append({"base": base, "ruby": ruby, "final": chosen, "from_dict": False})
                     if output_mode == 'A': return base
                     elif output_mode == 'B': return chosen
@@ -1217,6 +1433,7 @@ def parse_ruby(text, output_mode='B'):
             key = (base, ruby, ruby, False)
             if key not in _seen_findings:
                 _seen_findings.add(key)
+                _log("Ruby", f"保留注音: {base} => {ruby}")
                 findings.append({"base": base, "ruby": ruby, "final": ruby, "from_dict": False})
 
             if output_mode == 'A': return base
@@ -1227,25 +1444,30 @@ def parse_ruby(text, output_mode='B'):
         
     return text, findings
 
+_YA_YU_YO_TSU_RE = re.compile(r'[やゆよつゃゅょっヤユヨツャュョッ]')
+
+def _contains_yayuyotsu(ruby: str) -> bool:
+    """判断读音是否包含「やゆよつ」系假名（含大小字、平片假名），用于单字分组。"""
+    return bool(_YA_YU_YO_TSU_RE.search(ruby))
+
 def _append_to_auto_dict(base, ruby):
     global _rules_dir_state
     base, ruby = (base or "").strip(), (ruby or "").strip()
     if not base or not ruby: return False
     
-    # ★ 废弃词表：命中 trash_can.txt 即直接丢弃，不再登记进 auto_dict
+    # ★ 废弃词表：命中 trash_can.txt 即直接跳过「登记」这一步。
+    #    它只影响 auto_dict 登记，绝不回头改动已经解析好的朗读文本（ruby 注音照常用）。
     if _is_in_trash_can(base):
+        _log("登记", f"跳过（命中 trash_can.txt，仅不登记，不影响朗读）: {base} => {ruby}")
         return False
     
-    # ★ 单字准入判断
-    if len(base) == 1:
-        # 逻辑：记录所有包含小字（拗音/促音）的读音，以及非首位出现的 やゆよつ 大字
-        if not re.search(r'[ゃゅょっぁぃぅぇぉャュョッァィゥェォ]|(?<!^)[やゆよつヤユヨツ]', ruby):
-            return False
+    # ★ 收录所有单字（不再按高危条件过滤），写入时按「含/不含 やゆよつ」分组
 
     with _dict_lock:
         # 终极防线：如果这个词在词典里已经存在（哪怕大小写/空格有差异），直接拒绝登记
         base_no_space = re.sub(r'[ \u3000]', '', base)
         if base in _exact_dict_lookup or base_no_space in _exact_dict_lookup:
+            _log("登记", f"跳过（已被现有词典覆盖）: {base} => {ruby}")
             return False
 
     key_check = _build_latin_fold_pattern(base) if _is_plain_text(base) else re.escape(base)
@@ -1287,8 +1509,10 @@ def _append_to_auto_dict(base, ruby):
                                         _auto_dict_words[ex_base] = new_ruby_str
                                     
                                     _rules_dir_state = None # 触发规则重载
+                                    _log("登记", f"单字合并读音: {ex_base} => {new_ruby_str}")
                                     return True
                             
+                            _log("登记", f"跳过（auto_dict 已登记过）: {base} => {ruby}")
                             return False # 已处理或不需要处理，直接结束
             except Exception:
                 pass
@@ -1301,12 +1525,19 @@ def _append_to_auto_dict(base, ruby):
                 "# ==========================================\n\n",
                 "# ===== 组词 =====\n",
                 "\n",
-                "# ===== 单字 =====\n",
+                "# ===== 单字（含やゆよつ） =====\n",
+                "\n",
+                "# ===== 单字（不含やゆよつ） =====\n",
                 "\n"
             ]
 
-        # 根据长度决定放入哪个分类
-        target_title = "# ===== 组词 =====\n" if len(base) > 1 else "# ===== 单字 =====\n"
+        # 根据长度与读音决定放入哪个分类
+        if len(base) > 1:
+            target_title = "# ===== 组词 =====\n"
+        elif _contains_yayuyotsu(ruby):
+            target_title = "# ===== 单字（含やゆよつ） =====\n"
+        else:
+            target_title = "# ===== 单字（不含やゆよつ） =====\n"
         new_line = f"{base} => {ruby}\n"
         
         # 确保标题存在
@@ -1337,7 +1568,50 @@ def _append_to_auto_dict(base, ruby):
         
     with _auto_dict_lock:
         _auto_dict_words[base] = ruby
+    _log("登记", f"已登记进 auto_dict: {base} => {ruby}")
     return True
+
+# ★ 待检验词条（auto_dict 组词）数量阈值播报
+_AUTO_DICT_ANNOUNCE_THRESHOLDS = (50, 100)
+_AUTO_DICT_ANNOUNCE_NUMBERS = {50: "五十", 100: "百"}
+
+def _current_auto_dict_word_count() -> int:
+    """当前待检验『组词』数量（只统计长度 > 1 的词条，与前端主计数一致）。"""
+    with _auto_dict_lock:
+        return sum(1 for k in _auto_dict_words.keys() if len(k) > 1)
+
+def _auto_dict_announce_if_crossed(before_count: int, after_count: int) -> int | None:
+    """
+    判断本次登记是否让待检验『组词』数量越过 50 / 100 阈值。
+    每个阈值整个会话只播报一次，避免反复提醒打扰朗读。
+    """
+    for t in _AUTO_DICT_ANNOUNCE_THRESHOLDS:
+        if before_count < t <= after_count and t not in _auto_dict_announced_thresholds:
+            _auto_dict_announced_thresholds.add(t)
+            return t
+    return None
+
+def _build_auto_dict_announcement(threshold: int, output_mode: str = 'C') -> str:
+    """按当前输出形式构造阈值提醒文本（A=原文 / B=纯读音 / C=ruby 注音）。"""
+    num = _AUTO_DICT_ANNOUNCE_NUMBERS.get(threshold, str(threshold))
+
+    def seg(base, ruby):
+        if base is None:
+            return ruby
+        if output_mode == 'C':
+            return f"｜{base}《{ruby}》"
+        if output_mode == 'B':
+            return ruby
+        return base  # output_mode == 'A'
+
+    return (
+        seg(None, "ただいま、")
+        + seg("確認", "かくにん") + seg(None, "待ちの")
+        + seg("項目", "こうもく") + seg(None, "わ、")
+        + num + seg(None, "になりました、")
+        + seg("早急", "そうきゅう") + seg(None, "に")
+        + seg("確認", "かくにん") + seg(None, "する事をお勧めします。")
+    )
 
 def _record_monitor(record):
     with _monitor_lock: _monitor_records.append(record)
@@ -1503,7 +1777,7 @@ class RuleSearchPayload(BaseModel):
     mode: str = "all"  # 可选值：all (全搜索), base (搜A), ruby (搜B)
 # ★ 删除 auto_dict 分组请求体
 class AutoDictDeleteGroupPayload(BaseModel):
-    group: str  # "word" 或 "single"
+    group: str  # "word" / "single_ya" / "single_no"
 # ★ 打开文件的请求体
 class RuleOpenPayload(BaseModel):
     filename: str
@@ -1515,6 +1789,25 @@ class ComPresetSaveModel(BaseModel):
     model_id: str; cast: str; emotions: dict[str, int]; speed: int = 50; tone_scale: int = 50
     text: str = "只今、CeVIO AI の感情パラメータのお試しテスト運転しています。"
     filename: str | None = None  # ★ 新增：允许指定保存到哪个配置文件
+
+def _read_app_version() -> str:
+    """读取 html_resources/update_history.html，解析最新版本号（如 v1.1.3）。"""
+    history_path = os.path.join(BASE_DIR, "html_resources", "update_history.html")
+    try:
+        if os.path.exists(history_path):
+            with open(history_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            m = re.search(r'class="cl-title"[^>]*>\s*(v?\d+\.\d+\.\d+)', content)
+            if m:
+                return m.group(1)
+    except Exception:
+        pass
+    return "v1.1.3"
+
+@app.get("/v1/version")
+async def get_app_version():
+    version = _read_app_version()
+    return {"version": version, "name": f"Novel TTS Toolbox {version}"}
 
 @app.get("/v1/models")
 async def list_models():
@@ -1734,7 +2027,7 @@ async def delete_auto_dict_item(payload: AutoDictDeletePayload):
 @app.post("/v1/auto_dict/delete_group")
 async def delete_auto_dict_group(payload: AutoDictDeleteGroupPayload):
     group = payload.group
-    if group not in ("word", "single"):
+    if group not in ("word", "single_ya", "single_no"):
         raise HTTPException(status_code=400, detail="非法分组名")
 
     with _auto_dict_lock:
@@ -1756,8 +2049,12 @@ async def delete_auto_dict_group(payload: AutoDictDeleteGroupPayload):
                     current_section = "word"
                     new_lines.append(line)
                     continue
-                elif stripped.startswith("# ===== 单字 ====="):
-                    current_section = "single"
+                elif stripped.startswith("# ===== 单字（含やゆよつ） ====="):
+                    current_section = "single_ya"
+                    new_lines.append(line)
+                    continue
+                elif stripped.startswith("# ===== 单字（不含やゆよつ） ====="):
+                    current_section = "single_no"
                     new_lines.append(line)
                     continue
                 elif stripped.startswith("#"):
@@ -1778,9 +2075,15 @@ async def delete_auto_dict_group(payload: AutoDictDeleteGroupPayload):
 
                 # 同步清理内存中的字典
                 keys_to_delete = []
-                for k in _auto_dict_words.keys():
-                    if (group == "word" and len(k) > 1) or (group == "single" and len(k) == 1):
-                        keys_to_delete.append(k)
+                for k, v in _auto_dict_words.items():
+                    if len(k) > 1:
+                        if group == "word":
+                            keys_to_delete.append(k)
+                    else:
+                        if group == "single_ya" and _contains_yayuyotsu(v):
+                            keys_to_delete.append(k)
+                        elif group == "single_no" and not _contains_yayuyotsu(v):
+                            keys_to_delete.append(k)
                 for k in keys_to_delete:
                     del _auto_dict_words[k]
 
@@ -1954,6 +2257,10 @@ async def _do_synthesize(request: TTSRequest):
     output_mode = _global_config.get("output_format", "C")
     lang = _global_config.get("lang", "ja")
 
+    _t_start = time.time()
+    _log("请求", f"开始合成: model={model_lower} lang={lang} output_format={output_mode}")
+    _log("请求", f"原文: {request.input}")
+
     if lang == 'en':
         # 【英语】禁用一切映射功能，直接原文发送
         text = request.input
@@ -1968,22 +2275,37 @@ async def _do_synthesize(request: TTSRequest):
         # 【日语】正常逻辑
         text, findings = await asyncio.to_thread(parse_ruby, request.input, output_mode)
         record["ruby_findings"] = findings
+        _log("Ruby", f"共识别 {len(findings)} 条注音")
+        _log("Ruby", f"解析后文本: {text}")
         
         # ★ 修复：在登记 auto_dict 前，检查是否已被现有词典完全接管
+        count_before = _current_auto_dict_word_count()
         for f in findings:
             if f.get("from_dict"):
                 continue
             base = f["base"]
             # 如果这个组合词能被现有规则库完美拆解并替换（不留任何汉字），则不登记
             if await asyncio.to_thread(_is_fully_covered_by_dict, base):
+                _log("登记", f"跳过（已被现有词典完全拆解覆盖）: {base} => {f['ruby']}")
                 continue
             _append_to_auto_dict(base, f["ruby"])
+        count_after = _current_auto_dict_word_count()
 
         # ★ 核心修复：先执行词库替换（长词优先拦截，防止被后缀修正拆解），再执行后缀修正
         text = await asyncio.to_thread(apply_replace_rules, text, output_mode)
+        _log("替换", f"词库替换后文本: {text}")
         text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
+        _log("后缀", f"后缀修正后文本: {text}")
+
+        # ★ 新功能：待检验词条数量越过 50 / 100 时，临时在正文前插入一条语音提醒
+        threshold = _auto_dict_announce_if_crossed(count_before, count_after)
+        if threshold is not None:
+            announcement = _build_auto_dict_announcement(threshold, output_mode)
+            _log("提醒", f"待检验词条已达 {threshold} 条，临时插入语音提醒")
+            text = announcement + text
 
     record["final_text"] = text
+    _log("合成", f"最终文本: {text}")
     if not text.strip():
         record.update({"status": "error", "error": "朗读文本为空"}); _record_monitor(record)
         raise HTTPException(status_code=400, detail="朗读文本为空")
@@ -1994,6 +2316,7 @@ async def _do_synthesize(request: TTSRequest):
         record["backend"] = "silence"
         record["speaker"] = "纯标点静音兜底"
         _record_monitor(record)
+        _log("合成", "纯标点文本，返回 1 秒静音兜底")
         return _generate_silence_wav(1.0), record
 
     # ================== ★ Windows 讲述人 / 系统 SAPI ==================
@@ -2007,9 +2330,12 @@ async def _do_synthesize(request: TTSRequest):
         try:
             await asyncio.to_thread(_synthesize_sapi_sync, text, voice_desc, speed, tmp_wav)
             with open(tmp_wav, "rb") as f: audio = f.read()
-            _record_monitor(record); return audio, record
+            _record_monitor(record)
+            _log("合成", f"Windows 讲述人合成成功，耗时 {int((time.time()-_t_start)*1000)}ms")
+            return audio, record
         except Exception as e:
             record.update({"status": "error", "error": f"Windows合成失败: {e}"}); _record_monitor(record)
+            _log("合成", f"Windows 讲述人合成失败: {e}")
             raise HTTPException(status_code=500, detail=str(e))
         finally:
             if os.path.exists(tmp_wav): os.remove(tmp_wav)
@@ -2030,9 +2356,12 @@ async def _do_synthesize(request: TTSRequest):
             communicate = edge_tts.Communicate(text, voice_id, rate=rate_str)
             await communicate.save(tmp_wav)
             with open(tmp_wav, "rb") as f: audio = f.read()
-            _record_monitor(record); return audio, record
+            _record_monitor(record)
+            _log("合成", f"Edge TTS 合成成功，耗时 {int((time.time()-_t_start)*1000)}ms")
+            return audio, record
         except Exception as e:
             record.update({"status": "error", "error": f"Edge TTS 合成失败: {e}"}); _record_monitor(record)
+            _log("合成", f"Edge TTS 合成失败: {e}")
             raise HTTPException(status_code=500, detail=f"Edge TTS 合成失败（需联网）: {e}")
         finally:
             if os.path.exists(tmp_wav): os.remove(tmp_wav)
@@ -2048,9 +2377,12 @@ async def _do_synthesize(request: TTSRequest):
         record["speaker"] = f"Speaker ID {speaker_id}"
         try:
             audio = await _voicevox_synth(text, speaker_id, speed)
-            _record_monitor(record); return audio, record
+            _record_monitor(record)
+            _log("合成", f"VOICEVOX 合成成功，耗时 {int((time.time()-_t_start)*1000)}ms")
+            return audio, record
         except Exception as e:
             record.update({"status": "error", "error": str(e)}); _record_monitor(record)
+            _log("合成", f"VOICEVOX 合成失败: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     # 2. CeVIO COM 情绪模型
@@ -2063,9 +2395,12 @@ async def _do_synthesize(request: TTSRequest):
         try:
             await asyncio.to_thread(_synthesize_com_sync, text, cast, emotions, com_speed, tone_scale, tmp_wav)
             with open(tmp_wav, "rb") as f: audio = f.read()
-            _record_monitor(record); return audio, record
+            _record_monitor(record)
+            _log("合成", f"CeVIO COM 合成成功，耗时 {int((time.time()-_t_start)*1000)}ms")
+            return audio, record
         except Exception as e:
             record.update({"status": "error", "error": f"COM 合成失败: {e}"}); _record_monitor(record)
+            _log("合成", f"CeVIO COM 合成失败: {e}")
             raise HTTPException(status_code=500, detail=str(e))
         finally:
             if os.path.exists(tmp_wav): os.remove(tmp_wav)
@@ -2080,9 +2415,12 @@ async def _do_synthesize(request: TTSRequest):
         try:
             await asyncio.to_thread(_synthesize_sapi_sync, text, voice_desc, speed, tmp_wav)
             with open(tmp_wav, "rb") as f: audio = f.read()
-            _record_monitor(record); return audio, record
+            _record_monitor(record)
+            _log("合成", f"SAPI 合成成功，耗时 {int((time.time()-_t_start)*1000)}ms")
+            return audio, record
         except Exception as e:
             record.update({"status": "error", "error": f"SAPI 合成失败: {e}"}); _record_monitor(record)
+            _log("合成", f"SAPI 合成失败: {e}")
             raise HTTPException(status_code=500, detail=str(e))
         finally:
             if os.path.exists(tmp_wav): os.remove(tmp_wav)
@@ -2090,6 +2428,7 @@ async def _do_synthesize(request: TTSRequest):
     else:
         # ★ 核心修复：报错应该显示解析后的 model_lower，而不是外层的 auto
         record.update({"status": "error", "error": f"未知模型: {model_lower}"}); _record_monitor(record)
+        _log("合成", f"未知模型: {model_lower}")
         raise HTTPException(status_code=400, detail=f"未知模型: {request.model}")
 
 @app.post("/v1/audio/speech")
@@ -2102,6 +2441,7 @@ async def monitor_preview(request: TTSRequest):
     await asyncio.to_thread(load_all_rules)
     output_mode = _global_config.get("output_format", "C")
     lang = _global_config.get("lang", "ja")
+    _log("请求", f"预览: lang={lang} output_format={output_mode} 原文: {request.input}")
 
     if lang == 'en':
         text = request.input
@@ -2112,10 +2452,14 @@ async def monitor_preview(request: TTSRequest):
         text = await asyncio.to_thread(apply_replace_rules, text, 'B', clean_punct=False)
     else:
         text, findings = await asyncio.to_thread(parse_ruby, request.input, output_mode)
+        _log("Ruby", f"共识别 {len(findings)} 条注音，解析后文本: {text}")
 
         text = await asyncio.to_thread(apply_replace_rules, text, output_mode)
+        _log("替换", f"词库替换后文本: {text}")
         text = await asyncio.to_thread(fix_person_suffixes, text, output_mode)
+        _log("后缀", f"后缀修正后文本: {text}")
 
+    _log("预览", f"最终文本: {text}")
     return {"raw_text": request.input, "ruby_text": text, "final_text": text, "ruby_findings": findings}
 
 @app.post("/v1/monitor/synthesize")

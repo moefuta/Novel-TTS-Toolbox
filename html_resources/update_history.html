@@ -5,16 +5,64 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>更新日志 · Novel TTS 工具箱</title>
 <link rel="stylesheet" href="toolbox.css">
+<script>
+/* 主题同步：读取与各模块页一致的主题色/深浅模式/字体，保证 <code> 等元素的主题色正确 */
+(function () {
+  function normalizeHex(s) {
+    if (!s) return null;
+    var h = String(s).trim().replace(/^#/, '');
+    if (/^[0-9a-fA-F]{3}$/.test(h)) h = h.split('').map(function (c) { return c + c; }).join('');
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+    return '#' + h.toLowerCase();
+  }
+  var PRESETS = {
+    '靛蓝色': '#4f6ef7', '桃红色': '#F56C6C', '樱桃粉': '#FF69B4', '荧光绿': '#32CD32',
+    '天空蓝': '#00BFFF', '杨桃黄': '#DAA520', '枫叶红': '#DC143C'
+  };
+  function applyThemeColor(hex) {
+    var root = document.documentElement.style;
+    root.setProperty('--primary', 'light-dark(' + hex + ', color-mix(in srgb, ' + hex + ' 82%, #fff))');
+    root.setProperty('--primary-dark', 'light-dark(color-mix(in srgb, ' + hex + ' 60%, #000), color-mix(in srgb, ' + hex + ' 70%, #fff))');
+    root.setProperty('--primary-light', 'light-dark(color-mix(in srgb, ' + hex + ' 20%, #fff), color-mix(in srgb, ' + hex + ' 28%, #000))');
+    root.setProperty('--primary-tint', 'color-mix(in srgb, ' + hex + ' 35%, transparent)');
+  }
+  function applyTheme() {
+    var mode = localStorage.getItem('themeMode');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.style.colorScheme = (mode ? mode === 'dark' : prefersDark) ? 'dark' : 'light';
+    var saved = localStorage.getItem('themeColor');
+    var hex = normalizeHex(saved) || PRESETS[saved] || '#4f6ef7';
+    applyThemeColor(hex);
+    var font = localStorage.getItem('themeFont');
+    if (font) document.documentElement.style.setProperty('--font-family', font);
+  }
+  applyTheme();
+  window.addEventListener('storage', function (e) {
+    if (!e.key || e.key === 'themeColor' || e.key === 'themeMode' || e.key === 'themeFont') applyTheme();
+  });
+})();
+</script>
 </head>
 <body>
 <div class="cl-content" style="padding: 20px; font-size: 13.5px; line-height: 1.7; color: var(--text);">
+      <!-- v1.1.3 -->
+      <div class="cl-item" style="margin-bottom: 24px;">
+        <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.1.3</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><b>auto_dict.txt 算法重构：</b>彻底厘清其定位——<code>auto_dict.txt</code> 现在<b>只做登记、绝不参与朗读判定</b>。它不再写入词库替换表、精确词表与子串拦截表，因此历史上已经登记的词条不会再反过来「抛弃原文注音、强制套用登记读音」。</li>
+          <li><b>trash_can.txt 语义明确化：</b><code>trash_can.txt</code>（废弃词表）只负责「阻止登记进 auto_dict.txt」，<b>不再影响朗读本身</b>。原文自带的 ruby 注音照常读取，特别适合多音字/多音词——不同地方用不同注音时，登记到这里即可，无需写死映射规则。</li>
+          <li><b>Ruby 识别去重：</b>修复「由用户词典覆盖 / 由后缀词典覆盖 / 包含词典词」三类丢弃分支未去重的问题，避免 Ruby 识别面板重复显示同一条。</li>
+          <li><b>完整任务日志：</b>后端黑窗口新增带时间戳的详细日志（<code>请求 / 规则 / Ruby / 替换 / 后缀 / 登记 / 合成</code>），逐条打印注音保留/丢弃原因、规则命中、登记结果与引擎耗时，方便定位映射流程中的 BUG。</li>
+          <li><b>待检验词条语音提醒：</b>当 <code>auto_dict.txt</code> 的待检验「组词」数量累计抵达 <b>50 / 100</b> 条时，自动在正文前临时插入一条语音提醒（每个阈值每次会话仅播报一次）。</li>
+        </ul>
+      </div>
+
       <div class="cl-item" style="margin-bottom: 24px;">
         <div class="cl-title" style="font-weight: 800; font-size: 15px; margin-bottom: 8px;">v1.1.2</div>
         <ul style="margin: 0; padding-left: 20px;">
           <li><b>功能架构拆分：</b>将前端按功能拆分为 7 个模块，各司其职：<code>launcher.html</code>（启动器）、<code>voicevox_check.html</code>（音色速查）、<code>epub_ruby_extract.html</code>（EPUB Ruby 提取）、<code>TTS_main_process.html</code>（TTS 主进程/监控台）、<code>how_to_use.html</code>（使用说明）、<code>license.html</code>（许可协议）、<code>update_history.html</code>（更新日志）。</li>
           <li><b>共享资源抽离：</b>全局视觉系统抽离为 <code>toolbox.css</code>，主题/设置/代码复制/自定义下拉框/背景图等共享脚本抽离为 <code>toolbox.common.js</code>。</li>
           <li><b>内嵌机制：</b>启动器顶部保留原版标签栏，以 <code>&lt;iframe&gt;</code> 内嵌切换各模块。</li>
-          <li><b>功能全保留：</b>动态主题色计算与自定义颜色、<code>person_dict_*.txt</code> 专属语法、<code>trash_can.txt</code> 废弃词表等既有功能全部保留。</li>
         </ul>
       </div>
       <!-- v1.1.1 -->

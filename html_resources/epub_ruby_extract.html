@@ -322,7 +322,7 @@
       backdrop-filter: blur(var(--ui-blur, 0px));
       -webkit-backdrop-filter: blur(var(--ui-blur, 0px));
     " onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='none'; this.style.boxShadow='var(--raised-panel)';" title="点击查看更新日志">
-      Novel TTS Toolbox <span id="appVersion" style="font-weight: bold; color: var(--primary-dark); margin-left: 4px;">v1.1.2</span>
+      Novel TTS Toolbox <span id="appVersion" style="font-weight: bold; color: var(--primary-dark); margin-left: 4px;">v1.1.3</span>
     </div>
   </div>
 </div>
@@ -347,73 +347,6 @@
   </button>
 </div>
 <script src="toolbox.common.js"></script>
-<script>
-(function () {
-  const btnTop = document.getElementById('backToTop');
-  const btnBottom = document.getElementById('backToBottom');
-  const btnSet = document.getElementById('floatSettings');
-  if (!btnTop || !btnSet || !btnBottom) return;
-  
-  const SHOW_AFTER = 400; // 滚动多少像素后才显示按钮
-  let ticking = false;
-  
-  function update() {
-    const scrollY = window.scrollY;
-    const docHeight = document.documentElement.scrollHeight;
-    const winHeight = window.innerHeight;
-    
-    // 判断是否到底部（误差 10px 以内算作底部）
-    const isBottom = scrollY + winHeight >= docHeight - 10;
-    
-    // 统一控制是否整体显示
-    if (scrollY > SHOW_AFTER) {
-      btnSet.classList.add('show');
-    } else {
-      btnSet.classList.remove('show');
-    }
-    
-    // 前往顶部：只要离开顶部区域就显示
-    if (scrollY > SHOW_AFTER) {
-      btnTop.classList.add('show');
-    } else {
-      btnTop.classList.remove('show');
-    }
-    
-    // 前往底部：只要离开顶部区域，且还没到最底部，就显示
-    if (scrollY > SHOW_AFTER && !isBottom) {
-      btnBottom.classList.add('show');
-    } else {
-      btnBottom.classList.remove('show');
-    }
-    
-    ticking = false;
-  }
-  
-  window.addEventListener('scroll', () => {
-    if (!ticking) { ticking = true; requestAnimationFrame(update); }
-  }, { passive: true });
-  
-  // 前往顶部点击
-  btnTop.addEventListener('click', () => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
-  });
-  
-  // 前往底部点击
-  btnBottom.addEventListener('click', () => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
-  });
-  
-  // 打开设置抽屉
-  btnSet.addEventListener('click', () => {
-    const origSetBtn = document.getElementById('btnOpenSettings');
-    if (origSetBtn) origSetBtn.click();
-  });
-  
-  update();
-})();
-</script>
 <script>
 (function () {
   class MiniZip {

@@ -1043,6 +1043,31 @@
   }
 })();
 
+// ============ 共享脚本：自动读取 update_history.html 并显示版本号 ============
+(function initAppVersion() {
+  const el = document.getElementById('appVersion');
+  if (!el) return;
+
+  function applyVersionFromHtml(html) {
+    if (!html) return false;
+    const m = html.match(/class="cl-title"[^>]*>\s*(v?\d+\.\d+\.\d+)/);
+    if (m) { el.textContent = m[1]; return true; }
+    return false;
+  }
+
+  // 方式一：走后端接口（file:// 下也能跨域读取；后端负责解析 update_history.html）
+  fetch('http://localhost:8000/v1/version')
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('bad status')))
+    .then(data => { if (data && data.version) el.textContent = data.version; })
+    .catch(() => {
+      // 方式二：直接抓取本地 update_history.html（在本地静态服务器如 http://localhost:8080 下可用）
+      fetch('update_history.html')
+        .then(r => r.ok ? r.text() : Promise.reject(new Error('bad status')))
+        .then(html => { applyVersionFromHtml(html); })
+        .catch(() => {});
+    });
+})();
+
 // ============ 共享脚本：从 global_config 同步主题色 ============
 (function syncGlobalTheme() {
   try {
@@ -1050,4 +1075,71 @@
       if (cfg && cfg.theme_color && window.__applyThemeColor) window.__applyThemeColor(cfg.theme_color);
     }).catch(() => {});
   } catch (e) {}
+})();
+
+// ============ 共享脚本：右下角悬浮工具（回顶/设置/回底） ============
+(function () {
+  const btnTop = document.getElementById('backToTop');
+  const btnBottom = document.getElementById('backToBottom');
+  const btnSet = document.getElementById('floatSettings');
+  if (!btnTop || !btnSet || !btnBottom) return;
+  
+  const SHOW_AFTER = 400; // 滚动多少像素后才显示按钮
+  let ticking = false;
+  
+  function update() {
+    const scrollY = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight;
+    const winHeight = window.innerHeight;
+    
+    // 判断是否到底部（误差 10px 以内算作底部）
+    const isBottom = scrollY + winHeight >= docHeight - 10;
+    
+    // 统一控制是否整体显示
+    if (scrollY > SHOW_AFTER) {
+      btnSet.classList.add('show');
+    } else {
+      btnSet.classList.remove('show');
+    }
+    
+    // 前往顶部：只要离开顶部区域就显示
+    if (scrollY > SHOW_AFTER) {
+      btnTop.classList.add('show');
+    } else {
+      btnTop.classList.remove('show');
+    }
+    
+    // 前往底部：只要离开顶部区域，且还没到最底部，就显示
+    if (scrollY > SHOW_AFTER && !isBottom) {
+      btnBottom.classList.add('show');
+    } else {
+      btnBottom.classList.remove('show');
+    }
+    
+    ticking = false;
+  }
+  
+  window.addEventListener('scroll', () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }, { passive: true });
+  
+  // 前往顶部点击
+  btnTop.addEventListener('click', () => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  });
+  
+  // 前往底部点击
+  btnBottom.addEventListener('click', () => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
+  });
+  
+  // 打开设置抽屉
+  btnSet.addEventListener('click', () => {
+    const origSetBtn = document.getElementById('btnOpenSettings');
+    if (origSetBtn) origSetBtn.click();
+  });
+  
+  update();
 })();

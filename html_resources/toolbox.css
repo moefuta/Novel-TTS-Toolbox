@@ -112,8 +112,8 @@
       inset -1px -1px 2px light-dark(rgba(255,255,255,0.1), rgba(255,255,255,0.05));
 
     /* 默认主题色 */
-    --primary:       #5c9d42;
-    --primary-dark:  #316020; /* 默认就加深一些 */
+    --primary:       light-dark(#5c9d42, #6fae59);
+    --primary-dark:  light-dark(#316020, #8fc46b); /* 深色模式提亮，保证 code hover 等文字对比度 */
     --primary-light: light-dark(#86c46b, #2c4a23);
 
     /* 状态色 */
